@@ -32,6 +32,29 @@ const t = {
     cancel:      { ar: 'إلغاء',                           en: 'Cancel' },
     addToCart:   { ar: 'إضافة للسلة',                     en: 'Add to Cart' },
     total:       { ar: 'المجموع',                         en: 'Total' },
+    customize:   { ar: 'خصص الطلب',                       en: 'Customize' },
+    noAddonsMsg: { ar: 'لا توجد إضافات لهذا المنتج',      en: 'No extras available for this product' },
+    cart:        { ar: 'السلة',                           en: 'Cart' },
+    checkout:    { ar: 'إتمام الطلب',                     en: 'Checkout' },
+    emptyCart:   { ar: 'إفراغ السلة',                     en: 'Empty Cart' },
+    cartEmpty:   { ar: 'السلة فارغة',                     en: 'Your cart is empty' },
+    checkoutTitle:{ ar: 'بيانات الطلب',                    en: 'Checkout Details' },
+    dineIn:      { ar: 'داخل المطعم',                     en: 'Dine In' },
+    takeaway:    { ar: 'استلام',                          en: 'Takeaway' },
+    inCar:       { ar: 'في السيارة',                      en: 'In Car' },
+    tableNumber: { ar: 'رقم الطاولة',                     en: 'Table Number' },
+    phoneNumber: { ar: 'رقم الجوال',                      en: 'Phone Number' },
+    carNumber:   { ar: 'رقم السيارة، لونها، أو نوعها',    en: 'Car Number / Color / Type' },
+    customerName:{ ar: 'الاسم (اختياري)',                 en: 'Name (Optional)' },
+    notes:       { ar: 'ملاحظات (اختياري)',               en: 'Notes (Optional)' },
+    confirmOrder:{ ar: 'تأكيد الطلب',                     en: 'Confirm Order' },
+    reqTable:    { ar: 'يرجى إدخال رقم الطاولة',          en: 'Please enter table number' },
+    reqPhone:    { ar: 'يرجى إدخال رقم الجوال',           en: 'Please enter phone number' },
+    reqCar:      { ar: 'يرجى إدخال بيانات السيارة',       en: 'Please enter car details' },
+    orderSuccess:{ ar: 'تم إنشاء الطلب بنجاح. رقم الطلب: ', en: 'Order created successfully. Order number: ' },
+    submitting:  { ar: 'جاري الإرسال...',                 en: 'Submitting...' },
+    trackOrder:  { ar: 'تتبع الطلب',                      en: 'Track Order' },
+    orderSuccessMsg: { ar: 'تم إنشاء الطلب بنجاح',        en: 'Order created successfully' },
 };
 
 /* ======================================
@@ -121,7 +144,7 @@ const css = `
 .sv-empty { grid-column: 1/-1; text-align: center; padding: 4rem; color: rgba(0,0,0,0.25); background: rgba(0,0,0,0.02); border-radius: 12px; }
 
 /* MODAL */
-.sv-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+.sv-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
 .sv-modal { background: #FFFFFF; border-radius: 16px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
 .sv-modal__header { position: relative; width: 100%; aspect-ratio: 16/9; background: #F2EFE8; }
 .sv-modal__img { width: 100%; height: 100%; object-fit: cover; }
@@ -144,6 +167,51 @@ const css = `
 .sv-modal__btn-cancel:hover { background: rgba(0,0,0,0.05); }
 .sv-modal__btn-add { padding: 0.8rem 1.5rem; border-radius: 8px; border: none; background: #C9A84C; color: #fff; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
 .sv-modal__btn-add:hover { background: #B8942F; transform: translateY(-1px); }
+
+/* CART BADGE */
+.sv-cart-btn { position: relative; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: ${TEXT}; display: flex; align-items: center; justify-content: center; }
+.sv-cart-badge { position: absolute; top: -5px; right: -8px; background: ${GOLD}; color: #fff; font-size: 0.75rem; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.sv-page.ar .sv-cart-badge { right: auto; left: -8px; }
+
+/* CART DRAWER */
+.sv-drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; backdrop-filter: blur(4px); transition: opacity 0.3s; }
+.sv-drawer { position: fixed; top: 0; bottom: 0; right: 0; width: 100%; max-width: 400px; background: #fff; z-index: 41; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.15); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.sv-page.ar .sv-drawer { right: auto; left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
+.sv-drawer.closed { transform: translateX(100%); }
+.sv-page.ar .sv-drawer.closed { transform: translateX(-100%); }
+
+.sv-drawer__header { padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; justify-content: space-between; align-items: center; }
+.sv-drawer__title { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; }
+.sv-page.ar .sv-drawer__title { font-family: 'Cairo', sans-serif; }
+.sv-drawer__close { font-size: 1.8rem; background: none; border: none; cursor: pointer; color: #6B6460; line-height: 1; }
+
+.sv-drawer__body { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+.sv-cart-item { display: flex; flex-direction: column; gap: 0.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.sv-cart-item__top { display: flex; justify-content: space-between; align-items: flex-start; }
+.sv-cart-item__name { font-weight: 700; font-size: 1.05rem; }
+.sv-cart-item__price { font-weight: 700; color: #B8942F; }
+.sv-cart-item__addons { font-size: 0.85rem; color: #6B6460; display: flex; flex-direction: column; gap: 0.25rem; }
+.sv-cart-item__addon { display: flex; justify-content: space-between; }
+.sv-cart-item__actions { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+.sv-cart-item__qty { display: flex; align-items: center; background: #F2EFE8; border-radius: 6px; }
+.sv-cart-item__qty button { padding: 0.3rem 0.6rem; border: none; background: transparent; cursor: pointer; font-weight: bold; font-size: 1rem; }
+.sv-cart-item__qty span { width: 20px; text-align: center; font-weight: 600; font-size: 0.9rem; }
+
+.sv-drawer__footer { padding: 1.5rem; border-top: 1px solid rgba(0,0,0,0.07); background: #faf9f6; }
+.sv-drawer__total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 1.2rem; font-weight: 700; }
+.sv-drawer__checkout-btn { width: 100%; padding: 1rem; background: #C9A84C; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: all 0.2s; font-family: inherit; margin-bottom: 0.75rem; box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
+.sv-drawer__checkout-btn:hover { background: #B8942F; }
+.sv-drawer__empty-btn { width: 100%; padding: 0.75rem; background: transparent; color: #C0392B; border: 1px solid #C0392B; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.sv-drawer__empty-btn:hover { background: rgba(192,57,43,0.05); }
+
+/* FORM ELEMENTS */
+.sv-form-group { margin-bottom: 1rem; }
+.sv-form-label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; color: #1A1714; text-align: start; }
+.sv-form-input { width: 100%; padding: 0.8rem 1rem; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 1rem; font-family: inherit; transition: border-color 0.2s; background: #fff; }
+.sv-form-input:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+.sv-radio-group { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+.sv-radio-btn { flex: 1; text-align: center; padding: 0.75rem 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #6B6460; transition: all 0.2s; user-select: none; }
+.sv-radio-btn.active { background: rgba(201,168,76,0.1); border-color: #C9A84C; color: #B8942F; }
 `;
 
 /* ======================================
@@ -159,6 +227,19 @@ export default function Menu({ slug }) {
     const [quantities, setQuantities] = useState({});
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [selectedAddons, setSelectedAddons] = useState({});
+    const [cart, setCart] = useState([]);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [successOrderNumber, setSuccessOrderNumber] = useState(null);
+    const [orderForm, setOrderForm] = useState({
+        type: 'dine_in',
+        table_number: '',
+        phone: '',
+        car_number: '',
+        customer_name: '',
+        notes: ''
+    });
     const [lang, setLang] = useState(() => {
         try { return localStorage.getItem('sv_lang') || 'ar'; } catch { return 'ar'; }
     });
@@ -204,19 +285,10 @@ export default function Menu({ slug }) {
     };
 
     const addToOrderClick = (product) => {
-        if (product.addons && product.addons.length > 0) {
-            setSelectedProduct(product);
-            setSelectedAddons({});
-        } else {
-            const quantity = quantities[product.id] ?? 1;
-            const total = parseFloat(product.price) * quantity;
-            console.log({
-                product,
-                quantity,
-                addons: [],
-                total
-            });
-        }
+        console.log("Clicked product:", product);
+        console.log("Product addons:", product.addons);
+        setSelectedProduct(product);
+        setSelectedAddons({});
     };
 
     const closeAddonModal = () => {
@@ -228,21 +300,127 @@ export default function Menu({ slug }) {
         setSelectedAddons(prev => ({ ...prev, [addonId]: !prev[addonId] }));
     };
 
+    const getCartItemKey = (product, addons) => {
+        const addonIds = addons.map(a => a.id).sort().join('-');
+        return `${product.id}-${addonIds}`;
+    };
+
     const confirmAddons = () => {
         if (!selectedProduct) return;
         const quantity = quantities[selectedProduct.id] ?? 1;
         const chosenAddons = (selectedProduct.addons || []).filter(a => selectedAddons[a.id]);
         const addonsSum = chosenAddons.reduce((sum, a) => sum + parseFloat(a.price), 0);
-        const total = (parseFloat(selectedProduct.price) + addonsSum) * quantity;
+        const itemTotal = (parseFloat(selectedProduct.price) + addonsSum) * quantity;
         
         console.log({
             product: selectedProduct,
             quantity,
             addons: chosenAddons,
-            total
+            total: itemTotal
+        });
+        
+        const cartKey = getCartItemKey(selectedProduct, chosenAddons);
+        
+        setCart(prev => {
+            const existingIdx = prev.findIndex(item => item.key === cartKey);
+            if (existingIdx >= 0) {
+                const newCart = [...prev];
+                const existing = newCart[existingIdx];
+                existing.quantity += quantity;
+                existing.total = (parseFloat(existing.product.price) + addonsSum) * existing.quantity;
+                return newCart;
+            } else {
+                return [...prev, {
+                    key: cartKey,
+                    product: selectedProduct,
+                    name: getProductName(selectedProduct, lang),
+                    price: parseFloat(selectedProduct.price),
+                    quantity,
+                    addons: chosenAddons,
+                    total: itemTotal
+                }];
+            }
         });
         
         closeAddonModal();
+        setQuantities(prev => ({ ...prev, [selectedProduct.id]: 1 }));
+    };
+
+    const updateCartQty = (key, delta) => {
+        setCart(prev => {
+            return prev.map(item => {
+                if (item.key === key) {
+                    const newQty = item.quantity + delta;
+                    if (newQty <= 0) return null;
+                    const addonsSum = item.addons.reduce((sum, a) => sum + parseFloat(a.price), 0);
+                    item.quantity = newQty;
+                    item.total = (item.price + addonsSum) * newQty;
+                    return item;
+                }
+                return item;
+            }).filter(Boolean);
+        });
+    };
+
+    const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+
+    const handleCheckoutSubmit = async () => {
+        const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
+        
+        if (type === 'dine_in' && !table_number.trim()) return alert(tr('reqTable'));
+        if (type === 'takeaway' && !phone.trim()) return alert(tr('reqPhone'));
+        if (type === 'car') {
+            if (!car_number.trim()) return alert(tr('reqCar'));
+            if (!phone.trim()) return alert(tr('reqPhone'));
+        }
+        
+        setIsSubmitting(true);
+        
+        try {
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    restaurant_slug: slug,
+                    order_type: type,
+                    table_number,
+                    car_number,
+                    phone,
+                    customer_name,
+                    notes,
+                    cart,
+                    total: cartTotal
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                setSuccessOrderNumber(data.order_number);
+                setCart([]);
+                setIsCheckoutOpen(false);
+                setIsCartOpen(false);
+                setOrderForm({
+                    type: 'dine_in',
+                    table_number: '',
+                    phone: '',
+                    car_number: '',
+                    customer_name: '',
+                    notes: ''
+                });
+            } else {
+                alert(data.message || 'Error occurred while creating the order.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('A network error occurred. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     /* ---- Loading ---- */
@@ -286,6 +464,16 @@ export default function Menu({ slug }) {
                         <span className="sv-brand">{restaurant.name_en || 'SAVOR'}</span>
                     </div>
                     <div className="sv-header__right">
+                        <button 
+                            style={{ background: '#1A1714', color: '#C9A84C', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginInlineEnd: '0.5rem' }}
+                            onClick={() => window.location.href = '/track'}
+                        >
+                            {tr('trackOrder')}
+                        </button>
+                        <button className="sv-cart-btn" onClick={() => setIsCartOpen(true)}>
+                            🛒
+                            {cartCount > 0 && <span className="sv-cart-badge">{cartCount}</span>}
+                        </button>
                         <button
                             className="sv-lang-btn"
                             onClick={() => setLang(l => l === 'ar' ? 'en' : 'ar')}
@@ -408,7 +596,7 @@ export default function Menu({ slug }) {
                                                     >+</button>
                                                 </div>
                                                 <button className="sv-card__add-btn" onClick={() => addToOrderClick(product)}>
-                                                    <span>{tr('addToOrder')}</span>
+                                                    <span>{product.addons && product.addons.length > 0 ? tr('customize') : tr('addToOrder')}</span>
                                                     <span style={{ fontSize: '1rem' }}>+</span>
                                                 </button>
                                             </div>
@@ -446,7 +634,7 @@ export default function Menu({ slug }) {
                                     </div>
                                 </div>
                                 
-                                {selectedProduct.addons && selectedProduct.addons.length > 0 && (
+                                {selectedProduct.addons && selectedProduct.addons.length > 0 ? (
                                     <>
                                         <div className="sv-modal__section-title">{tr('addonsTitle')}</div>
                                         <div>
@@ -469,6 +657,10 @@ export default function Menu({ slug }) {
                                             ))}
                                         </div>
                                     </>
+                                ) : (
+                                    <p style={{ color: '#6B6460', fontSize: '0.95rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                        {tr('noAddonsMsg')}
+                                    </p>
                                 )}
                             </div>
                             <div className="sv-modal__footer">
@@ -486,6 +678,163 @@ export default function Menu({ slug }) {
                         </div>
                     </div>
                 )}
+
+                {/* ── CART DRAWER ── */}
+                {isCartOpen && (
+                    <div className="sv-drawer-overlay" onClick={() => setIsCartOpen(false)} />
+                )}
+                <div className={`sv-drawer ${isCartOpen ? '' : 'closed'}`}>
+                    <div className="sv-drawer__header">
+                        <h2 className="sv-drawer__title">{tr('cart')}</h2>
+                        <button className="sv-drawer__close" onClick={() => setIsCartOpen(false)}>×</button>
+                    </div>
+                    
+                    <div className="sv-drawer__body">
+                        {cart.length === 0 ? (
+                            <div style={{ textAlign: 'center', color: MUTED, marginTop: '2rem' }}>
+                                🛒 {tr('cartEmpty')}
+                            </div>
+                        ) : (
+                            cart.map(item => (
+                                <div key={item.key} className="sv-cart-item">
+                                    <div className="sv-cart-item__top">
+                                        <div className="sv-cart-item__name">{item.name}</div>
+                                        <div className="sv-cart-item__price">{item.total.toFixed(2)} {tr('sar')}</div>
+                                    </div>
+                                    
+                                    {item.addons.length > 0 && (
+                                        <div className="sv-cart-item__addons">
+                                            {item.addons.map(a => (
+                                                <div key={a.id} className="sv-cart-item__addon">
+                                                    <span>+ {lang === 'ar' ? (a.name_ar || a.name_en) : (a.name_en || a.name_ar)}</span>
+                                                    <span>{parseFloat(a.price).toFixed(2)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    <div className="sv-cart-item__actions">
+                                        <div className="sv-cart-item__qty">
+                                            <button onClick={() => updateCartQty(item.key, -1)}>−</button>
+                                            <span>{item.quantity}</span>
+                                            <button onClick={() => updateCartQty(item.key, 1)}>+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    
+                    {cart.length > 0 && (
+                        <div className="sv-drawer__footer">
+                            <div className="sv-drawer__total-row">
+                                <span>{tr('total')}</span>
+                                <span>{cartTotal.toFixed(2)} {tr('sar')}</span>
+                            </div>
+                            <button className="sv-drawer__checkout-btn" onClick={() => {
+                                setIsCartOpen(false);
+                                setTimeout(() => setIsCheckoutOpen(true), 150);
+                            }}>
+                                {tr('checkout')}
+                            </button>
+                            <button className="sv-drawer__empty-btn" onClick={() => setCart([])}>
+                                {tr('emptyCart')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── CHECKOUT MODAL ── */}
+                {isCheckoutOpen && (
+                    <div className="sv-modal-overlay" onClick={() => setIsCheckoutOpen(false)}>
+                        <div className="sv-modal" style={{ padding: '1.5rem' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 className="sv-modal__title" style={{ margin: 0 }}>{tr('checkoutTitle')}</h3>
+                                <button className="sv-drawer__close" onClick={() => setIsCheckoutOpen(false)}>×</button>
+                            </div>
+                            
+                            <div className="sv-radio-group">
+                                <div className={`sv-radio-btn ${orderForm.type === 'dine_in' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'dine_in'}))}>
+                                    🍽️ {tr('dineIn')}
+                                </div>
+                                <div className={`sv-radio-btn ${orderForm.type === 'takeaway' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'takeaway'}))}>
+                                    🛍️ {tr('takeaway')}
+                                </div>
+                                <div className={`sv-radio-btn ${orderForm.type === 'car' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'car'}))}>
+                                    🚗 {tr('inCar')}
+                                </div>
+                            </div>
+                            
+                            {orderForm.type === 'dine_in' && (
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('tableNumber')} *</label>
+                                    <input className="sv-form-input" type="text" value={orderForm.table_number} onChange={e => setOrderForm(p => ({...p, table_number: e.target.value}))} />
+                                </div>
+                            )}
+                            
+                            {(orderForm.type === 'takeaway' || orderForm.type === 'car') && (
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('phoneNumber')} *</label>
+                                    <input className="sv-form-input" type="tel" value={orderForm.phone} onChange={e => setOrderForm(p => ({...p, phone: e.target.value}))} />
+                                </div>
+                            )}
+                            
+                            {orderForm.type === 'car' && (
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('carNumber')} *</label>
+                                    <input className="sv-form-input" type="text" value={orderForm.car_number} onChange={e => setOrderForm(p => ({...p, car_number: e.target.value}))} />
+                                </div>
+                            )}
+                            
+                            <div className="sv-form-group">
+                                <label className="sv-form-label">{tr('customerName')}</label>
+                                <input className="sv-form-input" type="text" value={orderForm.customer_name} onChange={e => setOrderForm(p => ({...p, customer_name: e.target.value}))} />
+                            </div>
+                            
+                            <div className="sv-form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="sv-form-label">{tr('notes')}</label>
+                                <textarea className="sv-form-input" rows="2" value={orderForm.notes} onChange={e => setOrderForm(p => ({...p, notes: e.target.value}))}></textarea>
+                            </div>
+                            
+                            <button 
+                                className="sv-modal__btn-add" 
+                                style={{ width: '100%', padding: '1rem', fontSize: '1.05rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }} 
+                                onClick={handleCheckoutSubmit}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? tr('submitting') : tr('confirmOrder')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── SUCCESS MODAL ── */}
+                {successOrderNumber && (
+                    <div className="sv-modal-overlay sv-z-checkout" onClick={() => setSuccessOrderNumber(null)}>
+                        <div className="sv-modal" onClick={e => e.stopPropagation()}>
+                            <div className="sv-modal__header" style={{ borderBottom: 'none' }}>
+                                <h2 className="sv-modal__title" style={{ color: '#2ecc71', width: '100%', textAlign: 'center' }}>
+                                    {tr('orderSuccessMsg')}
+                                </h2>
+                                <button className="sv-modal__close" onClick={() => setSuccessOrderNumber(null)} style={{ position: 'absolute', right: '1rem', top: '1rem' }}>&times;</button>
+                            </div>
+                            <div className="sv-modal__body" style={{ textAlign: 'center', padding: '2rem 1rem', paddingTop: '0' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                                <div style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '2rem', color: '#1A1714' }}>
+                                    {successOrderNumber}
+                                </div>
+                                <button 
+                                    className="sv-modal__btn-add" 
+                                    style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', background: '#C9A84C', color: '#fff' }} 
+                                    onClick={() => window.location.href = `/track/${successOrderNumber}`}
+                                >
+                                    {tr('trackOrder')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </div>
         </>
     );
