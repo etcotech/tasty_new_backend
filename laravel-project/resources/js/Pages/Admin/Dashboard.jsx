@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 const GOLD = '#C9A84C';
 const BG = '#F7F5F0';
@@ -8,20 +8,7 @@ const TEXT = '#1A1714';
 const MUTED = '#6B6460';
 const BORDER = 'rgba(0,0,0,0.07)';
 
-const css = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap');
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${TEXT}; }
-
-.admin-layout { min-height: 100vh; display: flex; flex-direction: column; direction: rtl; }
-.admin-header { background: ${SURF}; padding: 1rem 2rem; border-bottom: 1px solid ${BORDER}; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-.admin-brand { font-size: 1.5rem; font-weight: 700; color: ${GOLD}; text-decoration: none; }
-
-.admin-nav { display: flex; gap: 1.5rem; }
-.admin-nav-link { text-decoration: none; color: ${MUTED}; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
-.admin-nav-link:hover, .admin-nav-link.active { color: ${GOLD}; }
-
-.admin-content { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+const pageStyles = `
 .admin-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 1.5rem; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
@@ -72,102 +59,88 @@ export default function Dashboard({ stats, charts }) {
     };
 
     return (
-        <div className="admin-layout">
-            <Head title="لوحة الإحصائيات | Dashboard" />
-            <style>{css}</style>
+        <AdminLayout title="لوحة الإحصائيات">
+            <style>{pageStyles}</style>
 
-            <header className="admin-header">
-                <Link href="/admin/dashboard" className="admin-brand">لوحة القيادة</Link>
-                <nav className="admin-nav">
-                    <Link href="/admin/dashboard" className="admin-nav-link active">الإحصائيات</Link>
-                    <Link href="/admin/orders" className="admin-nav-link">الطلبات</Link>
-                    <Link href="/admin/categories" className="admin-nav-link">التصنيفات</Link>
-                    <Link href="/admin/products" className="admin-nav-link">المنتجات</Link>
-                    <Link href="/admin/extras" className="admin-nav-link">الإضافات</Link>
-                </nav>
-            </header>
+            <h1 className="admin-title">نظرة عامة (Overview)</h1>
 
-            <main className="admin-content">
-                <h1 className="admin-title">نظرة عامة (Overview)</h1>
+            <div className="stats-grid">
+                <div className="stat-card">
+                    <span className="stat-label">طلبات اليوم</span>
+                    <span className="stat-value">{stats.ordersToday}</span>
+                    <span className="stat-trend">اليوم</span>
+                </div>
+                <div className="stat-card">
+                    <span className="stat-label">مبيعات اليوم</span>
+                    <span className="stat-value">{stats.revenueToday.toFixed(2)} ر.س</span>
+                    <span className="stat-trend">اليوم</span>
+                </div>
+                <div className="stat-card">
+                    <span className="stat-label">طلبات قيد الانتظار</span>
+                    <span className="stat-value">{stats.pendingOrders}</span>
+                    <span className="stat-trend">بانتظار التحضير</span>
+                </div>
+                <div className="stat-card">
+                    <span className="stat-label">إجمالي المنتجات</span>
+                    <span className="stat-value">{stats.totalProducts}</span>
+                    <span className="stat-trend">في القائمة</span>
+                </div>
+            </div>
 
-                <div className="stats-grid">
-                    <div className="stat-card">
-                        <span className="stat-label">طلبات اليوم</span>
-                        <span className="stat-value">{stats.ordersToday}</span>
-                        <span className="stat-trend">اليوم</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-label">مبيعات اليوم</span>
-                        <span className="stat-value">{stats.revenueToday.toFixed(2)} ر.س</span>
-                        <span className="stat-trend">اليوم</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-label">طلبات قيد الانتظار</span>
-                        <span className="stat-value">{stats.pendingOrders}</span>
-                        <span className="stat-trend">بانتظار التحضير</span>
-                    </div>
-                    <div className="stat-card">
-                        <span className="stat-label">إجمالي المنتجات</span>
-                        <span className="stat-value">{stats.totalProducts}</span>
-                        <span className="stat-trend">في القائمة</span>
+            <div className="charts-grid">
+                <div className="chart-card">
+                    <h2 className="chart-title">إيرادات آخر 7 أيام (ر.س)</h2>
+                    <div className="bar-chart">
+                        {charts.revenueLast7Days.map((d, i) => (
+                            <div key={i} className="bar-item">
+                                <div 
+                                    className="bar-fill" 
+                                    style={{ height: `${(d.total / maxRevenue) * 100}%` }}
+                                >
+                                    <span className="bar-value">{parseFloat(d.total).toFixed(0)}</span>
+                                    <span className="bar-label">{new Date(d.date).toLocaleDateString('ar-SA', { weekday: 'short' })}</span>
+                                </div>
+                            </div>
+                        ))}
+                        {charts.revenueLast7Days.length === 0 && (
+                            <div style={{ width: '100%', textAlign: 'center', color: MUTED }}>لا توجد بيانات كافية</div>
+                        )}
                     </div>
                 </div>
 
-                <div className="charts-grid">
-                    <div className="chart-card">
-                        <h2 className="chart-title">إيرادات آخر 7 أيام (ر.س)</h2>
-                        <div className="bar-chart">
-                            {charts.revenueLast7Days.map((d, i) => (
-                                <div key={i} className="bar-item">
-                                    <div 
-                                        className="bar-fill" 
-                                        style={{ height: `${(d.total / maxRevenue) * 100}%` }}
-                                    >
-                                        <span className="bar-value">{parseFloat(d.total).toFixed(0)}</span>
-                                        <span className="bar-label">{new Date(d.date).toLocaleDateString('ar-SA', { weekday: 'short' })}</span>
-                                    </div>
+                <div className="chart-card">
+                    <h2 className="chart-title">حالة الطلبات</h2>
+                    <div className="status-list">
+                        {charts.ordersByStatus.map(s => (
+                            <div key={s.status} className="status-row">
+                                <div className="status-pill" style={{ background: statusColors[s.status] || '#eee' }}></div>
+                                <div className="status-info">
+                                    <span>{statusLabels[s.status] || s.status}</span>
+                                    <span>{s.count}</span>
                                 </div>
-                            ))}
-                            {charts.revenueLast7Days.length === 0 && (
-                                <div style={{ width: '100%', textAlign: 'center', color: MUTED }}>لا توجد بيانات كافية</div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="chart-card">
-                        <h2 className="chart-title">حالة الطلبات</h2>
-                        <div className="status-list">
-                            {charts.ordersByStatus.map(s => (
-                                <div key={s.status} className="status-row">
-                                    <div className="status-pill" style={{ background: statusColors[s.status] || '#eee' }}></div>
-                                    <div className="status-info">
-                                        <span>{statusLabels[s.status] || s.status}</span>
-                                        <span>{s.count}</span>
-                                    </div>
-                                </div>
-                            ))}
-                            {charts.ordersByStatus.length === 0 && (
-                                <div style={{ textAlign: 'center', color: MUTED }}>لا توجد بيانات</div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="chart-card" style={{ gridColumn: 'span 2' }}>
-                        <h2 className="chart-title">المنتجات الأكثر مبيعاً (Top 5)</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                            {charts.topProducts.map((p, i) => (
-                                <div key={i} className="product-row">
-                                    <div className="product-name">{p.product_name_ar || p.product_name_en}</div>
-                                    <div className="product-count">{p.total_sold} قطعة</div>
-                                </div>
-                            ))}
-                            {charts.topProducts.length === 0 && (
-                                <div style={{ textAlign: 'center', color: MUTED }}>لا توجد مبيعات بعد</div>
-                            )}
-                        </div>
+                            </div>
+                        ))}
+                        {charts.ordersByStatus.length === 0 && (
+                            <div style={{ textAlign: 'center', color: MUTED }}>لا توجد بيانات</div>
+                        )}
                     </div>
                 </div>
-            </main>
-        </div>
+
+                <div className="chart-card" style={{ gridColumn: 'span 2' }}>
+                    <h2 className="chart-title">المنتجات الأكثر مبيعاً (Top 5)</h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        {charts.topProducts.map((p, i) => (
+                            <div key={i} className="product-row">
+                                <div className="product-name">{p.product_name_ar || p.product_name_en}</div>
+                                <div className="product-count">{p.total_sold} قطعة</div>
+                            </div>
+                        ))}
+                        {charts.topProducts.length === 0 && (
+                            <div style={{ textAlign: 'center', color: MUTED }}>لا توجد مبيعات بعد</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </AdminLayout>
     );
 }

@@ -1,28 +1,14 @@
 import React, { useState } from 'react';
-import { Head, router, Link } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 const GOLD = '#C9A84C';
-const BG = '#F7F5F0';
 const SURF = '#FFFFFF';
 const TEXT = '#1A1714';
 const MUTED = '#6B6460';
 const BORDER = 'rgba(0,0,0,0.07)';
 
-const css = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap');
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${TEXT}; }
-
-.admin-layout { min-height: 100vh; display: flex; flex-direction: column; direction: rtl; }
-.admin-header { background: ${SURF}; padding: 1.5rem 2rem; border-bottom: 1px solid ${BORDER}; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-.admin-brand { font-size: 1.5rem; font-weight: 700; color: ${GOLD}; }
-
-.admin-content { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+const pageStyles = `
 .admin-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 1.5rem; }
-
-.admin-nav { display: flex; gap: 1.5rem; }
-.admin-nav-link { text-decoration: none; color: ${MUTED}; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
-.admin-nav-link:hover, .admin-nav-link.active { color: ${GOLD}; }
 
 .table-container { background: ${SURF}; border-radius: 12px; border: 1px solid ${BORDER}; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
 .admin-table { width: 100%; border-collapse: collapse; text-align: right; }
@@ -43,7 +29,7 @@ body { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${T
 .btn-view:hover { background: ${GOLD}; color: #fff; }
 
 /* MODAL */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
 .modal { background: ${SURF}; border-radius: 12px; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
 .modal-header { padding: 1.5rem; border-bottom: 1px solid ${BORDER}; display: flex; justify-content: space-between; align-items: center; }
 .modal-title { font-weight: 700; font-size: 1.2rem; }
@@ -97,80 +83,66 @@ export default function Orders({ orders: initialOrders }) {
     };
 
     return (
-        <div className="admin-layout">
-            <Head title="إدارة الطلبات | Orders Dashboard" />
-            <style>{css}</style>
+        <AdminLayout title="إدارة الطلبات">
+            <style>{pageStyles}</style>
 
-            <header className="admin-header">
-                <Link href="/admin/dashboard" className="admin-brand">لوحة القيادة</Link>
-                <nav className="admin-nav">
-                    <Link href="/admin/dashboard" className="admin-nav-link">الإحصائيات</Link>
-                    <Link href="/admin/orders" className="admin-nav-link active">الطلبات</Link>
-                    <Link href="/admin/categories" className="admin-nav-link">التصنيفات</Link>
-                    <Link href="/admin/products" className="admin-nav-link">المنتجات</Link>
-                    <Link href="/admin/extras" className="admin-nav-link">الإضافات</Link>
-                </nav>
-            </header>
+            <h1 className="admin-title">الطلبات (Orders)</h1>
 
-            <main className="admin-content">
-                <h1 className="admin-title">الطلبات (Orders)</h1>
-
-                <div className="table-container">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>رقم الطلب (Order #)</th>
-                                <th>النوع (Type)</th>
-                                <th>المجموع (Total)</th>
-                                <th>الحالة (Status)</th>
-                                <th>الوقت (Time)</th>
-                                <th>إجراءات (Actions)</th>
+            <div className="table-container">
+                <table className="admin-table">
+                    <thead>
+                        <tr>
+                            <th>رقم الطلب (Order #)</th>
+                            <th>النوع (Type)</th>
+                            <th>المجموع (Total)</th>
+                            <th>الحالة (Status)</th>
+                            <th>الوقت (Time)</th>
+                            <th>إجراءات (Actions)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {orders.map(order => (
+                            <tr key={order.id}>
+                                <td style={{ fontWeight: 700 }}>{order.order_number}</td>
+                                <td>
+                                    {order.order_type === 'dine_in' ? 'داخل المطعم' : 
+                                     order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
+                                </td>
+                                <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(order.total).toFixed(2)} ر.س</td>
+                                <td>
+                                    <span className={`status-badge status-${order.status}`}>
+                                        {statusOptions[order.status]}
+                                    </span>
+                                    <select 
+                                        className="status-select" 
+                                        value={order.status}
+                                        onChange={(e) => updateStatus(order.id, e.target.value)}
+                                        disabled={isUpdating}
+                                    >
+                                        <option value="pending">جديد</option>
+                                        <option value="preparing">تجهيز</option>
+                                        <option value="ready">جاهز</option>
+                                        <option value="completed">مكتمل</option>
+                                    </select>
+                                </td>
+                                <td style={{ color: MUTED, fontSize: '0.9rem' }}>{formatDate(order.created_at)}</td>
+                                <td>
+                                    <button className="btn-view" onClick={() => setSelectedOrder(order)}>
+                                        عرض التفاصيل
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map(order => (
-                                <tr key={order.id}>
-                                    <td style={{ fontWeight: 700 }}>{order.order_number}</td>
-                                    <td>
-                                        {order.order_type === 'dine_in' ? 'داخل المطعم' : 
-                                         order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
-                                    </td>
-                                    <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(order.total).toFixed(2)} ر.س</td>
-                                    <td>
-                                        <span className={`status-badge status-${order.status}`}>
-                                            {statusOptions[order.status]}
-                                        </span>
-                                        <select 
-                                            className="status-select" 
-                                            value={order.status}
-                                            onChange={(e) => updateStatus(order.id, e.target.value)}
-                                            disabled={isUpdating}
-                                        >
-                                            <option value="pending">جديد</option>
-                                            <option value="preparing">تجهيز</option>
-                                            <option value="ready">جاهز</option>
-                                            <option value="completed">مكتمل</option>
-                                        </select>
-                                    </td>
-                                    <td style={{ color: MUTED, fontSize: '0.9rem' }}>{formatDate(order.created_at)}</td>
-                                    <td>
-                                        <button className="btn-view" onClick={() => setSelectedOrder(order)}>
-                                            عرض التفاصيل
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {orders.length === 0 && (
-                                <tr>
-                                    <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>
-                                        لا توجد طلبات حالياً
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+                        ))}
+                        {orders.length === 0 && (
+                            <tr>
+                                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>
+                                    لا توجد طلبات حالياً
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
 
             {/* DETAILS MODAL */}
             {selectedOrder && (
@@ -218,6 +190,6 @@ export default function Orders({ orders: initialOrders }) {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     );
 }

@@ -82,8 +82,17 @@ class ProductController extends Controller
             'image_path', 'is_available'
         ];
 
-        $callback = function() use ($headers) {
+        $callback = function() {
             $file = fopen('php://output', 'w');
+            // Add UTF-8 BOM for Excel
+            fwrite($file, "\xEF\xBB\xBF");
+            
+            $headers = [
+                'category_ar', 'category_en', 'name_ar', 'name_en', 
+                'description_ar', 'description_en', 'price', 
+                'image_path', 'is_available'
+            ];
+            
             fputcsv($file, $headers);
             fclose($file);
         };
@@ -106,8 +115,17 @@ class ProductController extends Controller
             'image_path', 'is_available'
         ];
 
-        $callback = function() use ($products, $headers) {
+        $callback = function() use ($products) {
             $file = fopen('php://output', 'w');
+            // Add UTF-8 BOM for Excel
+            fwrite($file, "\xEF\xBB\xBF");
+
+            $headers = [
+                'category_ar', 'category_en', 'name_ar', 'name_en', 
+                'description_ar', 'description_en', 'price', 
+                'image_path', 'is_available'
+            ];
+            
             fputcsv($file, $headers);
 
             foreach ($products as $product) {
@@ -141,20 +159,74 @@ class ProductController extends Controller
             'file' => 'required|file|mimes:csv,txt'
         ]);
 
-        $file = fopen($request->file('file')->getRealPath(), 'r');
-        $headers = fgetcsv($file);
+        $path = $request->file('file')->getRealPath();
+        $content = file_get_contents($path);
+
+        // Detect and convert encoding
+        $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-6'], true);
         
+        if ($encoding === 'ISO-8859-6') {
+            $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-6');
+        } elseif (!$encoding) {
+            // If not detected as UTF-8 or ISO-8859-6, try CP1256 fallback
+            try {
+                $converted = @mb_convert_encoding($content, 'UTF-8', 'CP1256');
+                if ($converted !== false) {
+                    $content = $converted;
+                }
+            } catch (\Throwable $e) {
+                // Fallback to original content
+            }
+        }
+
+        // Strip UTF-8 BOM if present
+        $bom = "\xEF\xBB\xBF";
+        if (substr($content, 0, 3) === $bom) {
+            $content = substr($content, 3);
+        }
+
+        // Use temporary stream to parse CSV
+        $temp = fopen('php://temp', 'r+');
+        fwrite($temp, $content);
+        rewind($temp);
+
+        $headers = fgetcsv($temp);
+        
+        if (!$headers) {
+            fclose($temp);
+            return redirect()->back()->withErrors(['file' => 'The CSV file is empty or invalid.']);
+        }
+
+        // Normalize headers: trim and lowercase
+        $headers = array_map(function($h) {
+            return strtolower(trim($h));
+        }, $headers);
+
+        // Required columns validation
+        $required = ['category_ar', 'name_ar', 'price'];
+        foreach ($required as $col) {
+            if (!in_array($col, $headers)) {
+                fclose($temp);
+                return redirect()->back()->withErrors(['file' => "Required column '$col' is missing. Please check the template."]);
+            }
+        }
+
         $restaurant = Restaurant::first();
 
-        while (($row = fgetcsv($file)) !== false) {
-            if (count($row) < 7) continue;
+        while (($row = fgetcsv($temp)) !== false) {
+            if (empty($row) || count($row) < count($headers)) continue;
 
             $data = array_combine($headers, $row);
+            
+            // Basic data cleaning
+            $data = array_map('trim', $data);
+
+            if (empty($data['category_ar']) || empty($data['name_ar'])) continue;
 
             // Find or create category
             $category = Category::firstOrCreate(
                 ['name_ar' => $data['category_ar']],
-                ['name_en' => $data['category_en']]
+                ['name_en' => $data['category_en'] ?? $data['category_ar']]
             );
 
             // Create or update product
@@ -165,17 +237,17 @@ class ProductController extends Controller
                 ],
                 [
                     'restaurant_id' => $restaurant->id,
-                    'name_en' => $data['name_en'],
+                    'name_en' => $data['name_en'] ?? $data['name_ar'],
                     'description_ar' => $data['description_ar'] ?? '',
                     'description_en' => $data['description_en'] ?? '',
-                    'price' => $data['price'],
+                    'price' => (float)$data['price'],
                     'image_path' => $data['image_path'] ?? '',
-                    'is_available' => $data['is_available'] ?? 1
+                    'is_available' => isset($data['is_available']) ? (int)$data['is_available'] : 1
                 ]
             );
         }
 
-        fclose($file);
+        fclose($temp);
 
         return redirect()->back()->with('message', 'Products imported successfully');
     }

@@ -1,31 +1,18 @@
 import React, { useState } from 'react';
-import { Head, router, Link } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import { router } from '@inertiajs/react';
 
 const GOLD = '#C9A84C';
-const BG = '#F7F5F0';
 const SURF = '#FFFFFF';
 const TEXT = '#1A1714';
 const MUTED = '#6B6460';
 const BORDER = 'rgba(0,0,0,0.07)';
 
-const css = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap');
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${TEXT}; }
-
-.admin-layout { min-height: 100vh; display: flex; flex-direction: column; direction: rtl; }
-.admin-header { background: ${SURF}; padding: 1rem 2rem; border-bottom: 1px solid ${BORDER}; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-.admin-brand { font-size: 1.5rem; font-weight: 700; color: ${GOLD}; text-decoration: none; }
-
-.admin-nav { display: flex; gap: 1.5rem; }
-.admin-nav-link { text-decoration: none; color: ${MUTED}; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
-.admin-nav-link:hover, .admin-nav-link.active { color: ${GOLD}; }
-
-.admin-content { padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+const pageStyles = `
 .admin-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .admin-title { font-size: 1.8rem; font-weight: 700; }
 
-.btn-primary { background: ${GOLD}; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
+.btn-primary { background: ${GOLD}; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; }
 .btn-primary:hover { opacity: 0.9; }
 
 .table-container { background: ${SURF}; border-radius: 12px; border: 1px solid ${BORDER}; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
@@ -36,7 +23,7 @@ body { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${T
 .btn-edit { color: ${GOLD}; background: none; border: none; cursor: pointer; font-weight: 600; margin-left: 1rem; font-family: inherit; }
 .btn-delete { color: #e74c3c; background: none; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
 .modal { background: ${SURF}; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
 .modal-header { padding: 1.5rem; border-bottom: 1px solid ${BORDER}; display: flex; justify-content: space-between; align-items: center; }
 .modal-body { padding: 1.5rem; }
@@ -117,90 +104,81 @@ export default function Products({ products, categories, extras }) {
     };
 
     return (
-        <div className="admin-layout">
-            <Head title="إدارة المنتجات | Products" />
-            <style>{css}</style>
+        <AdminLayout title="إدارة المنتجات">
+            <style>{pageStyles}</style>
 
-            <header className="admin-header">
-                <Link href="/admin/dashboard" className="admin-brand">لوحة القيادة</Link>
-                <nav className="admin-nav">
-                    <Link href="/admin/dashboard" className="admin-nav-link">الإحصائيات</Link>
-                    <Link href="/admin/orders" className="admin-nav-link">الطلبات</Link>
-                    <Link href="/admin/categories" className="admin-nav-link">التصنيفات</Link>
-                    <Link href="/admin/products" className="admin-nav-link active">المنتجات</Link>
-                    <Link href="/admin/extras" className="admin-nav-link">الإضافات</Link>
+            <div className="admin-title-row">
+                <h1 className="admin-title">المنتجات (Products)</h1>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button 
-                        style={{ background: 'none', border: `1px solid ${GOLD}`, color: GOLD, padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, marginRight: '1rem' }}
+                        style={{ background: 'none', border: `1px solid ${GOLD}`, color: GOLD, padding: '0.2rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
                         onClick={() => setLang(l => l === 'ar' ? 'en' : 'ar')}
                     >
                         {lang === 'ar' ? 'English' : 'العربية'}
                     </button>
-                </nav>
-            </header>
-
-            <main className="admin-content">
-                <div className="admin-title-row">
-                    <h1 className="admin-title">المنتجات (Products)</h1>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <a href="/admin/products/export-template" className="btn-primary" style={{ background: '#eee', color: TEXT, textDecoration: 'none' }}>قالب Excel</a>
-                        <a href="/admin/products/export" className="btn-primary" style={{ background: '#eee', color: TEXT, textDecoration: 'none' }}>تصدير</a>
-                        <label className="btn-primary" style={{ background: '#eee', color: TEXT, cursor: 'pointer' }}>
-                            استيراد
-                            <input type="file" hidden accept=".csv" onChange={e => {
-                                if (e.target.files[0]) {
-                                    const formData = new FormData();
-                                    formData.append('file', e.target.files[0]);
-                                    router.post('/admin/products/import', formData, {
-                                        onSuccess: () => alert('تم الاستيراد بنجاح')
-                                    });
-                                }
-                            }} />
-                        </label>
-                        <button className="btn-primary" onClick={() => openModal()}>إضافة منتج جديد</button>
-                    </div>
+                    <a href="/admin/products/export-template" className="btn-primary" style={{ background: '#eee', color: TEXT, textDecoration: 'none', fontSize: '0.9rem' }}>قالب Excel</a>
+                    <a href="/admin/products/export" className="btn-primary" style={{ background: '#eee', color: TEXT, textDecoration: 'none', fontSize: '0.9rem' }}>تصدير</a>
+                    <label className="btn-primary" style={{ background: '#eee', color: TEXT, cursor: 'pointer', fontSize: '0.9rem' }}>
+                        استيراد
+                        <input type="file" hidden accept=".csv" onChange={e => {
+                            if (e.target.files[0]) {
+                                const formData = new FormData();
+                                formData.append('file', e.target.files[0]);
+                                router.post('/admin/products/import', formData, {
+                                    onSuccess: () => alert('تم الاستيراد بنجاح'),
+                                    onError: (errors) => alert(errors.file || 'حدث خطأ أثناء الاستيراد')
+                                });
+                            }
+                        }} />
+                    </label>
+                    <button className="btn-primary" onClick={() => openModal()}>إضافة منتج جديد</button>
                 </div>
+            </div>
 
-                <div className="table-container">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>الصورة</th>
-                                <th>الاسم</th>
-                                <th>التصنيف</th>
-                                <th>السعر</th>
-                                <th>الإضافات</th>
-                                <th>إجراءات</th>
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8f9fa', border: `1px solid ${BORDER}`, borderRadius: '12px', fontSize: '0.85rem', color: MUTED }}>
+                <strong>تعليمات الاستيراد:</strong> يجب أن يحتوي الملف على الأعمدة: <code>category_ar</code>, <code>name_ar</code>, <code>price</code> كحد أدنى. يدعم النظام اللغة العربية من ملفات Excel (UTF-8/Windows-1256).
+            </div>
+
+            <div className="table-container">
+                <table className="admin-table">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>الاسم</th>
+                            <th>التصنيف</th>
+                            <th>السعر</th>
+                            <th>الإضافات</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {products.map(product => (
+                            <tr key={product.id}>
+                                <td>
+                                    {product.image_path ? (
+                                        <img src={product.image_path} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: '#eee' }}></div>
+                                    )}
+                                </td>
+                                <td>
+                                    <div style={{ fontWeight: 600 }}>{product.name_ar}</div>
+                                    <div style={{ fontSize: '0.85rem', color: MUTED }}>{product.name_en}</div>
+                                </td>
+                                <td>{product.category?.name_ar}</td>
+                                <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(product.price).toFixed(2)} ر.س</td>
+                                <td style={{ fontSize: '0.85rem' }}>
+                                    {product.addons.length} إضافات
+                                </td>
+                                <td>
+                                    <button className="btn-edit" onClick={() => openModal(product)}>تعديل</button>
+                                    <button className="btn-delete" onClick={() => handleDelete(product.id)}>حذف</button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {products.map(product => (
-                                <tr key={product.id}>
-                                    <td>
-                                        {product.image_path ? (
-                                            <img src={product.image_path} alt="" style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }} />
-                                        ) : (
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: '#eee' }}></div>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: 600 }}>{product.name_ar}</div>
-                                        <div style={{ fontSize: '0.85rem', color: MUTED }}>{product.name_en}</div>
-                                    </td>
-                                    <td>{product.category?.name_ar}</td>
-                                    <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(product.price).toFixed(2)} ر.س</td>
-                                    <td style={{ fontSize: '0.85rem' }}>
-                                        {product.addons.length} إضافات
-                                    </td>
-                                    <td>
-                                        <button className="btn-edit" onClick={() => openModal(product)}>تعديل</button>
-                                        <button className="btn-delete" onClick={() => handleDelete(product.id)}>حذف</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
             {isModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
@@ -263,6 +241,6 @@ export default function Products({ products, categories, extras }) {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminLayout>
     );
 }

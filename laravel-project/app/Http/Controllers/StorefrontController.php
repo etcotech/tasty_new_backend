@@ -27,9 +27,9 @@ class StorefrontController extends Controller
             return response()->json(['message' => 'Restaurant not found'], 404);
         }
 
-        $categories = Category::where('restaurant_id', $restaurant->id)
-            ->where('is_active', true)
+        $categories = Category::where('is_active', true)
             ->orderBy('sort_order')
+            ->orderBy('id')
             ->get(['id', 'name_ar', 'name_en', 'sort_order']);
 
         $products = Product::where('restaurant_id', $restaurant->id)

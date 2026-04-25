@@ -36,7 +36,7 @@ Route::get('/{slug?}', [StorefrontController::class, 'page'])
     ->name('storefront');
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    return redirect()->route('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
