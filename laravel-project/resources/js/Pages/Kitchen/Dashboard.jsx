@@ -2,51 +2,324 @@ import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Cairo:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Cairo:wght@400;600;700;800&display=swap');
+
+:root {
+    --bg-color: #f7f5f0;
+    --card-bg: #ffffff;
+    --card-border: #e5e7eb;
+    --gold: #c9a84c;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --accent-blue: #2563eb;
+    --accent-green: #16a34a;
+    --accent-red: #dc2626;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #121212; font-family: 'Outfit', 'Cairo', sans-serif; color: #FFFFFF; }
 
-.k-layout { min-height: 100vh; display: flex; flex-direction: column; direction: rtl; padding: 2rem; }
-.k-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #333; padding-bottom: 1rem; }
-.k-brand { font-size: 2rem; font-weight: 800; color: #C9A84C; letter-spacing: 0.05em; }
+body { 
+    background: var(--bg-color); 
+    font-family: 'Cairo', 'Outfit', sans-serif; 
+    color: var(--text-main);
+    direction: rtl;
+}
 
-.k-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
+.k-layout { 
+    height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+}
 
-.k-card { background: #1E1E1E; border-radius: 12px; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-.k-card-header { padding: 1.2rem; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #333; }
-.k-order-num { font-size: 1.4rem; font-weight: 800; color: #fff; }
-.k-time { font-size: 0.9rem; color: #888; margin-top: 0.2rem; }
+/* Top Bar */
+.k-top-bar {
+    height: 72px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    flex-shrink: 0;
+    z-index: 10;
+}
 
-.k-context { padding: 0.8rem 1.2rem; background: #2A2A2A; font-weight: 700; font-size: 1.1rem; color: #C9A84C; border-bottom: 1px solid #333; }
+.k-brand { 
+    font-size: 1.25rem; 
+    font-weight: 800; 
+    color: var(--gold);
+    letter-spacing: 0.5px;
+}
 
-.k-items { padding: 1.2rem; flex: 1; overflow-y: auto; max-height: 300px; }
-.k-item { margin-bottom: 1rem; }
-.k-item-top { display: flex; font-size: 1.1rem; font-weight: 700; color: #fff; }
-.k-qty { min-width: 2rem; color: #C9A84C; }
-.k-addons { margin-top: 0.4rem; padding-right: 2rem; color: #aaa; font-size: 0.95rem; }
+.k-stats-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
 
-.k-notes { padding: 0.8rem 1.2rem; background: #311b1b; border-left: 4px solid #e74c3c; color: #ff9999; font-weight: 600; font-size: 0.95rem; }
+.k-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f9fafb;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+}
 
-.k-footer { padding: 1.2rem; border-top: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #161616; }
-.k-total { font-size: 1.2rem; font-weight: 800; color: #fff; }
+.k-stat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
 
-.k-btn { padding: 0.8rem 1.5rem; border-radius: 8px; border: none; font-weight: 800; font-size: 1.05rem; cursor: pointer; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-.k-btn-start { background: #3498db; color: #fff; }
-.k-btn-start:hover { background: #2980b9; }
-.k-btn-ready { background: #f39c12; color: #fff; }
-.k-btn-ready:hover { background: #e67e22; }
-.k-btn-done { background: #2ecc71; color: #fff; }
-.k-btn-done:hover { background: #27ae60; }
+.k-stat-val {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
 
-.k-status-badge { padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; }
-.k-badge-pending { background: #333; color: #aaa; }
-.k-badge-preparing { background: rgba(52, 152, 219, 0.2); color: #3498db; }
-.k-badge-ready { background: rgba(243, 156, 18, 0.2); color: #f39c12; }
+.k-refresh-btn {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--card-border);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
 
-/* Scrollbar */
-.k-items::-webkit-scrollbar { width: 6px; }
-.k-items::-webkit-scrollbar-track { background: #1e1e1e; }
-.k-items::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+.k-refresh-btn:hover {
+    background: #f9fafb;
+    border-color: var(--gold);
+}
+
+/* Grid Layout */
+.k-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.k-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+}
+
+.k-column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.k-column-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.k-column-count {
+    background: #e5e7eb;
+    color: #4b5563;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.k-orders-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 2rem;
+}
+
+/* Order Card */
+.k-card { 
+    background: var(--card-bg); 
+    border-radius: 12px; 
+    border: 1px solid var(--card-border); 
+    box-shadow: var(--card-shadow);
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+.k-card-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.k-card-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.k-order-num {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.k-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+}
+
+.k-badge-pending { background: #eff6ff; color: #2563eb; }
+.k-badge-preparing { background: #fffbeb; color: #b45309; }
+.k-badge-ready { background: #f0fdf4; color: #16a34a; }
+
+.k-order-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.k-context-line {
+    padding: 0.5rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.k-items-area {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.k-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.k-item-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.k-item-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.k-item-qty {
+    background: #f3f4f6;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.k-addons {
+    margin-top: 0.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.k-addon {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding-right: 0.5rem;
+}
+
+.k-notes-strip {
+    background: #fef2f2;
+    border-right: 3px solid var(--accent-red);
+    padding: 0.5rem 1rem;
+    margin: 0 1rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-red);
+    border-radius: 4px;
+}
+
+.k-card-footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.k-footer-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.k-total-lbl { font-size: 0.8rem; color: var(--text-muted); }
+.k-total-val { font-size: 1rem; font-weight: 800; }
+
+.k-action-btn {
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    width: 100%;
+    color: #ffffff;
+}
+
+.k-action-btn:hover { opacity: 0.9; }
+.k-btn-blue { background: var(--accent-blue); }
+.k-btn-gold { background: var(--gold); }
+.k-btn-green { background: var(--accent-green); }
+
+/* Empty Message */
+.k-empty-msg {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border: 1px dashed var(--card-border);
+    border-radius: 12px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .k-main { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .k-main { grid-template-columns: 1fr; overflow-y: auto; height: auto; }
+    .k-layout { overflow-y: auto; }
+    .k-stats-row { display: none; }
+    .k-top-bar { padding: 0 1rem; }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
 `;
 
 export default function KitchenDashboard() {
@@ -57,7 +330,9 @@ export default function KitchenDashboard() {
         try {
             const res = await fetch('/api/kitchen/orders');
             const data = await res.json();
-            if (data.success) setOrders(data.orders);
+            if (data.success) {
+                setOrders(data.orders.filter(o => o.status !== 'completed'));
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -67,6 +342,8 @@ export default function KitchenDashboard() {
 
     useEffect(() => {
         fetchOrders();
+        const interval = setInterval(fetchOrders, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const updateStatus = async (id, status) => {
@@ -85,30 +362,20 @@ export default function KitchenDashboard() {
             }
         } catch (e) {
             console.error(e);
-            alert('Failed to update status');
         }
     };
 
-    const getActionBtn = (order) => {
-        if (order.status === 'pending') {
-            return <button className="k-btn k-btn-start" onClick={() => updateStatus(order.id, 'preparing')}>بدء التحضير</button>;
-        }
-        if (order.status === 'preparing') {
-            return <button className="k-btn k-btn-ready" onClick={() => updateStatus(order.id, 'ready')}>جاهز</button>;
-        }
-        if (order.status === 'ready') {
-            return <button className="k-btn k-btn-done" onClick={() => updateStatus(order.id, 'completed')}>تم التسليم</button>;
-        }
-        return null;
+    const groupedOrders = {
+        pending: orders.filter(o => o.status === 'pending'),
+        preparing: orders.filter(o => o.status === 'preparing'),
+        ready: orders.filter(o => o.status === 'ready')
     };
 
-    const getStatusBadge = (status) => {
-        switch (status) {
-            case 'pending': return <span className="k-status-badge k-badge-pending">جديد</span>;
-            case 'preparing': return <span className="k-status-badge k-badge-preparing">جاري التجهيز</span>;
-            case 'ready': return <span className="k-status-badge k-badge-ready">جاهز للاستلام</span>;
-            default: return null;
-        }
+    const stats = {
+        total: orders.length,
+        new: groupedOrders.pending.length,
+        preparing: groupedOrders.preparing.length,
+        ready: groupedOrders.ready.length
     };
 
     const formatTime = (dateStr) => {
@@ -116,79 +383,159 @@ export default function KitchenDashboard() {
         return d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
     };
 
-    const getContext = (order) => {
-        if (order.order_type === 'dine_in') return `محلي - طاولة: ${order.table_number}`;
-        if (order.order_type === 'car') return `استلام سيارة: ${order.car_number}`;
-        return `سفري (Takeaway)`;
+    const getContextLabel = (order) => {
+        if (order.order_type === 'dine_in') return `🍽️ طاولة: ${order.table_number || '-'}`;
+        if (order.order_type === 'car') return `🚗 سيارة: ${order.car_number || '-'}`;
+        if (order.order_type === 'takeaway') return `🥡 سفري`;
+        return '';
     };
+
+    const OrderCard = ({ order }) => (
+        <div className="k-card">
+            <div className="k-card-header">
+                <div className="k-card-header-top">
+                    <span className="k-order-num">#{order.order_number}</span>
+                    <span className={`k-badge k-badge-${order.status}`}>
+                        {order.status === 'pending' ? 'جديد' : 
+                         order.status === 'preparing' ? 'قيد التحضير' : 'جاهز'}
+                    </span>
+                </div>
+                <div className="k-order-time">{formatTime(order.created_at)}</div>
+            </div>
+
+            <div className="k-context-line">
+                {getContextLabel(order)} {order.customer_name ? `| ${order.customer_name}` : ''}
+            </div>
+
+            <div className="k-items-area">
+                {order.items?.map((item, idx) => (
+                    <div key={item.id || idx} className="k-item">
+                        <div className="k-item-main">
+                            <span className="k-item-name">{item.product_name_ar || item.product_name_en}</span>
+                            <span className="k-item-qty">x{item.quantity}</span>
+                        </div>
+                        {item.addons?.length > 0 && (
+                            <div className="k-addons">
+                                {item.addons.map((addon, aidx) => (
+                                    <span key={addon.id || aidx} className="k-addon">
+                                        + {addon.addon_name_ar || addon.addon_name_en}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {order.notes && order.notes.trim() !== "" && (
+                <div className="k-notes-strip">
+                    ⚠️ {order.notes}
+                </div>
+            )}
+
+            <div className="k-card-footer">
+                <div className="k-footer-meta">
+                    <span className="k-total-lbl">الإجمالي</span>
+                    <span className="k-total-val">{parseFloat(order.total).toFixed(2)} ر.س</span>
+                </div>
+                {order.status === 'pending' && (
+                    <button className="k-action-btn k-btn-blue" onClick={() => updateStatus(order.id, 'preparing')}>
+                        بدء التحضير
+                    </button>
+                )}
+                {order.status === 'preparing' && (
+                    <button className="k-action-btn k-btn-gold" onClick={() => updateStatus(order.id, 'ready')}>
+                        جاهز
+                    </button>
+                )}
+                {order.status === 'ready' && (
+                    <button className="k-action-btn k-btn-green" onClick={() => updateStatus(order.id, 'completed')}>
+                        تم التسليم
+                    </button>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <div className="k-layout">
-            <Head title="شاشة المطبخ | Kitchen Display" />
+            <Head title="شاشة المطبخ | CitySoft KDS" />
             <style>{css}</style>
 
-            <header className="k-header">
-                <div className="k-brand">شاشة المطبخ (Kitchen Display)</div>
-                <button 
-                    onClick={fetchOrders} 
-                    style={{ background: '#333', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                    تحديث (Refresh)
+            <header className="k-top-bar">
+                <button className="k-refresh-btn" onClick={fetchOrders}>
+                    <span>🔄</span>
+                    تحديث
                 </button>
+
+                <div className="k-stats-row">
+                    <div className="k-stat-item">
+                        <span className="k-stat-label">نشط:</span>
+                        <span className="k-stat-val">{stats.total}</span>
+                    </div>
+                    <div className="k-stat-item">
+                        <span className="k-stat-label">جديد:</span>
+                        <span className="k-stat-val">{stats.new}</span>
+                    </div>
+                    <div className="k-stat-item">
+                        <span className="k-stat-label">تحضير:</span>
+                        <span className="k-stat-val">{stats.preparing}</span>
+                    </div>
+                    <div className="k-stat-item">
+                        <span className="k-stat-label">جاهز:</span>
+                        <span className="k-stat-val">{stats.ready}</span>
+                    </div>
+                </div>
+
+                <div className="k-brand">CITYSOFT KDS</div>
             </header>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', marginTop: '4rem', fontSize: '1.5rem', color: '#888' }}>جاري التحميل...</div>
-            ) : orders.length === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: '4rem', fontSize: '1.5rem', color: '#666' }}>لا توجد طلبات نشطة حالياً.</div>
-            ) : (
-                <main className="k-grid">
-                    {orders.map(order => (
-                        <div key={order.id} className="k-card">
-                            <div className="k-card-header">
-                                <div>
-                                    <div className="k-order-num">{order.order_number}</div>
-                                    <div className="k-time">منذ: {formatTime(order.created_at)}</div>
-                                </div>
-                                <div>
-                                    {getStatusBadge(order.status)}
-                                </div>
-                            </div>
-                            
-                            <div className="k-context">
-                                {getContext(order)}
-                            </div>
+            <main className="k-main">
+                {/* Column: New */}
+                <section className="k-column">
+                    <div className="k-column-header">
+                        <span className="k-column-title">جديد</span>
+                        <span className="k-column-count">{stats.new}</span>
+                    </div>
+                    <div className="k-orders-list">
+                        {groupedOrders.pending.length > 0 ? (
+                            groupedOrders.pending.map(o => <OrderCard key={o.id} order={o} />)
+                        ) : (
+                            <div className="k-empty-msg">لا توجد طلبات</div>
+                        )}
+                    </div>
+                </section>
 
-                            <div className="k-items">
-                                {order.items.map(item => (
-                                    <div key={item.id} className="k-item">
-                                        <div className="k-item-top">
-                                            <span className="k-qty">{item.quantity}x</span>
-                                            <span>{item.product_name_ar || item.product_name_en}</span>
-                                        </div>
-                                        {item.addons && item.addons.length > 0 && (
-                                            <div className="k-addons">
-                                                {item.addons.map(addon => (
-                                                    <div key={addon.id}>+ {addon.addon_name_ar || addon.addon_name_en}</div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                {/* Column: Preparing */}
+                <section className="k-column">
+                    <div className="k-column-header">
+                        <span className="k-column-title">قيد التحضير</span>
+                        <span className="k-column-count">{stats.preparing}</span>
+                    </div>
+                    <div className="k-orders-list">
+                        {groupedOrders.preparing.length > 0 ? (
+                            groupedOrders.preparing.map(o => <OrderCard key={o.id} order={o} />)
+                        ) : (
+                            <div className="k-empty-msg">لا توجد طلبات</div>
+                        )}
+                    </div>
+                </section>
 
-                            {order.notes && (
-                                <div className="k-notes">ملاحظات: {order.notes}</div>
-                            )}
-
-                            <div className="k-footer">
-                                <div className="k-total">{parseFloat(order.total).toFixed(2)} ر.س</div>
-                                {getActionBtn(order)}
-                            </div>
-                        </div>
-                    ))}
-                </main>
-            )}
+                {/* Column: Ready */}
+                <section className="k-column">
+                    <div className="k-column-header">
+                        <span className="k-column-title">جاهز</span>
+                        <span className="k-column-count">{stats.ready}</span>
+                    </div>
+                    <div className="k-orders-list">
+                        {groupedOrders.ready.length > 0 ? (
+                            groupedOrders.ready.map(o => <OrderCard key={o.id} order={o} />)
+                        ) : (
+                            <div className="k-empty-msg">لا توجد طلبات</div>
+                        )}
+                    </div>
+                </section>
+            </main>
         </div>
     );
 }
