@@ -8,16 +8,16 @@ class Restaurant extends Model
 {
     protected $fillable = [
         'name_ar', 'name_en', 'slug', 'logo_path', 'is_active',
-        // Settings fields
-        'phone', 'address', 'tax_percentage', 'currency', 'working_hours', 'logo_url',
-        // Extended settings fields
-        'hero_image_url', 'address_ar', 'address_en', 'is_open',
+        // Settings
+        'phone', 'country_code', 'address', 'tax_percentage', 'currency',
+        'working_hours', 'logo_url', 'hero_image_url',
+        'address_ar', 'address_en', 'is_open',
     ];
 
     protected $casts = [
-        'is_open' => 'boolean',
-        'is_active' => 'boolean',
-        'tax_percentage' => 'decimal:2',
+        'is_open'        => 'boolean',
+        'is_active'      => 'boolean',
+        'tax_percentage' => 'float',
     ];
 
     public function categories()

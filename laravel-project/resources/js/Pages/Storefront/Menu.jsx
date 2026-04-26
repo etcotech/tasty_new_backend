@@ -368,8 +368,12 @@ export default function Menu({ slug }) {
         });
     };
 
-    const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+    const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
+    const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
+    const cartTax        = cartSubtotal * taxRate;
+    const cartGrandTotal = cartSubtotal + cartTax;
+    const cartTotal      = cartGrandTotal;  // kept for back-compat
+    const cartCount      = cart.reduce((count, item) => count + item.quantity, 0);
 
     const handleCheckoutSubmit = async () => {
         const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
@@ -399,7 +403,6 @@ export default function Menu({ slug }) {
                     customer_name,
                     notes,
                     cart,
-                    total: cartTotal
                 })
             });
             
@@ -453,8 +456,10 @@ export default function Menu({ slug }) {
         </>
     );
 
-    const heroName = lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar);
-    const heroBg = restaurant.hero_image_url || restaurant.logo_url || restaurant.logo_path;
+    const heroName  = lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar);
+    // logo_url → header logo only; hero_image_url → hero section background only
+    const logoUrl   = restaurant.logo_url || restaurant.logo_path;
+    const heroBg    = restaurant.hero_image_url || null; // no fallback to logo
     const logoLetter = (restaurant.name_en || 'S').charAt(0);
 
     return (
@@ -467,22 +472,14 @@ export default function Menu({ slug }) {
                 {/* ── HEADER ── */}
                 <header className="sv-header">
                     <div className="sv-header__left">
-                        <div className="sv-logo-sm">{logoLetter}</div>
+                        {logoUrl
+                            ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${GOLD}` }} onError={e => e.target.style.display='none'} />
+                            : <div className="sv-logo-sm">{logoLetter}</div>
+                        }
                         <span className="sv-brand">{lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar)}</span>
                         {/* is_open badge */}
-                        <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.6rem',
-                            borderRadius: '999px',
-                            background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)',
-                            color: restaurant.is_open ? '#16a34a' : '#dc2626',
-                            border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`,
-                            backdropFilter: 'blur(4px)',
-                        }}>
-                            {restaurant.is_open
-                                ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open')
-                                : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)', color: restaurant.is_open ? '#16a34a' : '#dc2626', border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`, backdropFilter: 'blur(4px)' }}>
+                            {restaurant.is_open ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open') : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
                         </span>
                     </div>
                     <div className="sv-header__right">
@@ -749,9 +746,20 @@ export default function Menu({ slug }) {
                     
                     {cart.length > 0 && (
                         <div className="sv-drawer__footer">
-                            <div className="sv-drawer__total-row">
-                                <span>{tr('total')}</span>
-                                <span>{cartTotal.toFixed(2)} {tr('sar')}</span>
+                            {/* Tax breakdown */}
+                            <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
+                                    <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                                    <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
+                                    <span>{lang === 'ar' ? `ضريبة القيمة المضافة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
+                                    <span>{cartTax.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                                <div className="sv-drawer__total-row" style={{ margin: 0, paddingTop: '0.4rem', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                                    <span>{tr('total')}</span>
+                                    <span>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
+                                </div>
                             </div>
                             <button className="sv-drawer__checkout-btn" onClick={() => {
                                 setIsCartOpen(false);
@@ -818,6 +826,22 @@ export default function Menu({ slug }) {
                                 <textarea className="sv-form-input" rows="2" value={orderForm.notes} onChange={e => setOrderForm(p => ({...p, notes: e.target.value}))}></textarea>
                             </div>
                             
+                            {/* Tax breakdown before confirm */}
+                            <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '0.9rem 1rem', marginBottom: '1.25rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
+                                    <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                                    <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
+                                    <span>{lang === 'ar' ? `ضريبة القيمة المضافة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
+                                    <span>{cartTax.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', paddingTop: '0.4rem', borderTop: '1px solid #E5E7EB' }}>
+                                    <span>{tr('total')}</span>
+                                    <span style={{ color: '#B8942F' }}>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                            </div>
+
                             <button 
                                 className="sv-modal__btn-add" 
                                 style={{ width: '100%', padding: '1rem', fontSize: '1.05rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }} 

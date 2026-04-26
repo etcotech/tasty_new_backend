@@ -53,6 +53,7 @@ class StorefrontController extends Controller
                 'logo_path'      => $restaurant->logo_path,
                 'logo_url'       => $restaurant->logo_url,
                 'hero_image_url' => $restaurant->hero_image_url,
+                'country_code'   => $restaurant->country_code ?? '+966',
                 'phone'          => $restaurant->phone,
                 'address_ar'     => $restaurant->address_ar,
                 'address_en'     => $restaurant->address_en,
