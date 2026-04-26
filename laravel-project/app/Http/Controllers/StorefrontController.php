@@ -46,11 +46,20 @@ class StorefrontController extends Controller
 
         return response()->json([
             'restaurant' => [
-                'id' => $restaurant->id,
-                'name_ar' => $restaurant->name_ar,
-                'name_en' => $restaurant->name_en,
-                'slug' => $restaurant->slug,
-                'logo_path' => $restaurant->logo_path,
+                'id'             => $restaurant->id,
+                'name_ar'        => $restaurant->name_ar,
+                'name_en'        => $restaurant->name_en,
+                'slug'           => $restaurant->slug,
+                'logo_path'      => $restaurant->logo_path,
+                'logo_url'       => $restaurant->logo_url,
+                'hero_image_url' => $restaurant->hero_image_url,
+                'phone'          => $restaurant->phone,
+                'address_ar'     => $restaurant->address_ar,
+                'address_en'     => $restaurant->address_en,
+                'tax_percentage' => (float)$restaurant->tax_percentage,
+                'currency'       => $restaurant->currency,
+                'working_hours'  => $restaurant->working_hours,
+                'is_open'        => (bool)$restaurant->is_open,
             ],
             'categories' => $categories,
             'products' => $products

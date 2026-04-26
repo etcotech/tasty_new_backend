@@ -264,6 +264,12 @@ export default function Menu({ slug }) {
                 setCategories(data.categories);
                 setProducts(data.products);
                 setActiveCategory('all');
+                
+                // Update currency translation dynamically
+                if (data.restaurant.currency) {
+                    t.sar.ar = data.restaurant.currency === 'SAR' ? 'ر.س' : data.restaurant.currency;
+                    t.sar.en = data.restaurant.currency;
+                }
             })
             .catch(err => setError(err.message))
             .finally(() => setLoading(false));
@@ -448,6 +454,7 @@ export default function Menu({ slug }) {
     );
 
     const heroName = lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar);
+    const heroBg = restaurant.hero_image_url || restaurant.logo_url || restaurant.logo_path;
     const logoLetter = (restaurant.name_en || 'S').charAt(0);
 
     return (
@@ -461,7 +468,22 @@ export default function Menu({ slug }) {
                 <header className="sv-header">
                     <div className="sv-header__left">
                         <div className="sv-logo-sm">{logoLetter}</div>
-                        <span className="sv-brand">{restaurant.name_en || 'SAVOR'}</span>
+                        <span className="sv-brand">{lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar)}</span>
+                        {/* is_open badge */}
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '999px',
+                            background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)',
+                            color: restaurant.is_open ? '#16a34a' : '#dc2626',
+                            border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`,
+                            backdropFilter: 'blur(4px)',
+                        }}>
+                            {restaurant.is_open
+                                ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open')
+                                : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
+                        </span>
                     </div>
                     <div className="sv-header__right">
                         <button 
@@ -487,8 +509,8 @@ export default function Menu({ slug }) {
                 <section className="sv-hero">
                     <div
                         className="sv-hero__bg"
-                        style={restaurant.logo_path
-                            ? { backgroundImage: `url('${restaurant.logo_path}')` }
+                        style={heroBg
+                            ? { backgroundImage: `url('${heroBg}')` }
                             : { background: 'linear-gradient(135deg, #1a1209 0%, #3b2c0d 40%, #5c4219 100%)' }
                         }
                     />

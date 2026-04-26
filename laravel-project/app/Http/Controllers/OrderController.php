@@ -10,6 +10,8 @@ use App\Models\OrderItemAddon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -68,7 +70,8 @@ class OrderController extends Controller
                 ];
             }
 
-            $tax = $subtotal * 0.08;
+            $taxRate = ($restaurant->tax_percentage ?? 8) / 100;
+            $tax = $subtotal * $taxRate;
             $total = $subtotal + $tax;
 
             // Generate unique order number
@@ -116,6 +119,48 @@ class OrderController extends Controller
             }
 
             DB::commit();
+
+            // Trigger n8n webhook
+            $webhookUrl = config('services.n8n.order_created_webhook');
+            if ($webhookUrl) {
+                try {
+                    $order->load('items.addons');
+                    $payload = [
+                        'order_number' => $order->order_number,
+                        'restaurant' => $restaurant->name_ar ?? $restaurant->slug,
+                        'order_type' => $order->order_type,
+                        'status' => $order->status,
+                        'customer_name' => $order->customer_name,
+                        'phone' => $order->phone,
+                        'table_number' => $order->table_number,
+                        'car_number' => $order->car_number,
+                        'notes' => $order->notes,
+                        'subtotal' => (float)$order->subtotal,
+                        'tax' => (float)$order->tax,
+                        'total' => (float)$order->total,
+                        'tracking_url' => url('/track/' . $order->order_number),
+                        'items' => $order->items->map(fn($item) => [
+                            'name_ar' => $item->product_name_ar,
+                            'name_en' => $item->product_name_en,
+                            'quantity' => (int)$item->quantity,
+                            'unit_price' => (float)$item->unit_price,
+                            'total_price' => (float)$item->total_price,
+                            'addons' => $item->addons->map(fn($addon) => [
+                                'name_ar' => $addon->addon_name_ar,
+                                'name_en' => $addon->addon_name_en,
+                                'price' => (float)$addon->price,
+                            ])->toArray(),
+                        ])->toArray(),
+                    ];
+
+                    Http::timeout(5)->post($webhookUrl, $payload);
+                } catch (\Exception $e) {
+                    Log::warning('n8n Order Created Webhook Failed: ' . $e->getMessage(), [
+                        'order_number' => $order->order_number,
+                        'webhook_url' => $webhookUrl
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,

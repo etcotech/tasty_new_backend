@@ -14,7 +14,12 @@ const css = `
     --accent-blue: #2563eb;
     --accent-green: #16a34a;
     --accent-red: #dc2626;
+    --bg-new: #eff6ff;
+    --bg-preparing: #fffbeb;
+    --bg-ready: #f0fdf4;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --warning: #f59e0b;
+    --danger: #ef4444;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -106,8 +111,8 @@ body {
     flex: 1;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    padding: 1.5rem;
+    gap: 1rem;
+    padding: 1rem;
     overflow: hidden;
 }
 
@@ -116,13 +121,20 @@ body {
     flex-direction: column;
     gap: 1rem;
     height: 100%;
+    padding: 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--card-border);
 }
+
+.k-column-new { background: var(--bg-new); border-color: #dbeafe; }
+.k-column-preparing { background: var(--bg-preparing); border-color: #fef3c7; }
+.k-column-ready { background: var(--bg-ready); border-color: #dcfce7; }
 
 .k-column-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .k-column-title {
@@ -156,9 +168,15 @@ body {
     border: 1px solid var(--card-border); 
     box-shadow: var(--card-shadow);
     width: 100%;
-    max-width: 380px;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
+    animation: kCardSlideIn 0.35s ease-out forwards;
+}
+
+@keyframes kCardSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .k-card-header {
@@ -295,6 +313,25 @@ body {
 .k-btn-gold { background: var(--gold); }
 .k-btn-green { background: var(--accent-green); }
 
+.k-rollback-btn {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.k-rollback-btn:hover {
+    background: #fef2f2;
+    color: var(--accent-red);
+    border-color: #fee2e2;
+}
+
 /* Empty Message */
 .k-empty-msg {
     padding: 2rem;
@@ -320,18 +357,219 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+
+.k-timer {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.k-timer-warning {
+    background: #fef3c7;
+    color: #b45309;
+    animation: kPulse 2s infinite;
+}
+
+.k-timer-danger {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: kPulse 1s infinite;
+}
+
+@keyframes kPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.k-btn-control {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+
+.k-btn-control:hover { background: #f9fafb; border-color: var(--gold); }
+.k-btn-control.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+
+.k-print-btn {
+    background: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    padding: 0.4rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.k-print-btn:hover { background: #e5e7eb; }
 `;
+
+const playSound = (type, enabled) => {
+    if (!enabled) return;
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        if (type === 'new') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } else {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        }
+    } catch (e) {
+        console.warn("Audio Context failed", e);
+    }
+};
+
+const printOrder = (order) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+
+    const itemsHtml = order.items?.map(item => `
+        <div style="border-bottom: 1px dashed #000; padding: 8px 0;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+                <span>${item.product_name_ar || item.product_name_en}</span>
+                <span>x${item.quantity}</span>
+            </div>
+            ${item.addons?.map(a => `<div style="font-size: 13px; margin-right: 15px;">+ ${a.addon_name_ar || a.addon_name_en}</div>`).join('')}
+        </div>
+    `).join('') || '';
+
+    const html = `
+        <html dir="rtl">
+        <head>
+            <title>Order #${order.order_number}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+                body { font-family: 'Cairo', sans-serif; width: 80mm; padding: 5mm; color: #000; background: #fff; margin: 0; }
+                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+                .order-info { margin-bottom: 10px; font-size: 14px; line-height: 1.6; }
+                .total { text-align: left; font-weight: bold; font-size: 18px; margin-top: 10px; border-top: 2px solid #000; padding-top: 5px; }
+                .notes { background: #f0f0f0; padding: 8px; margin-top: 10px; font-weight: bold; border-right: 4px solid #000; }
+                @media print { body { width: 80mm; } }
+            </style>
+        </head>
+        <body onload="window.print(); window.close();">
+            <div class="header">
+                <h1 style="margin: 0; font-size: 28px;">#${order.order_number}</h1>
+                <div style="font-size: 16px; font-weight: bold;">KITCHEN RECEIPT</div>
+            </div>
+            <div class="order-info">
+                <div><b>التاريخ:</b> ${new Date(order.created_at).toLocaleString('ar-SA')}</div>
+                <div><b>النوع:</b> ${order.order_type === 'dine_in' ? '🍽️ محلي' : order.order_type === 'car' ? '🚗 سيارة' : '🥡 سفري'}</div>
+                ${order.table_number ? `<div><b>الطاولة:</b> ${order.table_number}</div>` : ''}
+                ${order.customer_name ? `<div><b>العميل:</b> ${order.customer_name}</div>` : ''}
+            </div>
+            <div class="items">
+                ${itemsHtml}
+            </div>
+            ${order.notes ? `<div class="notes">ملاحظات: ${order.notes}</div>` : ''}
+            <div class="total">الإجمالي: ${parseFloat(order.total).toFixed(2)} ر.س</div>
+        </body>
+        </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+};
+
+const OrderTimer = ({ createdAt }) => {
+    const [elapsed, setElapsed] = React.useState('00:00');
+    const [status, setStatus] = React.useState('normal');
+
+    React.useEffect(() => {
+        const update = () => {
+            const start = new Date(createdAt);
+            const now = new Date();
+            const diff = Math.floor((now - start) / 1000);
+            const mins = Math.floor(diff / 60);
+            const secs = diff % 60;
+            setElapsed(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+            
+            if (mins >= 20) setStatus('danger');
+            else if (mins >= 10) setStatus('warning');
+            else setStatus('normal');
+        };
+        update();
+        const tid = setInterval(update, 1000);
+        return () => clearInterval(tid);
+    }, [createdAt]);
+
+    return <span className={`k-timer k-timer-${status}`}>{elapsed}</span>;
+};
 
 export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [soundEnabled, setSoundEnabled] = useState(false);
+    const [autoPrint, setAutoPrint] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const lastOrderIds = React.useRef(new Set());
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (isInitial = false) => {
         try {
             const res = await fetch('/api/kitchen/orders');
             const data = await res.json();
             if (data.success) {
-                setOrders(data.orders.filter(o => o.status !== 'completed'));
+                const activeOrders = data.orders.filter(o => o.status !== 'completed');
+                
+                // New Order Detection & Auto Print
+                if (!isInitial) {
+                    const currentIds = new Set(activeOrders.map(o => o.id));
+                    const newOrders = activeOrders.filter(o => !lastOrderIds.current.has(o.id) && o.status === 'pending');
+                    
+                    if (newOrders.length > 0) {
+                        playSound('new', soundEnabled);
+                        
+                        if (autoPrint) {
+                            const printedIds = JSON.parse(localStorage.getItem('kds_printed_ids') || '[]');
+                            newOrders.forEach(order => {
+                                if (!printedIds.includes(order.id)) {
+                                    printOrder(order);
+                                    printedIds.push(order.id);
+                                }
+                            });
+                            localStorage.setItem('kds_printed_ids', JSON.stringify(printedIds.slice(-100)));
+                        }
+                    }
+                    lastOrderIds.current = currentIds;
+                } else {
+                    lastOrderIds.current = new Set(activeOrders.map(o => o.id));
+                }
+
+                setOrders(activeOrders);
             }
         } catch (e) {
             console.error(e);
@@ -341,10 +579,17 @@ export default function KitchenDashboard() {
     };
 
     useEffect(() => {
-        fetchOrders();
-        const interval = setInterval(fetchOrders, 30000);
-        return () => clearInterval(interval);
-    }, []);
+        fetchOrders(true);
+        const interval = setInterval(() => fetchOrders(false), 10000);
+        
+        const fsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', fsChange);
+        
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('fullscreenchange', fsChange);
+        };
+    }, [soundEnabled, autoPrint]); // Refresh interval depends on these for detection closure if needed
 
     const updateStatus = async (id, status) => {
         try {
@@ -358,7 +603,8 @@ export default function KitchenDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                fetchOrders();
+                playSound('status', soundEnabled);
+                fetchOrders(false);
             }
         } catch (e) {
             console.error(e);
@@ -390,6 +636,20 @@ export default function KitchenDashboard() {
         return '';
     };
 
+    const handleRollback = (id, newStatus) => {
+        if (window.confirm("هل تريد إرجاع الطلب للمرحلة السابقة؟")) {
+            updateStatus(id, newStatus);
+        }
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(e => console.error(e));
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
     const OrderCard = ({ order }) => (
         <div className="k-card">
             <div className="k-card-header">
@@ -400,7 +660,12 @@ export default function KitchenDashboard() {
                          order.status === 'preparing' ? 'قيد التحضير' : 'جاهز'}
                     </span>
                 </div>
-                <div className="k-order-time">{formatTime(order.created_at)}</div>
+                <div className="k-order-time" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                        {formatTime(order.created_at)}
+                    </div>
+                    <OrderTimer createdAt={order.created_at} />
+                </div>
             </div>
 
             <div className="k-context-line">
@@ -435,24 +700,46 @@ export default function KitchenDashboard() {
 
             <div className="k-card-footer">
                 <div className="k-footer-meta">
-                    <span className="k-total-lbl">الإجمالي</span>
-                    <span className="k-total-val">{parseFloat(order.total).toFixed(2)} ر.س</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="k-total-lbl">الإجمالي</span>
+                        <span className="k-total-val">{parseFloat(order.total).toFixed(2)} ر.س</span>
+                    </div>
+                    <button className="k-print-btn" onClick={() => printOrder(order)} title="طباعة">
+                        <span>🖨️</span>
+                        <span>طباعة</span>
+                    </button>
                 </div>
-                {order.status === 'pending' && (
-                    <button className="k-action-btn k-btn-blue" onClick={() => updateStatus(order.id, 'preparing')}>
-                        بدء التحضير
-                    </button>
-                )}
-                {order.status === 'preparing' && (
-                    <button className="k-action-btn k-btn-gold" onClick={() => updateStatus(order.id, 'ready')}>
-                        جاهز
-                    </button>
-                )}
-                {order.status === 'ready' && (
-                    <button className="k-action-btn k-btn-green" onClick={() => updateStatus(order.id, 'completed')}>
-                        تم التسليم
-                    </button>
-                )}
+                
+                {/* Actions Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {order.status === 'pending' && (
+                        <button className="k-action-btn k-btn-blue" onClick={() => updateStatus(order.id, 'preparing')}>
+                            بدء التحضير
+                        </button>
+                    )}
+                    
+                    {order.status === 'preparing' && (
+                        <>
+                            <button className="k-action-btn k-btn-gold" onClick={() => updateStatus(order.id, 'ready')}>
+                                جاهز
+                            </button>
+                            <button className="k-rollback-btn" onClick={() => handleRollback(order.id, 'pending')}>
+                                إرجاع إلى جديد
+                            </button>
+                        </>
+                    )}
+                    
+                    {order.status === 'ready' && (
+                        <>
+                            <button className="k-action-btn k-btn-green" onClick={() => updateStatus(order.id, 'completed')}>
+                                تم التسليم
+                            </button>
+                            <button className="k-rollback-btn" onClick={() => handleRollback(order.id, 'preparing')}>
+                                إرجاع إلى التحضير
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -463,10 +750,36 @@ export default function KitchenDashboard() {
             <style>{css}</style>
 
             <header className="k-top-bar">
-                <button className="k-refresh-btn" onClick={fetchOrders}>
-                    <span>🔄</span>
-                    تحديث
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button className="k-refresh-btn" onClick={() => fetchOrders(false)}>
+                        <span>🔄</span>
+                        تحديث
+                    </button>
+
+                    <button 
+                        className={`k-btn-control ${soundEnabled ? 'active' : ''}`} 
+                        onClick={() => {
+                            setSoundEnabled(!soundEnabled);
+                            if (!soundEnabled) playSound('status', true); // Test sound on enable
+                        }}
+                    >
+                        <span>{soundEnabled ? '🔊' : '🔈'}</span>
+                        {soundEnabled ? 'تعطيل الصوت' : 'تفعيل الصوت'}
+                    </button>
+
+                    <button 
+                        className={`k-btn-control ${autoPrint ? 'active' : ''}`} 
+                        onClick={() => setAutoPrint(!autoPrint)}
+                    >
+                        <span>🖨️</span>
+                        {autoPrint ? 'إيقاف الطباعة' : 'طباعة تلقائية'}
+                    </button>
+
+                    <button className="k-btn-control" onClick={toggleFullscreen}>
+                        <span>{isFullscreen ? '↙️' : '↗️'}</span>
+                        {isFullscreen ? 'خروج من الشاشة' : 'ملء الشاشة'}
+                    </button>
+                </div>
 
                 <div className="k-stats-row">
                     <div className="k-stat-item">
@@ -492,7 +805,7 @@ export default function KitchenDashboard() {
 
             <main className="k-main">
                 {/* Column: New */}
-                <section className="k-column">
+                <section className="k-column k-column-new">
                     <div className="k-column-header">
                         <span className="k-column-title">جديد</span>
                         <span className="k-column-count">{stats.new}</span>
@@ -507,7 +820,7 @@ export default function KitchenDashboard() {
                 </section>
 
                 {/* Column: Preparing */}
-                <section className="k-column">
+                <section className="k-column k-column-preparing">
                     <div className="k-column-header">
                         <span className="k-column-title">قيد التحضير</span>
                         <span className="k-column-count">{stats.preparing}</span>
@@ -522,7 +835,7 @@ export default function KitchenDashboard() {
                 </section>
 
                 {/* Column: Ready */}
-                <section className="k-column">
+                <section className="k-column k-column-ready">
                     <div className="k-column-header">
                         <span className="k-column-title">جاهز</span>
                         <span className="k-column-count">{stats.ready}</span>

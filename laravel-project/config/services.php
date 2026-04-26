@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'order_created_webhook' => env('N8N_ORDER_CREATED_WEBHOOK'),
+    ],
+
 ];

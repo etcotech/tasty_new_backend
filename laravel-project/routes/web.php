@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\AddonController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\SettingsController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -21,6 +22,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/products/import', [ProductController::class, 'import'])->name('admin.products.import');
     Route::resource('/admin/products', ProductController::class);
     Route::resource('/admin/extras', AddonController::class);
+    Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
+    Route::post('/admin/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
 
     Route::get('/kitchen', function () {
         return Inertia::render('Kitchen/Dashboard');
