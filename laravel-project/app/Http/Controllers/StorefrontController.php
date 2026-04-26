@@ -27,7 +27,8 @@ class StorefrontController extends Controller
             return response()->json(['message' => 'Restaurant not found'], 404);
         }
 
-        $categories = Category::where('is_active', true)
+        $categories = Category::where('restaurant_id', $restaurant->id)
+            ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['id', 'name_ar', 'name_en', 'sort_order']);
@@ -60,6 +61,8 @@ class StorefrontController extends Controller
                 'tax_percentage' => (float)$restaurant->tax_percentage,
                 'currency'       => $restaurant->currency,
                 'working_hours'  => $restaurant->working_hours,
+                'subtitle_ar'    => $restaurant->subtitle_ar,
+                'subtitle_en'    => $restaurant->subtitle_en,
                 'is_open'        => (bool)$restaurant->is_open,
             ],
             'categories' => $categories,

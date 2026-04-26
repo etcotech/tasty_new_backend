@@ -12,10 +12,21 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\AddonController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\RestaurantController;
+use App\Http\Controllers\Admin\SystemCheckController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/orders', [AdminOrderController::class, 'index'])->name('admin.orders');
+    Route::get('/admin/system-check', [SystemCheckController::class, 'index'])->name('admin.system-check');
+    
+    // Restaurants Management
+    Route::get('/admin/restaurants', [RestaurantController::class, 'index'])->name('admin.restaurants.index');
+    Route::post('/admin/restaurants', [RestaurantController::class, 'store'])->name('admin.restaurants.store');
+    Route::put('/admin/restaurants/{restaurant}', [RestaurantController::class, 'update'])->name('admin.restaurants.update');
+    Route::delete('/admin/restaurants/{restaurant}', [RestaurantController::class, 'destroy'])->name('admin.restaurants.destroy');
+    Route::post('/admin/restaurants/switch', [RestaurantController::class, 'switch'])->name('admin.restaurants.switch');
+
     Route::resource('/admin/categories', CategoryController::class);
     Route::get('/admin/products/export-template', [ProductController::class, 'exportTemplate'])->name('admin.products.export-template');
     Route::get('/admin/products/export', [ProductController::class, 'export'])->name('admin.products.export');

@@ -12,19 +12,10 @@ class SettingsController extends Controller
 {
     public function index()
     {
-        $restaurant = Restaurant::first();
+        $restaurant = $this->getCurrentRestaurant();
 
         if (!$restaurant) {
-            $restaurant = Restaurant::create([
-                'name_ar'        => 'مطعم سيفور',
-                'name_en'        => 'Savor Restaurant',
-                'slug'           => 'savor',
-                'is_active'      => true,
-                'tax_percentage' => 8.00,
-                'currency'       => 'SAR',
-                'country_code'   => '+966',
-                'is_open'        => true,
-            ]);
+            return redirect()->route('admin.restaurants.index');
         }
 
         return Inertia::render('Admin/Settings', [
@@ -34,7 +25,7 @@ class SettingsController extends Controller
 
     public function update(Request $request)
     {
-        $restaurant = Restaurant::first();
+        $restaurant = $this->getCurrentRestaurant();
 
         $validated = $request->validate([
             'name_ar'        => 'required|string|max:255',
@@ -48,6 +39,8 @@ class SettingsController extends Controller
             'working_hours'  => 'nullable|string|max:500',
             'logo_url'       => 'nullable|string|max:1000',
             'hero_image_url' => 'nullable|string|max:1000',
+            'subtitle_ar'    => 'nullable|string|max:255',
+            'subtitle_en'    => 'nullable|string|max:255',
             'is_open'        => 'boolean',
             'logo_file'      => 'nullable|image|max:2048',
         ]);

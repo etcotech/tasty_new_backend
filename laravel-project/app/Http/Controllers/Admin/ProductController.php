@@ -14,57 +14,74 @@ class ProductController extends Controller
 {
     public function index()
     {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
         return Inertia::render('Admin/Products', [
-            'products' => Product::with(['category', 'addons'])->get(),
-            'categories' => Category::all(),
-            'extras' => Addon::all()
+            'products' => Product::where('restaurant_id', $restaurant->id)->with(['category', 'addons'])->get(),
+            'categories' => Category::where('restaurant_id', $restaurant->id)->get(),
+            'extras' => Addon::where('restaurant_id', $restaurant->id)->get()
         ]);
     }
 
     public function store(Request $request)
     {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name_ar' => 'required|string|max:255',
-            'name_en' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'image_path' => 'nullable|string',
-            'extra_ids' => 'nullable|array',
-            'extra_ids.*' => 'exists:addons,id'
+            'category_id'    => 'required|exists:categories,id',
+            'name_ar'        => 'required|string|max:255',
+            'name_en'        => 'required|string|max:255',
+            'description_ar' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'price'          => 'required|numeric|min:0',
+            'image_path'     => 'nullable|string',
+            'is_available'   => 'boolean',
+            'extra_ids'      => 'nullable|array',
+            'extra_ids.*'    => 'exists:addons,id'
         ]);
 
-        $restaurant = Restaurant::first();
-
         $product = Product::create(array_merge($request->all(), [
-            'restaurant_id' => $restaurant->id
+            'restaurant_id' => $restaurant->id,
+            'is_available'  => $request->boolean('is_available', true)
         ]));
 
         if ($request->has('extra_ids')) {
             $product->addons()->sync($request->extra_ids);
         }
 
-        return redirect()->back()->with('message', 'Product created successfully');
+        return redirect()->back()->with('message', 'تم إضافة المنتج بنجاح');
     }
 
     public function update(Request $request, Product $product)
     {
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name_ar' => 'required|string|max:255',
-            'name_en' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'image_path' => 'nullable|string',
-            'extra_ids' => 'nullable|array',
-            'extra_ids.*' => 'exists:addons,id'
+            'category_id'    => 'required|exists:categories,id',
+            'name_ar'        => 'required|string|max:255',
+            'name_en'        => 'required|string|max:255',
+            'description_ar' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'price'          => 'required|numeric|min:0',
+            'image_path'     => 'nullable|string',
+            'is_available'   => 'boolean',
+            'extra_ids'      => 'nullable|array',
+            'extra_ids.*'    => 'exists:addons,id'
         ]);
 
-        $product->update($request->all());
+        $product->update(array_merge($request->all(), [
+            'is_available' => $request->boolean('is_available')
+        ]));
 
         if ($request->has('extra_ids')) {
             $product->addons()->sync($request->extra_ids);
         }
 
-        return redirect()->back()->with('message', 'Product updated successfully');
+        return redirect()->back()->with('message', 'تم تحديث المنتج بنجاح');
     }
 
     public function destroy(Product $product)
@@ -108,7 +125,12 @@ class ProductController extends Controller
 
     public function export()
     {
-        $products = Product::with('category')->get();
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
+        $products = Product::where('restaurant_id', $restaurant->id)->with('category')->get();
         $headers = [
             'category_ar', 'category_en', 'name_ar', 'name_en', 
             'description_ar', 'description_en', 'price', 
@@ -155,6 +177,11 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
         $request->validate([
             'file' => 'required|file|mimes:csv,txt'
         ]);
@@ -211,8 +238,6 @@ class ProductController extends Controller
             }
         }
 
-        $restaurant = Restaurant::first();
-
         while (($row = fgetcsv($temp)) !== false) {
             if (empty($row) || count($row) < count($headers)) continue;
 
@@ -225,18 +250,21 @@ class ProductController extends Controller
 
             // Find or create category
             $category = Category::firstOrCreate(
-                ['name_ar' => $data['category_ar']],
+                [
+                    'restaurant_id' => $restaurant->id,
+                    'name_ar' => $data['category_ar']
+                ],
                 ['name_en' => $data['category_en'] ?? $data['category_ar']]
             );
 
             // Create or update product
             Product::updateOrCreate(
                 [
+                    'restaurant_id' => $restaurant->id,
                     'name_ar' => $data['name_ar'],
                     'category_id' => $category->id
                 ],
                 [
-                    'restaurant_id' => $restaurant->id,
                     'name_en' => $data['name_en'] ?? $data['name_ar'],
                     'description_ar' => $data['description_ar'] ?? '',
                     'description_en' => $data['description_en'] ?? '',

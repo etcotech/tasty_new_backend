@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
+use App\Models\Restaurant;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -15,17 +16,23 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
         $today = Carbon::today();
         
         // KPI Cards
-        $ordersToday = Order::whereDate('created_at', $today)->count();
-        $revenueToday = Order::whereDate('created_at', $today)->sum('total');
-        $pendingOrders = Order::where('status', 'pending')->count();
-        $completedOrders = Order::where('status', 'completed')->count();
-        $totalProducts = Product::count();
+        $ordersToday = Order::where('restaurant_id', $restaurant->id)->whereDate('created_at', $today)->count();
+        $revenueToday = Order::where('restaurant_id', $restaurant->id)->whereDate('created_at', $today)->sum('total');
+        $pendingOrders = Order::where('restaurant_id', $restaurant->id)->where('status', 'pending')->count();
+        $completedOrders = Order::where('restaurant_id', $restaurant->id)->where('status', 'completed')->count();
+        $totalProducts = Product::where('restaurant_id', $restaurant->id)->count();
 
         // 7 Days Revenue
-        $revenueLast7Days = Order::select(
+        $revenueLast7Days = Order::where('restaurant_id', $restaurant->id)
+        ->select(
             DB::raw('DATE(created_at) as date'),
             DB::raw('SUM(total) as total')
         )
@@ -35,12 +42,16 @@ class DashboardController extends Controller
         ->get();
 
         // Orders by status
-        $ordersByStatus = Order::select('status', DB::raw('count(*) as count'))
+        $ordersByStatus = Order::where('restaurant_id', $restaurant->id)
+            ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->get();
 
         // Top 5 Products
-        $topProducts = OrderItem::select('product_name_ar', 'product_name_en', DB::raw('SUM(quantity) as total_sold'))
+        $topProducts = OrderItem::whereHas('order', function($q) use ($restaurant) {
+                $q->where('restaurant_id', $restaurant->id);
+            })
+            ->select('product_name_ar', 'product_name_en', DB::raw('SUM(quantity) as total_sold'))
             ->groupBy('product_name_ar', 'product_name_en')
             ->orderBy('total_sold', 'DESC')
             ->limit(5)

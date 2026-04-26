@@ -60,6 +60,60 @@ const Card = ({ children }) => (
 
 const GRID2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' };
 
+const toastStyles = `
+@keyframes svFadeInSlide {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes svFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+.sv-toast {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 9999;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    animation: svFadeInSlide 0.4s ease forwards;
+    direction: rtl;
+    max-width: 350px;
+}
+.sv-toast.success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+.sv-toast.error { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+.sv-toast.fade-out { animation: svFadeOut 0.4s ease forwards; }
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+`;
+
+const Toast = ({ message, type = 'success', onClose }) => {
+    const [isExiting, setIsExiting] = React.useState(false);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsExiting(true);
+            setTimeout(onClose, 400);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className={`sv-toast ${type} ${isExiting ? 'fade-out' : ''}`}>
+            <span>{type === 'success' ? '✅' : '❌'}</span>
+            <span>{message}</span>
+        </div>
+    );
+};
+
 /* ── country codes list ── */
 const COUNTRIES = [
     { code: '+966', flag: '🇸🇦', name: 'السعودية' },
@@ -79,7 +133,7 @@ export default function Settings({ restaurant }) {
     const { flash } = usePage().props;
     const logoInputRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(restaurant?.logo_url || null);
-
+    const [toast, setToast] = useState(null); // { message, type }
     const { data, setData, post, processing, errors } = useForm({
         name_ar:        restaurant?.name_ar        ?? '',
         name_en:        restaurant?.name_en        ?? '',
@@ -93,6 +147,8 @@ export default function Settings({ restaurant }) {
         logo_url:       restaurant?.logo_url       ?? '',
         logo_file:      null,
         hero_image_url: restaurant?.hero_image_url ?? '',
+        subtitle_ar:    restaurant?.subtitle_ar    ?? '',
+        subtitle_en:    restaurant?.subtitle_en    ?? '',
         is_open:        restaurant?.is_open        ?? true,
     });
 
@@ -107,6 +163,12 @@ export default function Settings({ restaurant }) {
         e.preventDefault();
         post(route('admin.settings.update'), {
             forceFormData: true,   // required for file upload
+            onSuccess: () => {
+                setToast({ message: 'تم حفظ الإعدادات بنجاح ✅', type: 'success' });
+            },
+            onError: () => {
+                setToast({ message: 'حدث خطأ أثناء الحفظ ❌', type: 'error' });
+            }
         });
     };
 
@@ -115,6 +177,15 @@ export default function Settings({ restaurant }) {
     return (
         <AdminLayout title="إعدادات المطعم">
             <Head title="إعدادات المطعم" />
+            <style>{toastStyles}</style>
+
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
 
             {/* Page header */}
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
@@ -122,11 +193,6 @@ export default function Settings({ restaurant }) {
                     <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#111827', margin: 0 }}>إعدادات المطعم</h1>
                     <p style={{ color: '#6B7280', marginTop: '0.3rem', fontSize: '0.9rem' }}>إدارة بيانات المطعم والضريبة والمظهر العام</p>
                 </div>
-                {flash?.success && (
-                    <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', color: '#166534', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        ✓ {flash.success}
-                    </div>
-                )}
             </div>
 
             <form onSubmit={submit} encType="multipart/form-data">
@@ -143,19 +209,28 @@ export default function Settings({ restaurant }) {
                         </Field>
                     </div>
 
+                    <div style={{ ...GRID2, marginTop: '1.25rem' }}>
+                        <Field label="الوصف الفرعي (عربي)" hint="يظهر في قسم الواجهة الرئيسي" error={errors.subtitle_ar}>
+                            <TextInput value={data.subtitle_ar} onChange={e => setData('subtitle_ar', e.target.value)} placeholder="مثال: أفضل المأكولات الإيطالية في الرياض" />
+                        </Field>
+                        <Field label="Subtitle (English)" hint="Appears in the hero section" error={errors.subtitle_en}>
+                            <TextInput value={data.subtitle_en} onChange={e => setData('subtitle_en', e.target.value)} placeholder="Example: Best Italian Cuisine in Riyadh" />
+                        </Field>
+                    </div>
+
                     {/* Logo */}
                     <div style={{ marginTop: '1.25rem' }}>
                         <Field label="شعار المطعم (Logo)" hint="يظهر في شريط التنقل فقط. يمكنك رفع صورة أو إدخال رابط.">
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                                {/* Preview circle */}
+                                {/* Preview rectangular */}
                                 <div
-                                    style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid #E5E7EB', overflow: 'hidden', flexShrink: 0, background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                    style={{ width: 160, height: 60, borderRadius: '8px', border: '2px solid #E5E7EB', overflow: 'hidden', flexShrink: 0, background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                     onClick={() => logoInputRef.current?.click()}
                                     title="اضغط لرفع صورة"
                                 >
                                     {logoPreview
-                                        ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setLogoPreview(null)} />
-                                        : <span style={{ fontSize: '2rem', color: '#D1D5DB' }}>🖼️</span>
+                                        ? <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={() => setLogoPreview(null)} />
+                                        : <span style={{ fontSize: '1.5rem', color: '#D1D5DB' }}>🖼️</span>
                                     }
                                 </div>
 
@@ -289,7 +364,15 @@ export default function Settings({ restaurant }) {
                         disabled={processing}
                         style={{ background: processing ? '#D1D5DB' : GOLD, color: '#fff', border: 'none', padding: '0.85rem 2.5rem', borderRadius: '10px', fontWeight: 800, fontSize: '1rem', cursor: processing ? 'not-allowed' : 'pointer', boxShadow: processing ? 'none' : '0 4px 14px rgba(201,168,76,0.35)', transition: 'all 0.2s', fontFamily: 'inherit' }}
                     >
-                        {processing ? 'جاري الحفظ...' : '💾 حفظ الإعدادات'}
+                        {processing ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <svg className="animate-spin" style={{ width: '1.2rem', height: '1.2rem', animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24">
+                                    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                جاري الحفظ...
+                            </span>
+                        ) : '💾 حفظ الإعدادات'}
                     </button>
                 </div>
             </form>

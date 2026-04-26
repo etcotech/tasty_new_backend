@@ -454,50 +454,95 @@ const playSound = (type, enabled) => {
     }
 };
 
-const printOrder = (order) => {
+const printOrder = (order, restaurant) => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) return;
 
+    const subtotal = order.items.reduce((acc, item) => acc + parseFloat(item.total_price), 0);
+    const taxPercentage = parseFloat(restaurant?.tax_percentage || 0);
+    const taxAmount = (subtotal * (taxPercentage / 100));
+    const total = subtotal + taxAmount;
+
     const itemsHtml = order.items?.map(item => `
-        <div style="border-bottom: 1px dashed #000; padding: 8px 0;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
-                <span>${item.product_name_ar || item.product_name_en}</span>
-                <span>x${item.quantity}</span>
+        <div style="border-bottom: 1px dashed #eee; padding: 6px 0;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
+                <span>${item.quantity}x ${item.product_name_ar || item.product_name_en}</span>
+                <span>${parseFloat(item.total_price).toFixed(2)}</span>
             </div>
-            ${item.addons?.map(a => `<div style="font-size: 13px; margin-right: 15px;">+ ${a.addon_name_ar || a.addon_name_en}</div>`).join('')}
+            ${item.addons?.map(a => `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #444; padding-right: 15px;">
+                    <span>+ ${a.addon_name_ar || a.addon_name_en}</span>
+                    <span>${parseFloat(a.price).toFixed(2)}</span>
+                </div>
+            `).join('')}
         </div>
     `).join('') || '';
 
     const html = `
         <html dir="rtl">
         <head>
-            <title>Order #${order.order_number}</title>
+            <title>Receipt #${order.order_number}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-                body { font-family: 'Cairo', sans-serif; width: 80mm; padding: 5mm; color: #000; background: #fff; margin: 0; }
-                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
-                .order-info { margin-bottom: 10px; font-size: 14px; line-height: 1.6; }
-                .total { text-align: left; font-weight: bold; font-size: 18px; margin-top: 10px; border-top: 2px solid #000; padding-top: 5px; }
-                .notes { background: #f0f0f0; padding: 8px; margin-top: 10px; font-weight: bold; border-right: 4px solid #000; }
-                @media print { body { width: 80mm; } }
+                body { font-family: 'Cairo', sans-serif; width: 72mm; padding: 4mm; color: #000; background: #fff; margin: 0; line-height: 1.4; }
+                .header { text-align: center; margin-bottom: 10px; }
+                .logo { max-width: 120px; max-height: 60px; object-fit: contain; margin-bottom: 5px; }
+                .rest-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                .receipt-title { font-size: 14px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 0; margin: 5px 0; }
+                
+                .info-grid { font-size: 12px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+                .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                
+                .items { margin-bottom: 10px; }
+                
+                .totals { border-top: 1px solid #000; padding-top: 5px; font-size: 13px; }
+                .total-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                .grand-total { font-size: 18px; font-weight: bold; margin-top: 5px; border-top: 2px double #000; padding-top: 5px; }
+                
+                .notes { background: #f9f9f9; padding: 5px; margin: 10px 0; font-size: 12px; border-right: 3px solid #000; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; border-top: 1px dashed #000; padding-top: 10px; }
+                .qr-placeholder { border: 1px solid #ccc; width: 60px; height: 60px; margin: 10px auto; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; text-align: center; }
+                
+                @media print { 
+                    body { width: 72mm; } 
+                    .no-print { display: none; }
+                }
             </style>
         </head>
         <body onload="window.print(); window.close();">
             <div class="header">
-                <h1 style="margin: 0; font-size: 28px;">#${order.order_number}</h1>
-                <div style="font-size: 16px; font-weight: bold;">KITCHEN RECEIPT</div>
+                ${restaurant?.logo_url ? `<img src="${restaurant.logo_url}" class="logo" />` : ''}
+                <div class="rest-name">${restaurant?.name_ar || restaurant?.name_en || 'CitySoft Restaurant'}</div>
+                <div class="receipt-title">إيصال الطلب / Order Receipt</div>
             </div>
-            <div class="order-info">
-                <div><b>التاريخ:</b> ${new Date(order.created_at).toLocaleString('ar-SA')}</div>
-                <div><b>النوع:</b> ${order.order_type === 'dine_in' ? '🍽️ محلي' : order.order_type === 'car' ? '🚗 سيارة' : '🥡 سفري'}</div>
-                ${order.table_number ? `<div><b>الطاولة:</b> ${order.table_number}</div>` : ''}
-                ${order.customer_name ? `<div><b>العميل:</b> ${order.customer_name}</div>` : ''}
+
+            <div class="info-grid">
+                <div class="info-row"><span>رقم الطلب:</span> <b>#${order.order_number}</b></div>
+                <div class="info-row"><span>التاريخ:</span> <span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
+                <div class="info-row"><span>النوع:</span> <b>${order.order_type === 'dine_in' ? '🍽️ محلي' : order.order_type === 'car' ? '🚗 سيارة' : '🥡 سفري'}</b></div>
+                ${order.table_number ? `<div class="info-row"><span>الطاولة:</span> <b>${order.table_number}</b></div>` : ''}
+                ${order.car_number ? `<div class="info-row"><span>السيارة:</span> <b>${order.car_number}</b></div>` : ''}
+                ${order.customer_name ? `<div class="info-row"><span>العميل:</span> <span>${order.customer_name}</span></div>` : ''}
+                ${order.phone ? `<div class="info-row"><span>الجوال:</span> <span>${order.phone}</span></div>` : ''}
             </div>
+
             <div class="items">
                 ${itemsHtml}
             </div>
-            ${order.notes ? `<div class="notes">ملاحظات: ${order.notes}</div>` : ''}
-            <div class="total">الإجمالي: ${parseFloat(order.total).toFixed(2)} ر.س</div>
+
+            ${order.notes ? `<div class="notes"><b>ملاحظات:</b> ${order.notes}</div>` : ''}
+
+            <div class="totals">
+                <div class="total-row"><span>المجموع الفرعي:</span> <span>${subtotal.toFixed(2)} ر.س</span></div>
+                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${taxAmount.toFixed(2)} ر.س</span></div>
+                <div class="grand-total total-row"><span>الإجمالي:</span> <span>${parseFloat(order.total).toFixed(2)} ر.س</span></div>
+            </div>
+
+            <div class="footer">
+                <div>شكراً لك من مطعم ${restaurant?.name_ar || ''}</div>
+                <div>نسعد بزيارتك مرة أخرى</div>
+                <div class="qr-placeholder">QR للفاتورة الضريبية قريباً</div>
+            </div>
         </body>
         </html>
     `;
@@ -532,6 +577,7 @@ const OrderTimer = ({ createdAt }) => {
 
 export default function KitchenDashboard() {
     const [orders, setOrders] = useState([]);
+    const [restaurant, setRestaurant] = useState(null);
     const [loading, setLoading] = useState(true);
     const [soundEnabled, setSoundEnabled] = useState(false);
     const [autoPrint, setAutoPrint] = useState(false);
@@ -557,7 +603,7 @@ export default function KitchenDashboard() {
                             const printedIds = JSON.parse(localStorage.getItem('kds_printed_ids') || '[]');
                             newOrders.forEach(order => {
                                 if (!printedIds.includes(order.id)) {
-                                    printOrder(order);
+                                    printOrder(order, data.restaurant);
                                     printedIds.push(order.id);
                                 }
                             });
@@ -570,6 +616,7 @@ export default function KitchenDashboard() {
                 }
 
                 setOrders(activeOrders);
+                setRestaurant(data.restaurant);
             }
         } catch (e) {
             console.error(e);
@@ -704,7 +751,7 @@ export default function KitchenDashboard() {
                         <span className="k-total-lbl">الإجمالي</span>
                         <span className="k-total-val">{parseFloat(order.total).toFixed(2)} ر.س</span>
                     </div>
-                    <button className="k-print-btn" onClick={() => printOrder(order)} title="طباعة">
+                    <button className="k-print-btn" onClick={() => printOrder(order, restaurant)} title="طباعة">
                         <span>🖨️</span>
                         <span>طباعة</span>
                     </button>

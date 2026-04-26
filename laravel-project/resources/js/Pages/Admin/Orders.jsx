@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { usePage } from '@inertiajs/react';
 
 const GOLD = '#C9A84C';
 const SURF = '#FFFFFF';
@@ -28,6 +29,9 @@ const pageStyles = `
 .btn-view { background: transparent; color: ${GOLD}; border: 1px solid ${GOLD}; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
 .btn-view:hover { background: ${GOLD}; color: #fff; }
 
+.btn-print { background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; font-family: inherit; transition: all 0.2s; }
+.btn-print:hover { background: #e5e7eb; color: #111; }
+
 /* MODAL */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
 .modal { background: ${SURF}; border-radius: 12px; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
@@ -42,7 +46,104 @@ const pageStyles = `
 .addon-row { display: flex; justify-content: space-between; margin-bottom: 0.2rem; }
 `;
 
+const printOrder = (order, restaurant) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+
+    const subtotal = order.items.reduce((acc, item) => acc + parseFloat(item.total_price), 0);
+    const taxPercentage = parseFloat(restaurant?.tax_percentage || 0);
+    const taxAmount = (subtotal * (taxPercentage / 100));
+
+    const itemsHtml = order.items?.map(item => `
+        <div style="border-bottom: 1px dashed #eee; padding: 6px 0;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">
+                <span>${item.quantity}x ${item.product_name_ar || item.product_name_en}</span>
+                <span>${parseFloat(item.total_price).toFixed(2)}</span>
+            </div>
+            ${item.addons?.map(a => `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #444; padding-right: 15px;">
+                    <span>+ ${a.addon_name_ar || a.addon_name_en}</span>
+                    <span>${parseFloat(a.price).toFixed(2)}</span>
+                </div>
+            `).join('')}
+        </div>
+    `).join('') || '';
+
+    const html = `
+        <html dir="rtl">
+        <head>
+            <title>Receipt #${order.order_number}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+                body { font-family: 'Cairo', sans-serif; width: 72mm; padding: 4mm; color: #000; background: #fff; margin: 0; line-height: 1.4; }
+                .header { text-align: center; margin-bottom: 10px; }
+                .logo { max-width: 120px; max-height: 60px; object-fit: contain; margin-bottom: 5px; }
+                .rest-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+                .receipt-title { font-size: 14px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 0; margin: 5px 0; }
+                
+                .info-grid { font-size: 12px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+                .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                
+                .items { margin-bottom: 10px; }
+                
+                .totals { border-top: 1px solid #000; padding-top: 5px; font-size: 13px; }
+                .total-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                .grand-total { font-size: 18px; font-weight: bold; margin-top: 5px; border-top: 2px double #000; padding-top: 5px; }
+                
+                .notes { background: #f9f9f9; padding: 5px; margin: 10px 0; font-size: 12px; border-right: 3px solid #000; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; border-top: 1px dashed #000; padding-top: 10px; }
+                .qr-placeholder { border: 1px solid #ccc; width: 60px; height: 60px; margin: 10px auto; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; text-align: center; }
+                
+                @media print { 
+                    body { width: 72mm; } 
+                }
+            </style>
+        </head>
+        <body onload="window.print(); window.close();">
+            <div class="header">
+                ${restaurant?.logo_url ? `<img src="${restaurant.logo_url}" class="logo" />` : ''}
+                <div class="rest-name">${restaurant?.name_ar || restaurant?.name_en || 'CitySoft Restaurant'}</div>
+                <div class="receipt-title">إيصال الطلب / Order Receipt</div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-row"><span>رقم الطلب:</span> <b>#${order.order_number}</b></div>
+                <div class="info-row"><span>التاريخ:</span> <span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
+                <div class="info-row"><span>النوع:</span> <b>${order.order_type === 'dine_in' ? '🍽️ محلي' : order.order_type === 'car' ? '🚗 سيارة' : '🥡 سفري'}</b></div>
+                ${order.table_number ? `<div class="info-row"><span>الطاولة:</span> <b>${order.table_number}</b></div>` : ''}
+                ${order.car_number ? `<div class="info-row"><span>السيارة:</span> <b>${order.car_number}</b></div>` : ''}
+                ${order.customer_name ? `<div class="info-row"><span>العميل:</span> <span>${order.customer_name}</span></div>` : ''}
+                ${order.phone ? `<div class="info-row"><span>الجوال:</span> <span>${order.phone}</span></div>` : ''}
+            </div>
+
+            <div class="items">
+                ${itemsHtml}
+            </div>
+
+            ${order.notes ? `<div class="notes"><b>ملاحظات:</b> ${order.notes}</div>` : ''}
+
+            <div class="totals">
+                <div class="total-row"><span>المجموع الفرعي:</span> <span>${subtotal.toFixed(2)} ر.س</span></div>
+                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${taxAmount.toFixed(2)} ر.س</span></div>
+                <div class="grand-total total-row"><span>الإجمالي:</span> <span>${parseFloat(order.total).toFixed(2)} ر.س</span></div>
+            </div>
+
+            <div class="footer">
+                <div>شكراً لك من مطعم ${restaurant?.name_ar || ''}</div>
+                <div>نسعد بزيارتك مرة أخرى</div>
+                <div class="qr-placeholder">QR للفاتورة الضريبية قريباً</div>
+            </div>
+        </body>
+        </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+};
+
 export default function Orders({ orders: initialOrders }) {
+    const { admin } = usePage().props;
+    const currentRestaurant = admin?.current_restaurant;
+
     const [orders, setOrders] = useState(initialOrders);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -127,9 +228,14 @@ export default function Orders({ orders: initialOrders }) {
                                 </td>
                                 <td style={{ color: MUTED, fontSize: '0.9rem' }}>{formatDate(order.created_at)}</td>
                                 <td>
-                                    <button className="btn-view" onClick={() => setSelectedOrder(order)}>
-                                        عرض التفاصيل
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button className="btn-view" onClick={() => setSelectedOrder(order)}>
+                                            عرض
+                                        </button>
+                                        <button className="btn-print" onClick={() => printOrder(order, currentRestaurant)}>
+                                            🖨️ طباعة
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -150,7 +256,12 @@ export default function Orders({ orders: initialOrders }) {
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2 className="modal-title">تفاصيل الطلب: {selectedOrder.order_number}</h2>
-                            <button className="modal-close" onClick={() => setSelectedOrder(null)}>&times;</button>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <button className="btn-print" onClick={() => printOrder(selectedOrder, currentRestaurant)}>
+                                    🖨️ طباعة الإيصال
+                                </button>
+                                <button className="modal-close" onClick={() => setSelectedOrder(null)}>&times;</button>
+                            </div>
                         </div>
                         <div className="modal-body">
                             <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', background: '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>

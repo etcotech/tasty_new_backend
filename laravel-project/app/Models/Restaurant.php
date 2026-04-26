@@ -12,6 +12,7 @@ class Restaurant extends Model
         'phone', 'country_code', 'address', 'tax_percentage', 'currency',
         'working_hours', 'logo_url', 'hero_image_url',
         'address_ar', 'address_en', 'is_open',
+        'subtitle_ar', 'subtitle_en',
     ];
 
     protected $casts = [

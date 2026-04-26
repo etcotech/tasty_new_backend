@@ -19,7 +19,6 @@ const getProductDesc = (p, lang = 'ar') => {
 };
 
 const t = {
-    heroTagline: { ar: 'استكشف فن الطهي والمذاق الراقي', en: 'Experience the Art of Fine Dining' },
     browseMenu:  { ar: 'تصفح القائمة',                  en: 'Browse Menu' },
     addToOrder:  { ar: 'أضف للطلب',                    en: 'Add to Order' },
     all:         { ar: 'الكل',                          en: 'ALL' },
@@ -80,9 +79,13 @@ const css = `
 
 /* HEADER */
 .sv-header { position: absolute; top: 0; left: 0; right: 0; z-index: 50; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-.sv-header__left { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
-.sv-logo-sm { width: 40px; height: 40px; background: ${GOLD}; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 800; color: #fff; box-shadow: 0 2px 10px rgba(201,168,76,0.35); flex-shrink: 0; }
-.sv-brand { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.1em; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.3); }
+.sv-header__left { display: flex; align-items: center; gap: 1rem; cursor: pointer; }
+.sv-logo-img { width: 250px; height: 80px; object-fit: contain; display: block; flex-shrink: 0; }
+.sv-brand { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.1em; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.3); display: flex; align-items: center; }
+@media (max-width: 640px) {
+    .sv-logo-img { width: 150px; height: 50px; }
+    .sv-brand { font-size: 1.1rem; }
+}
 .sv-header__right { display: flex; align-items: center; gap: 1rem; }
 .sv-lang-btn { font-size: 0.875rem; font-weight: 600; color: #fff; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); padding: 0.4rem 0.9rem; border-radius: 8px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s; font-family: inherit; }
 .sv-lang-btn:hover { background: rgba(255,255,255,0.28); }
@@ -93,8 +96,10 @@ const css = `
 .sv-hero__overlay { position: absolute; inset: 0; background: linear-gradient(160deg, rgba(26,23,20,0.55) 0%, rgba(26,23,20,0.35) 50%, rgba(247,245,240,0.9) 100%); z-index: 1; }
 .sv-hero__content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; padding: 0 1rem; max-width: 700px; }
 .sv-hero__logo { width: 76px; height: 76px; background: ${GOLD}; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 2.2rem; font-weight: 800; color: #fff; box-shadow: 0 4px 24px rgba(201,168,76,0.45); margin-bottom: 1.25rem; }
-.sv-hero__title { font-family: 'Cinzel', serif; font-size: clamp(2.4rem,6vw,4.2rem); font-weight: 700; letter-spacing: 0.08em; line-height: 1.1; color: #fff; margin-bottom: 0.9rem; text-shadow: 0 3px 18px rgba(0,0,0,0.5); }
-.sv-hero__tagline { font-size: clamp(0.9rem,2vw,1.1rem); color: rgba(255,255,255,0.85); font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 2.5rem; }
+.sv-hero__title { font-family: 'Cairo', sans-serif; font-size: clamp(3rem, 8vw, 3.5rem); font-weight: 800; line-height: 1.1; color: #fff; margin-bottom: 0.5rem; text-shadow: 0 3px 18px rgba(0,0,0,0.5); }
+.sv-hero__title-en { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 500; color: rgba(255,255,255,0.9); margin-bottom: 1.25rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.sv-hero__tagline { font-family: 'Cairo', sans-serif; font-size: clamp(1.1rem, 2.5vw, 1.4rem); color: rgba(255,255,255,0.85); font-weight: 400; margin-top: 10px; margin-bottom: 2.5rem; max-width: 600px; line-height: 1.6; }
+.sv-page.en .sv-hero__tagline { font-family: 'Outfit', sans-serif; }
 .sv-hero__actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
 .sv-btn-primary { background: ${GOLD}; color: #fff; padding: 0.875rem 2rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.25s; border: none; cursor: pointer; box-shadow: 0 2px 12px rgba(201,168,76,0.3); font-family: inherit; }
 .sv-btn-primary:hover { background: ${GOLD_H}; box-shadow: 0 4px 20px rgba(201,168,76,0.45); transform: translateY(-2px); }
@@ -212,6 +217,15 @@ const css = `
 .sv-radio-group { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
 .sv-radio-btn { flex: 1; text-align: center; padding: 0.75rem 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #6B6460; transition: all 0.2s; user-select: none; }
 .sv-radio-btn.active { background: rgba(201,168,76,0.1); border-color: #C9A84C; color: #B8942F; }
+
+/* SUCCESS MODAL */
+.sv-success-modal { text-align: center; padding: 3rem 2rem; }
+.sv-success-icon { width: 80px; height: 80px; background: #22C55E; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 1.5rem; box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
+.sv-success-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; color: #1A1714; }
+.sv-success-ord-num { font-size: 2.2rem; font-weight: 900; color: #C9A84C; margin: 1rem 0; font-family: 'Outfit', sans-serif; }
+.sv-success-total { font-size: 1.1rem; color: #6B6460; margin-bottom: 2rem; }
+.sv-success-btn { width: 100%; padding: 1rem; background: #C9A84C; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
+.sv-success-btn:hover { background: #B8942F; transform: translateY(-2px); }
 `;
 
 /* ======================================
@@ -471,14 +485,22 @@ export default function Menu({ slug }) {
 
                 {/* ── HEADER ── */}
                 <header className="sv-header">
-                    <div className="sv-header__left">
-                        {logoUrl
-                            ? <img src={logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${GOLD}` }} onError={e => e.target.style.display='none'} />
-                            : <div className="sv-logo-sm">{logoLetter}</div>
-                        }
-                        <span className="sv-brand">{lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar)}</span>
+                    <div className="sv-header__left" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        {logoUrl ? (
+                            <img 
+                                src={logoUrl} 
+                                alt="logo" 
+                                className="sv-logo-img" 
+                                onError={e => e.target.style.display='none'} 
+                            />
+                        ) : (
+                            <span className="sv-brand">
+                                {lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar)}
+                            </span>
+                        )}
+                        
                         {/* is_open badge */}
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)', color: restaurant.is_open ? '#16a34a' : '#dc2626', border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`, backdropFilter: 'blur(4px)' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)', color: restaurant.is_open ? '#16a34a' : '#dc2626', border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`, backdropFilter: 'blur(4px)', flexShrink: 0 }}>
                             {restaurant.is_open ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open') : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
                         </span>
                     </div>
@@ -513,9 +535,16 @@ export default function Menu({ slug }) {
                     />
                     <div className="sv-hero__overlay" />
                     <div className="sv-hero__content">
-                        <div className="sv-hero__logo">{logoLetter}</div>
-                        <h1 className="sv-hero__title">{heroName}</h1>
-                        <p className="sv-hero__tagline">{tr('heroTagline')}</p>
+                        {/* No Logo Letter - Uber Eats Style uses Hero background and text only */}
+                        <h1 className="sv-hero__title">{restaurant.name_ar}</h1>
+                        {restaurant.name_en && (
+                            <div className="sv-hero__title-en">{restaurant.name_en}</div>
+                        )}
+                        <p className="sv-hero__tagline">
+                            {lang === 'ar' 
+                                ? (restaurant.subtitle_ar || restaurant.subtitle_en || '') 
+                                : (restaurant.subtitle_en || restaurant.subtitle_ar || '')}
+                        </p>
                         <div className="sv-hero__actions">
                             <button className="sv-btn-primary" onClick={scrollToMenu}>
                                 {tr('browseMenu')}
@@ -777,110 +806,109 @@ export default function Menu({ slug }) {
                 {/* ── CHECKOUT MODAL ── */}
                 {isCheckoutOpen && (
                     <div className="sv-modal-overlay" onClick={() => setIsCheckoutOpen(false)}>
-                        <div className="sv-modal" style={{ padding: '1.5rem' }} onClick={e => e.stopPropagation()}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 className="sv-modal__title" style={{ margin: 0 }}>{tr('checkoutTitle')}</h3>
-                                <button className="sv-drawer__close" onClick={() => setIsCheckoutOpen(false)}>×</button>
-                            </div>
-                            
-                            <div className="sv-radio-group">
-                                <div className={`sv-radio-btn ${orderForm.type === 'dine_in' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'dine_in'}))}>
-                                    🍽️ {tr('dineIn')}
+                        <div className="sv-modal" style={{ padding: '0' }} onClick={e => e.stopPropagation()}>
+                            <div className="sv-modal__body" style={{ padding: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <h2 className="sv-drawer__title" style={{ margin: 0 }}>{tr('checkoutTitle')}</h2>
+                                    <button className="sv-drawer__close" onClick={() => setIsCheckoutOpen(false)}>×</button>
                                 </div>
-                                <div className={`sv-radio-btn ${orderForm.type === 'takeaway' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'takeaway'}))}>
-                                    🛍️ {tr('takeaway')}
-                                </div>
-                                <div className={`sv-radio-btn ${orderForm.type === 'car' ? 'active' : ''}`} onClick={() => setOrderForm(p => ({...p, type: 'car'}))}>
-                                    🚗 {tr('inCar')}
-                                </div>
-                            </div>
-                            
-                            {orderForm.type === 'dine_in' && (
-                                <div className="sv-form-group">
-                                    <label className="sv-form-label">{tr('tableNumber')} *</label>
-                                    <input className="sv-form-input" type="text" value={orderForm.table_number} onChange={e => setOrderForm(p => ({...p, table_number: e.target.value}))} />
-                                </div>
-                            )}
-                            
-                            {(orderForm.type === 'takeaway' || orderForm.type === 'car') && (
-                                <div className="sv-form-group">
-                                    <label className="sv-form-label">{tr('phoneNumber')} *</label>
-                                    <input className="sv-form-input" type="tel" value={orderForm.phone} onChange={e => setOrderForm(p => ({...p, phone: e.target.value}))} />
-                                </div>
-                            )}
-                            
-                            {orderForm.type === 'car' && (
-                                <div className="sv-form-group">
-                                    <label className="sv-form-label">{tr('carNumber')} *</label>
-                                    <input className="sv-form-input" type="text" value={orderForm.car_number} onChange={e => setOrderForm(p => ({...p, car_number: e.target.value}))} />
-                                </div>
-                            )}
-                            
-                            <div className="sv-form-group">
-                                <label className="sv-form-label">{tr('customerName')}</label>
-                                <input className="sv-form-input" type="text" value={orderForm.customer_name} onChange={e => setOrderForm(p => ({...p, customer_name: e.target.value}))} />
-                            </div>
-                            
-                            <div className="sv-form-group" style={{ marginBottom: '1.5rem' }}>
-                                <label className="sv-form-label">{tr('notes')}</label>
-                                <textarea className="sv-form-input" rows="2" value={orderForm.notes} onChange={e => setOrderForm(p => ({...p, notes: e.target.value}))}></textarea>
-                            </div>
-                            
-                            {/* Tax breakdown before confirm */}
-                            <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '0.9rem 1rem', marginBottom: '1.25rem', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
-                                    <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
-                                    <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
-                                    <span>{lang === 'ar' ? `ضريبة القيمة المضافة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
-                                    <span>{cartTax.toFixed(2)} {tr('sar')}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', paddingTop: '0.4rem', borderTop: '1px solid #E5E7EB' }}>
-                                    <span>{tr('total')}</span>
-                                    <span style={{ color: '#B8942F' }}>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
-                                </div>
-                            </div>
 
-                            <button 
-                                className="sv-modal__btn-add" 
-                                style={{ width: '100%', padding: '1rem', fontSize: '1.05rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }} 
-                                onClick={handleCheckoutSubmit}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? tr('submitting') : tr('confirmOrder')}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ── SUCCESS MODAL ── */}
-                {successOrderNumber && (
-                    <div className="sv-modal-overlay sv-z-checkout" onClick={() => setSuccessOrderNumber(null)}>
-                        <div className="sv-modal" onClick={e => e.stopPropagation()}>
-                            <div className="sv-modal__header" style={{ borderBottom: 'none' }}>
-                                <h2 className="sv-modal__title" style={{ color: '#2ecc71', width: '100%', textAlign: 'center' }}>
-                                    {tr('orderSuccessMsg')}
-                                </h2>
-                                <button className="sv-modal__close" onClick={() => setSuccessOrderNumber(null)} style={{ position: 'absolute', right: '1rem', top: '1rem' }}>&times;</button>
-                            </div>
-                            <div className="sv-modal__body" style={{ textAlign: 'center', padding: '2rem 1rem', paddingTop: '0' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '2rem', color: '#1A1714' }}>
-                                    {successOrderNumber}
+                                <div className="sv-radio-group">
+                                    <div className={`sv-radio-btn ${orderForm.type === 'dine_in' ? 'active' : ''}`} onClick={() => setOrderForm(prev => ({...prev, type: 'dine_in'}))}>
+                                        {tr('dineIn')}
+                                    </div>
+                                    <div className={`sv-radio-btn ${orderForm.type === 'takeaway' ? 'active' : ''}`} onClick={() => setOrderForm(prev => ({...prev, type: 'takeaway'}))}>
+                                        {tr('takeaway')}
+                                    </div>
+                                    <div className={`sv-radio-btn ${orderForm.type === 'car' ? 'active' : ''}`} onClick={() => setOrderForm(prev => ({...prev, type: 'car'}))}>
+                                        {tr('inCar')}
+                                    </div>
                                 </div>
-                                <button 
-                                    className="sv-modal__btn-add" 
-                                    style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', background: '#C9A84C', color: '#fff' }} 
-                                    onClick={() => window.location.href = `/track/${successOrderNumber}`}
-                                >
-                                    {tr('trackOrder')}
+
+                                {orderForm.type === 'dine_in' && (
+                                    <div className="sv-form-group">
+                                        <label className="sv-form-label">{tr('tableNumber')}</label>
+                                        <input type="text" className="sv-form-input" value={orderForm.table_number} onChange={e => setOrderForm(prev => ({...prev, table_number: e.target.value}))} />
+                                    </div>
+                                )}
+
+                                {orderForm.type !== 'dine_in' && (
+                                    <div className="sv-form-group">
+                                        <label className="sv-form-label">{tr('phoneNumber')}</label>
+                                        <input type="tel" className="sv-form-input" placeholder="05xxxxxxxx" value={orderForm.phone} onChange={e => setOrderForm(prev => ({...prev, phone: e.target.value}))} />
+                                    </div>
+                                )}
+
+                                {orderForm.type === 'car' && (
+                                    <div className="sv-form-group">
+                                        <label className="sv-form-label">{tr('carNumber')}</label>
+                                        <input type="text" className="sv-form-input" value={orderForm.car_number} onChange={e => setOrderForm(prev => ({...prev, car_number: e.target.value}))} />
+                                    </div>
+                                )}
+
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('customerName')}</label>
+                                    <input type="text" className="sv-form-input" value={orderForm.customer_name} onChange={e => setOrderForm(prev => ({...prev, customer_name: e.target.value}))} />
+                                </div>
+
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('notes')}</label>
+                                    <textarea className="sv-form-input" style={{ minHeight: '80px' }} value={orderForm.notes} onChange={e => setOrderForm(prev => ({...prev, notes: e.target.value}))} />
+                                </div>
+
+                                {/* Totals Breakdown in Checkout */}
+                                <div style={{ marginTop: '1.5rem', background: '#F2EFE8', padding: '1rem', borderRadius: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.9rem', color: '#6B6460' }}>
+                                        <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                                        <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', fontSize: '0.9rem', color: '#6B6460' }}>
+                                        <span>{lang === 'ar' ? `الضريبة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
+                                        <span>{cartTax.toFixed(2)} {tr('sar')}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem', color: '#1A1714', paddingTop: '0.6rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                        <span>{tr('total')}</span>
+                                        <span>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="sv-modal__footer" style={{ borderTop: 'none', paddingTop: '0' }}>
+                                <button className="sv-drawer__checkout-btn" style={{ margin: 0 }} disabled={isSubmitting} onClick={handleCheckoutSubmit}>
+                                    {isSubmitting ? tr('submitting') : tr('confirmOrder')}
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
 
+                {/* ── SUCCESS MODAL ── */}
+                {successOrderNumber && (
+                    <div className="sv-modal-overlay">
+                        <div className="sv-modal" onClick={e => e.stopPropagation()}>
+                            <div className="sv-success-modal">
+                                <div className="sv-success-icon">✓</div>
+                                <h2 className="sv-success-title">{tr('orderSuccessMsg')}</h2>
+                                <p style={{ color: '#6B6460' }}>{lang === 'ar' ? 'رقم طلبك هو' : 'Your order number is'}</p>
+                                <div className="sv-success-ord-num">{successOrderNumber}</div>
+                                <div className="sv-success-total">
+                                    {tr('total')}: <span style={{ fontWeight: 800, color: '#1A1714' }}>{cartTotal.toFixed(2)} {tr('sar')}</span>
+                                </div>
+                                <button 
+                                    className="sv-success-btn"
+                                    onClick={() => window.location.href = `/track/${successOrderNumber}`}
+                                >
+                                    {tr('trackOrder')}
+                                </button>
+                                <button 
+                                    style={{ background: 'transparent', border: 'none', marginTop: '1.5rem', color: MUTED, cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                                    onClick={() => setSuccessOrderNumber(null)}
+                                >
+                                    {lang === 'ar' ? 'إغلاق' : 'Close'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );

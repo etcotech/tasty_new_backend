@@ -10,14 +10,21 @@ class KitchenController extends Controller
 {
     public function index()
     {
-        $orders = Order::with(['items.addons'])
+        $restaurant = \App\Models\Restaurant::first();
+        if (!$restaurant) {
+            return response()->json(['success' => false, 'message' => 'Restaurant not found'], 404);
+        }
+
+        $orders = Order::where('restaurant_id', $restaurant->id)
+            ->with(['items.addons'])
             ->where('status', '!=', 'completed')
             ->orderBy('created_at', 'asc')
             ->get();
             
         return response()->json([
             'success' => true,
-            'orders' => $orders
+            'orders' => $orders,
+            'restaurant' => $restaurant
         ]);
     }
 

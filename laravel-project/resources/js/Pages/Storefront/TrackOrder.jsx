@@ -1,53 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
-const GOLD = '#C9A84C';
-const BG = '#F7F5F0';
-const SURF = '#FFFFFF';
-const TEXT = '#1A1714';
-const MUTED = '#6B6460';
+/* ======================================
+   STYLES (Compact & Horizontal Layout)
+   ====================================== */
+const GOLD   = '#C9A84C';
+const GOLD_H = '#B8942F';
+const BG     = '#F7F5F0';
+const SURF   = '#FFFFFF';
+const TEXT   = '#1A1714';
+const MUTED  = '#6B6460';
 const BORDER = 'rgba(0,0,0,0.07)';
 
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-.track-page { background: ${BG}; font-family: 'Outfit', 'Cairo', sans-serif; color: ${TEXT}; min-height: 100vh; direction: rtl; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
 
-.track-container { background: ${SURF}; border-radius: 16px; border: 1px solid ${BORDER}; width: 100%; max-width: 600px; padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.tr-page { background: ${BG}; font-family: 'Cairo', 'Outfit', sans-serif; color: ${TEXT}; min-height: 100vh; direction: rtl; display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1rem; -webkit-font-smoothing: antialiased; }
 
-.track-header { text-align: center; margin-bottom: 2rem; }
-.track-title { font-size: 1.8rem; font-weight: 800; color: ${GOLD}; margin-bottom: 0.5rem; }
+.tr-container { width: 100%; max-width: 650px; }
 
-.search-box { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
-.search-input { flex: 1; padding: 0.8rem 1rem; border: 1px solid ${BORDER}; border-radius: 8px; font-size: 1rem; font-family: inherit; outline: none; }
-.search-input:focus { border-color: ${GOLD}; }
-.search-btn { background: ${GOLD}; color: #fff; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background 0.2s; font-family: inherit; }
-.search-btn:hover { background: #B8942F; }
+/* COMPACT CARDS */
+.tr-card { background: ${SURF}; border-radius: 16px; border: 1px solid ${BORDER}; padding: 1.25rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 1rem; position: relative; }
 
-.error-msg { background: #ffebee; color: #c0392b; padding: 1rem; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 1.5rem; }
+/* NAV BUTTONS */
+.tr-nav-row { display: flex; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+.tr-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.6rem; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; border: 1px solid ${BORDER}; font-family: inherit; text-decoration: none; }
+.tr-nav-btn--back { background: #fff; color: ${TEXT}; }
+.tr-nav-btn--back:hover { background: #f9f9f9; border-color: ${GOLD}; }
+.tr-nav-btn--refresh { background: ${GOLD}; color: #fff; border: none; }
+.tr-nav-btn--refresh:hover { background: ${GOLD_H}; transform: translateY(-1px); }
 
-/* Timeline */
-.timeline { display: flex; flex-direction: column; gap: 1.5rem; position: relative; margin: 2rem 0; padding-right: 1.5rem; border-right: 3px solid #eee; }
-.timeline-item { position: relative; }
-.timeline-item::before { content: ''; position: absolute; right: -1.9rem; top: 0; width: 1.2rem; height: 1.2rem; border-radius: 50%; background: #eee; border: 3px solid #fff; box-shadow: 0 0 0 1px #eee; transition: all 0.3s; }
-.timeline-item.active::before { background: ${GOLD}; box-shadow: 0 0 0 1px ${GOLD}; }
-.timeline-item.done::before { background: #2ecc71; box-shadow: 0 0 0 1px #2ecc71; }
-.timeline-content { background: #faf9f6; padding: 1rem; border-radius: 8px; border: 1px solid ${BORDER}; }
-.timeline-title { font-weight: 700; font-size: 1.1rem; color: ${MUTED}; }
-.timeline-item.active .timeline-title { color: ${TEXT}; }
+/* SEARCH SECTION */
+.tr-search-card { padding: 1.5rem; text-align: center; }
+.tr-header { margin-bottom: 1.25rem; }
+.tr-title { font-family: 'Cinzel', serif; font-size: 1.8rem; font-weight: 800; color: ${TEXT}; margin-bottom: 0.25rem; }
+.tr-subtitle { color: ${MUTED}; font-size: 0.9rem; }
 
-.order-details { margin-top: 2rem; border-top: 1px solid ${BORDER}; padding-top: 1.5rem; }
-.detail-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem; }
-.detail-label { color: ${MUTED}; font-weight: 600; }
-.detail-val { font-weight: 700; }
+.tr-search-box { display: flex; gap: 0.5rem; }
+.tr-input { flex: 1; padding: 0.75rem 1rem; border: 1.5px solid ${BORDER}; border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none; transition: all 0.2s; background: #fafafa; }
+.tr-input:focus { border-color: ${GOLD}; background: #fff; }
+.tr-search-btn { background: ${GOLD}; color: #fff; border: none; padding: 0 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; }
 
-.items-list { margin-top: 1.5rem; }
-.item-row { border: 1px solid ${BORDER}; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem; }
-.item-top { display: flex; justify-content: space-between; font-weight: 700; }
-.addons { margin-top: 0.5rem; padding-right: 1rem; color: ${MUTED}; font-size: 0.85rem; border-right: 2px solid ${GOLD}; }
-.addon-row { display: flex; justify-content: space-between; margin-bottom: 0.2rem; }
+/* STATUS HEADER */
+.tr-status-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid ${BORDER}; }
+.tr-ord-num { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: ${GOLD_H}; }
+.tr-status-badge { background: rgba(34,197,94,0.1); color: #16A34A; padding: 0.3rem 0.75rem; border-radius: 6px; font-weight: 700; font-size: 0.85rem; }
 
-.total-row { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid ${BORDER}; font-size: 1.2rem; font-weight: 800; color: ${GOLD}; }
+/* HORIZONTAL TIMELINE */
+.tr-timeline-horiz { display: flex; position: relative; margin: 1.5rem 0 2.5rem; padding: 0 0.5rem; }
+.tr-timeline-horiz::before { content: ''; position: absolute; top: 11px; left: 10%; right: 10%; height: 2px; background: #E5E7EB; z-index: 1; }
+
+.tr-step-h { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2; text-align: center; }
+.tr-step-h__dot { width: 22px; height: 22px; border-radius: 50%; background: #E5E7EB; border: 4px solid #fff; box-shadow: 0 0 0 1px #E5E7EB; transition: all 0.4s; margin-bottom: 0.75rem; }
+.tr-step-h.active .tr-step-h__dot { background: ${GOLD}; box-shadow: 0 0 0 4px rgba(201,168,76,0.2), 0 0 0 1px ${GOLD}; transform: scale(1.1); }
+.tr-step-h.done .tr-step-h__dot { background: #22C55E; box-shadow: 0 0 0 1px #22C55E; }
+
+.tr-step-h__label { font-size: 0.8rem; font-weight: 800; color: ${MUTED}; line-height: 1.2; max-width: 80px; }
+.tr-step-h.active .tr-step-h__label { color: ${TEXT}; font-size: 0.85rem; }
+.tr-step-h.done .tr-step-h__label { color: #16A34A; }
+
+/* REFRESH TEXT */
+.tr-refresh-mini { color: ${MUTED}; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-top: 0.5rem; }
+.tr-refresh-mini span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22C55E; animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+/* COMPACT DETAILS */
+.tr-details-card { padding: 0; overflow: hidden; }
+.tr-details-title { background: #fafafa; padding: 0.75rem 1.25rem; font-weight: 800; font-size: 1rem; border-bottom: 1px solid ${BORDER}; }
+.tr-details-content { padding: 1rem 1.25rem; }
+.tr-detail-item { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.tr-detail-item:last-child { margin-bottom: 0; }
+.tr-detail-label { color: ${MUTED}; }
+.tr-detail-val { font-weight: 700; }
+
+.tr-items-list { border-top: 1px dashed ${BORDER}; margin-top: 0.75rem; padding-top: 0.75rem; }
+.tr-item-row { display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem; }
+.tr-item-name { font-weight: 700; }
+.tr-item-addons { font-size: 0.8rem; color: ${MUTED}; margin-top: -0.2rem; margin-bottom: 0.4rem; padding-right: 0.75rem; border-right: 1.5px solid ${GOLD}; }
+
+.tr-total-footer { background: #faf9f6; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 900; border-top: 1.5px solid ${GOLD}; }
+.tr-total-price { color: ${GOLD_H}; }
+
+@media (max-width: 480px) {
+    .tr-timeline-horiz::before { left: 15%; right: 15%; }
+    .tr-step-h__label { font-size: 0.7rem; }
+    .tr-step-h.active .tr-step-h__label { font-size: 0.75rem; }
+}
 `;
 
 export default function TrackOrder({ initialOrderNumber }) {
@@ -57,20 +97,25 @@ export default function TrackOrder({ initialOrderNumber }) {
     const [error, setError] = useState('');
 
     const fetchOrder = async (num) => {
-        if (!num) return;
+        const cleanNum = num?.trim().toUpperCase();
+        if (!cleanNum) {
+            setError('يرجى إدخال رقم الطلب');
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
-            const res = await fetch(`/api/orders/${num}/track`);
+            const res = await fetch(`/api/orders/${cleanNum}/track`);
             const data = await res.json();
             if (data.success) {
                 setOrder(data.order);
             } else {
                 setOrder(null);
-                setError(data.message || 'الطلب غير موجود');
+                setError('لم يتم العثور على الطلب. يرجى التأكد من الرقم.');
             }
         } catch (e) {
-            setError('حدث خطأ في الاتصال');
+            setError('حدث خطأ في الاتصال. يرجى المحاولة لاحقاً.');
         } finally {
             setLoading(false);
         }
@@ -84,11 +129,14 @@ export default function TrackOrder({ initialOrderNumber }) {
 
     useEffect(() => {
         if (!order) return;
+        
+        // Don't refresh if completed
+        if (order.status === 'completed') return;
+
         const interval = setInterval(() => {
-            if (order.status !== 'completed') {
-                fetchOrder(order.order_number);
-            }
+            fetchOrder(order.order_number);
         }, 10000);
+        
         return () => clearInterval(interval);
     }, [order]);
 
@@ -98,119 +146,143 @@ export default function TrackOrder({ initialOrderNumber }) {
     };
 
     const statuses = [
-        { id: 'pending', label: 'تم استلام الطلب' },
+        { id: 'pending',   label: 'تم الاستلام' },
         { id: 'preparing', label: 'قيد التحضير' },
-        { id: 'ready', label: 'جاهز للاستلام' },
+        { id: 'ready',     label: 'جاهز' },
         { id: 'completed', label: 'تم التسليم' }
     ];
 
     const getStatusIndex = (status) => statuses.findIndex(s => s.id === status);
 
+    const backUrl = order?.restaurant?.slug ? `/${order.restaurant.slug}` : '/';
+
     return (
-        <div className="track-page">
+        <div className="tr-page">
             <Head title="تتبع الطلب | Track Order" />
             <style>{css}</style>
             
-            <div className="track-container">
-                <div className="track-header">
-                    <h1 className="track-title">تتبع طلبك</h1>
-                    <p style={{ color: MUTED }}>أدخل رقم الطلب لمعرفة حالته</p>
-                </div>
+            <div className="tr-container">
+                
+                {/* Nav Buttons */}
+                {order && (
+                    <div className="tr-nav-row">
+                        <Link href={backUrl} className="tr-nav-btn tr-nav-btn--back">
+                            <span>←</span>
+                            <span>العودة للقائمة</span>
+                        </Link>
+                        <button className="tr-nav-btn tr-nav-btn--refresh" onClick={() => fetchOrder(order.order_number)} disabled={loading}>
+                            {loading ? 'جاري...' : 'تحديث الحالة'}
+                        </button>
+                    </div>
+                )}
 
-                <form className="search-box" onSubmit={handleSearch}>
-                    <input 
-                        type="text" 
-                        className="search-input" 
-                        placeholder="مثال: ORDXXXX" 
-                        value={orderNumber}
-                        onChange={e => setOrderNumber(e.target.value.toUpperCase())}
-                        required
-                    />
-                    <button type="submit" className="search-btn" disabled={loading}>
-                        {loading ? 'جاري...' : 'تتبع'}
-                    </button>
-                </form>
-
-                {error && <div className="error-msg">{error}</div>}
+                {/* Search Card (Show only if no order or searching) */}
+                {!order && (
+                    <div className="tr-card tr-search-card">
+                        <div className="tr-header">
+                            <h1 className="tr-title">تتبع طلبك</h1>
+                            <p className="tr-subtitle">أدخل رقم الطلب لمعرفة حالته الحالية</p>
+                        </div>
+                        <form className="tr-search-box" onSubmit={handleSearch}>
+                            <input 
+                                type="text" 
+                                className="tr-input" 
+                                placeholder="ORD12345" 
+                                value={orderNumber}
+                                onChange={e => setOrderNumber(e.target.value.toUpperCase())}
+                            />
+                            <button type="submit" className="tr-search-btn" disabled={loading}>
+                                {loading ? '...' : 'تتبع'}
+                            </button>
+                        </form>
+                        {error && <div style={{ color: '#991B1B', marginTop: '1rem', fontWeight: 600 }}>{error}</div>}
+                    </div>
+                )}
 
                 {order && (
-                    <div className="order-result">
-                        <div className="timeline">
-                            {statuses.map((s, idx) => {
-                                const currentIndex = getStatusIndex(order.status);
-                                let itemClass = 'timeline-item';
-                                if (idx < currentIndex) itemClass += ' done';
-                                else if (idx === currentIndex) itemClass += ' active';
-                                
-                                return (
-                                    <div key={s.id} className={itemClass}>
-                                        <div className="timeline-content">
-                                            <div className="timeline-title">{s.label}</div>
+                    <>
+                        {/* Status Card */}
+                        <div className="tr-card">
+                            <div className="tr-status-header">
+                                <div className="tr-ord-num">{order.order_number}</div>
+                                <div className="tr-status-badge">
+                                    {statuses.find(s => s.id === order.status)?.label}
+                                </div>
+                            </div>
+                            
+                            <div className="tr-timeline-horiz">
+                                {statuses.map((s, idx) => {
+                                    const currentIndex = getStatusIndex(order.status);
+                                    let stepClass = 'tr-step-h';
+                                    if (idx < currentIndex) stepClass += ' done';
+                                    else if (idx === currentIndex) stepClass += ' active';
+                                    
+                                    return (
+                                        <div key={s.id} className={stepClass}>
+                                            <div className="tr-step-h__dot" />
+                                            <div className="tr-step-h__label">{s.label}</div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
 
-                        <div className="order-details">
-                            <div className="detail-row">
-                                <span className="detail-label">رقم الطلب:</span>
-                                <span className="detail-val">{order.order_number}</span>
-                            </div>
-                            <div className="detail-row">
-                                <span className="detail-label">نوع الطلب:</span>
-                                <span className="detail-val">
-                                    {order.order_type === 'dine_in' ? 'داخل المطعم' : 
-                                     order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
-                                </span>
-                            </div>
-                            {order.table_number && (
-                                <div className="detail-row">
-                                    <span className="detail-label">الطاولة:</span>
-                                    <span className="detail-val">{order.table_number}</span>
+                            {order.status !== 'completed' && (
+                                <div className="tr-refresh-mini">
+                                    <span /> يتم التحديث تلقائياً كل 10 ثواني
                                 </div>
                             )}
-                            {order.car_number && (
-                                <div className="detail-row">
-                                    <span className="detail-label">السيارة:</span>
-                                    <span className="detail-val">{order.car_number}</span>
-                                </div>
-                            )}
-                            <div className="detail-row">
-                                <span className="detail-label">وقت الطلب:</span>
-                                <span className="detail-val" style={{ direction: 'ltr' }}>
-                                    {new Date(order.created_at).toLocaleString('ar-SA')}
-                                </span>
-                            </div>
                         </div>
 
-                        <div className="items-list">
-                            <h3 style={{ marginBottom: '1rem', color: GOLD }}>تفاصيل الفاتورة</h3>
-                            {order.items.map(item => (
-                                <div key={item.id} className="item-row">
-                                    <div className="item-top">
-                                        <span>{item.quantity}x {item.product_name_ar || item.product_name_en}</span>
-                                        <span>{parseFloat(item.total_price).toFixed(2)} ر.س</span>
+                        {/* Details Card */}
+                        <div className="tr-card tr-details-card">
+                            <div className="tr-details-title">تفاصيل الطلب</div>
+                            <div className="tr-details-content">
+                                <div className="tr-detail-item">
+                                    <span className="tr-detail-label">نوع الطلب</span>
+                                    <span className="tr-val">
+                                        {order.order_type === 'dine_in' ? 'داخل المطعم' : 
+                                         order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
+                                    </span>
+                                </div>
+                                {order.table_number && (
+                                    <div className="tr-detail-item">
+                                        <span className="tr-detail-label">رقم الطاولة</span>
+                                        <span className="tr-val">{order.table_number}</span>
                                     </div>
-                                    {item.addons && item.addons.length > 0 && (
-                                        <div className="addons">
-                                            {item.addons.map(addon => (
-                                                <div key={addon.id} className="addon-row">
-                                                    <span>+ {addon.addon_name_ar || addon.addon_name_en}</span>
-                                                    <span>{parseFloat(addon.price).toFixed(2)}</span>
+                                )}
+                                <div className="tr-detail-item">
+                                    <span className="tr-detail-label">الوقت</span>
+                                    <span className="tr-val" style={{ direction: 'ltr' }}>
+                                        {new Date(order.created_at).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+
+                                <div className="tr-items-list">
+                                    {order.items.map(item => (
+                                        <div key={item.id}>
+                                            <div className="tr-item-row">
+                                                <span className="tr-item-name">{item.quantity}x {item.product_name_ar || item.product_name_en}</span>
+                                                <span>{parseFloat(item.total_price).toFixed(2)}</span>
+                                            </div>
+                                            {item.addons && item.addons.length > 0 && (
+                                                <div className="tr-item-addons">
+                                                    {item.addons.map(a => (
+                                                        <div key={a.id} style={{ display: 'flex', justifySelf: 'space-between' }}>
+                                                            <span>+ {a.addon_name_ar || a.addon_name_en}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
+                            </div>
+                            <div className="tr-total-footer">
+                                <span>الإجمالي</span>
+                                <span className="tr-total-price">{parseFloat(order.total).toFixed(2)} ر.س</span>
+                            </div>
                         </div>
-
-                        <div className="total-row">
-                            <span>الإجمالي</span>
-                            <span>{parseFloat(order.total).toFixed(2)} ر.س</span>
-                        </div>
-                    </div>
+                    </>
                 )}
             </div>
         </div>
