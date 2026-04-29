@@ -16,6 +16,10 @@ use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\SystemCheckController;
 use App\Http\Controllers\KitchenController;
+use App\Http\Controllers\SaaS\SignupController;
+
+Route::get('/restaurant-signup', [SignupController::class, 'show'])->name('signup');
+Route::post('/restaurant-signup', [SignupController::class, 'store']);
 
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -53,11 +57,7 @@ Route::get('/track/{order_number?}', function ($order_number = null) {
 })->name('track');
 
 Route::get('/', function () {
-    $restaurant = \App\Models\Restaurant::where('is_active', true)->first();
-    if ($restaurant) {
-        return redirect()->route('storefront', ['slug' => $restaurant->slug]);
-    }
-    return 'No active restaurants found.';
+    return Inertia::render('SaaS/Landing');
 });
 
 Route::get('/dashboard', function () {
