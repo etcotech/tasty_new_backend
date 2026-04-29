@@ -12,9 +12,6 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
 Route::get('/orders/{order_number}/track', [OrderController::class, 'track']);
 
-Route::get('/kitchen/orders', [KitchenController::class, 'index']);
-Route::patch('/kitchen/orders/{id}/status', [KitchenController::class, 'updateStatus']);
-
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');

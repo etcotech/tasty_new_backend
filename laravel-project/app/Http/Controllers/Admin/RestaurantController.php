@@ -4,21 +4,32 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Restaurant;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class RestaurantController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        $restaurants = $user->role === 'super_admin' 
+            ? Restaurant::latest()->get()
+            : Restaurant::where('id', $user->restaurant_id)->get();
+
         return Inertia::render('Admin/Restaurants', [
-            'restaurants' => Restaurant::latest()->get()
+            'restaurants' => $restaurants
         ]);
     }
 
     public function store(Request $request)
     {
+        if (auth()->user()->role !== 'super_admin') {
+            return redirect()->back()->with('error', 'غير مصرح لك بإنشاء مطاعم جديدة');
+        }
+
         $validated = $request->validate([
             'name_ar' => 'required|string|max:255',
             'name_en' => 'required|string|max:255',
@@ -33,18 +44,39 @@ class RestaurantController extends Controller
             'tax_percentage' => 'required|numeric|min:0|max:100',
             'currency' => 'required|string|max:10',
             'is_open' => 'boolean',
+            // Admin fields
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|max:255|unique:users,email',
+            'admin_password' => 'required|string|min:6',
         ]);
 
-        Restaurant::create(array_merge($validated, [
+        $restaurant = Restaurant::create(array_merge($request->only([
+            'name_ar', 'name_en', 'slug', 'phone', 'address_ar', 'address_en', 
+            'logo_url', 'hero_image_url', 'subtitle_ar', 'subtitle_en', 
+            'tax_percentage', 'currency', 'is_open'
+        ]), [
             'is_active' => true,
             'country_code' => '+966',
         ]));
 
-        return redirect()->back()->with('success', 'تم الحفظ بنجاح');
+        User::create([
+            'name' => $validated['admin_name'],
+            'email' => $validated['admin_email'],
+            'password' => Hash::make($validated['admin_password']),
+            'role' => 'restaurant_admin',
+            'restaurant_id' => $restaurant->id,
+        ]);
+
+        return redirect()->back()->with('success', 'تم إنشاء المطعم والحساب بنجاح');
     }
 
     public function update(Request $request, Restaurant $restaurant)
     {
+        $user = auth()->user();
+        if ($user->role !== 'super_admin' && $user->restaurant_id !== $restaurant->id) {
+            return redirect()->back()->with('error', 'غير مصرح لك بتعديل هذا المطعم');
+        }
+
         $validated = $request->validate([
             'name_ar' => 'required|string|max:255',
             'name_en' => 'required|string|max:255',
@@ -68,6 +100,11 @@ class RestaurantController extends Controller
 
     public function switch(Request $request)
     {
+        $user = auth()->user();
+        if ($user->role !== 'super_admin') {
+            return redirect()->back()->with('error', 'غير مصرح لك بتغيير المتجر');
+        }
+
         $request->validate([
             'restaurant_id' => 'required|exists:restaurants,id'
         ]);
@@ -79,6 +116,10 @@ class RestaurantController extends Controller
 
     public function destroy(Restaurant $restaurant)
     {
+        if (auth()->user()->role !== 'super_admin') {
+            return redirect()->back()->with('error', 'غير مصرح لك بحذف المطاعم');
+        }
+
         // Don't allow deleting the last restaurant for safety
         if (Restaurant::count() <= 1) {
             return redirect()->back()->with('error', 'لا يمكن حذف المطعم الوحيد');

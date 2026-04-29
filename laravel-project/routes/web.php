@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\RestaurantController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\SystemCheckController;
+use App\Http\Controllers\KitchenController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -41,15 +42,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/kitchen', function () {
         return Inertia::render('Kitchen/Dashboard');
     })->name('kitchen');
+
+    // Kitchen API (Web)
+    Route::get('/api/kitchen/orders', [KitchenController::class, 'index']);
+    Route::patch('/api/kitchen/orders/{id}/status', [KitchenController::class, 'updateStatus']);
 });
 
 Route::get('/track/{order_number?}', function ($order_number = null) {
     return Inertia::render('Storefront/TrackOrder', ['initialOrderNumber' => $order_number]);
 })->name('track');
 
-Route::get('/{slug?}', [StorefrontController::class, 'page'])
-    ->where('slug', '^(?!api|login|register|dashboard|profile|admin|kitchen|track|_debugbar|up).*$')
-    ->name('storefront');
+Route::get('/', function () {
+    $restaurant = \App\Models\Restaurant::where('is_active', true)->first();
+    if ($restaurant) {
+        return redirect()->route('storefront', ['slug' => $restaurant->slug]);
+    }
+    return 'No active restaurants found.';
+});
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
@@ -62,3 +71,8 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// Storefront route - MUST BE LAST
+Route::get('/{slug}', [StorefrontController::class, 'page'])
+    ->where('slug', '^(?!api|login|logout|register|dashboard|profile|admin|kitchen|track|_debugbar|up|storage).*$')
+    ->name('storefront');

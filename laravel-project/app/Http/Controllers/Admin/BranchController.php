@@ -11,20 +11,6 @@ use Inertia\Inertia;
 
 class BranchController extends Controller
 {
-    protected function getCurrentRestaurant()
-    {
-        $user = auth()->user();
-        if ($user && $user->restaurant_id) {
-            return Restaurant::find($user->restaurant_id);
-        }
-
-        if ($user && session()->has('selected_restaurant_id')) {
-            return Restaurant::find(session()->get('selected_restaurant_id'));
-        }
-
-        return null;
-    }
-
     public function index()
     {
         $restaurant = $this->getCurrentRestaurant();

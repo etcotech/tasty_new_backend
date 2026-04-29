@@ -623,6 +623,13 @@ export default function KitchenDashboard() {
                 setOrders(activeOrders);
                 setRestaurant(data.restaurant);
                 setBranches(data.branches || []);
+            } else {
+                setOrders([]);
+                setRestaurant(null);
+                setBranches([]);
+                if (data.message) {
+                    console.warn("KDS Error:", data.message);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -882,50 +889,65 @@ export default function KitchenDashboard() {
             </header>
 
             <main className="k-main">
-                {/* Column: New */}
-                <section className="k-column k-column-new">
-                    <div className="k-column-header">
-                        <span className="k-column-title">جديد</span>
-                        <span className="k-column-count">{stats.new}</span>
+                {!restaurant && !loading ? (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '1.5rem', background: '#fff', borderRadius: '20px', border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '4rem' }}>🏪</div>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>لم يتم اختيار مطعم</h2>
+                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', maxWidth: '400px' }}>
+                            يرجى اختيار مطعم من صفحة الإدارة أولاً لعرض الطلبات في شاشة المطبخ.
+                        </p>
+                        <a href="/admin/restaurants" style={{ background: 'var(--gold)', color: '#fff', padding: '0.75rem 2rem', borderRadius: '10px', textDecoration: 'none', fontWeight: 800 }}>
+                            الذهاب إلى المطاعم
+                        </a>
                     </div>
-                    <div className="k-orders-list">
-                        {groupedOrders.pending.length > 0 ? (
-                            groupedOrders.pending.map(o => <OrderCard key={o.id} order={o} />)
-                        ) : (
-                            <div className="k-empty-msg">لا توجد طلبات</div>
-                        )}
-                    </div>
-                </section>
+                ) : (
+                    <>
+                        {/* Column: New */}
+                        <section className="k-column k-column-new">
+                            <div className="k-column-header">
+                                <span className="k-column-title">جديد</span>
+                                <span className="k-column-count">{stats.new}</span>
+                            </div>
+                            <div className="k-orders-list">
+                                {groupedOrders.pending.length > 0 ? (
+                                    groupedOrders.pending.map(o => <OrderCard key={o.id} order={o} />)
+                                ) : (
+                                    <div className="k-empty-msg">لا توجد طلبات</div>
+                                )}
+                            </div>
+                        </section>
 
-                {/* Column: Preparing */}
-                <section className="k-column k-column-preparing">
-                    <div className="k-column-header">
-                        <span className="k-column-title">قيد التحضير</span>
-                        <span className="k-column-count">{stats.preparing}</span>
-                    </div>
-                    <div className="k-orders-list">
-                        {groupedOrders.preparing.length > 0 ? (
-                            groupedOrders.preparing.map(o => <OrderCard key={o.id} order={o} />)
-                        ) : (
-                            <div className="k-empty-msg">لا توجد طلبات</div>
-                        )}
-                    </div>
-                </section>
+                        {/* Column: Preparing */}
+                        <section className="k-column k-column-preparing">
+                            <div className="k-column-header">
+                                <span className="k-column-title">قيد التحضير</span>
+                                <span className="k-column-count">{stats.preparing}</span>
+                            </div>
+                            <div className="k-orders-list">
+                                {groupedOrders.preparing.length > 0 ? (
+                                    groupedOrders.preparing.map(o => <OrderCard key={o.id} order={o} />)
+                                ) : (
+                                    <div className="k-empty-msg">لا توجد طلبات</div>
+                                )}
+                            </div>
+                        </section>
 
-                {/* Column: Ready */}
-                <section className="k-column k-column-ready">
-                    <div className="k-column-header">
-                        <span className="k-column-title">جاهز</span>
-                        <span className="k-column-count">{stats.ready}</span>
-                    </div>
-                    <div className="k-orders-list">
-                        {groupedOrders.ready.length > 0 ? (
-                            groupedOrders.ready.map(o => <OrderCard key={o.id} order={o} />)
-                        ) : (
-                            <div className="k-empty-msg">لا توجد طلبات</div>
-                        )}
-                    </div>
-                </section>
+                        {/* Column: Ready */}
+                        <section className="k-column k-column-ready">
+                            <div className="k-column-header">
+                                <span className="k-column-title">جاهز</span>
+                                <span className="k-column-count">{stats.ready}</span>
+                            </div>
+                            <div className="k-orders-list">
+                                {groupedOrders.ready.length > 0 ? (
+                                    groupedOrders.ready.map(o => <OrderCard key={o.id} order={o} />)
+                                ) : (
+                                    <div className="k-empty-msg">لا توجد طلبات</div>
+                                )}
+                            </div>
+                        </section>
+                    </>
+                )}
             </main>
         </div>
     );

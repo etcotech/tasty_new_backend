@@ -162,6 +162,26 @@ body {
     color: #C0392B;
 }
 
+.logout-btn-header {
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    color: #E74C3C;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logout-btn-header:hover {
+    background: rgba(231, 76, 60, 0.05);
+    border-color: #E74C3C;
+}
+
 /* LTR Support (if needed) */
 [dir="ltr"] .admin-wrapper { direction: ltr; }
 [dir="ltr"] .admin-sidebar { right: auto; left: 0; border-left: none; border-right: 1px solid var(--border); }
@@ -186,10 +206,10 @@ export default function AdminLayout({ children, title }) {
         { href: '/admin/extras', label: 'الإضافات', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' },
         { href: '/admin/branches', label: 'الفروع', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
         { href: '/kitchen', label: 'المطبخ', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-        { href: '/admin/restaurants', label: 'المطاعم', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+        { href: '/admin/restaurants', label: 'المطاعم', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', superAdminOnly: true },
         { href: '/admin/settings', label: 'الإعدادات', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
         { href: '/admin/system-check', label: 'فحص النظام', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    ];
+    ].filter(link => !link.superAdminOnly || auth.user.role === 'super_admin');
 
     return (
         <div className="admin-wrapper" dir="rtl">
@@ -209,7 +229,7 @@ export default function AdminLayout({ children, title }) {
                             <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
                             </svg>
-                            {link.label}
+                            {link.href === '/admin/settings' && auth.user.role !== 'super_admin' ? 'إعدادات المطعم' : link.label}
                         </Link>
                     ))}
 
@@ -247,11 +267,25 @@ export default function AdminLayout({ children, title }) {
                             </select>
                         </div>
 
-                        <div className="user-badge">
-                            <div className="user-avatar">
-                                {auth.user.name.charAt(0).toUpperCase()}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div className="user-badge">
+                                <div className="user-avatar">
+                                    {auth.user.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="user-name">{auth.user.name}</span>
                             </div>
-                            <span className="user-name">{auth.user.name}</span>
+
+                            <Link 
+                                href="/logout" 
+                                method="post" 
+                                as="button" 
+                                className="logout-btn-header"
+                            >
+                                <svg style={{ width: '18px', height: '18px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013-3v1" />
+                                </svg>
+                                <span>Logout / تسجيل الخروج</span>
+                            </Link>
                         </div>
                     </div>
                 </header>

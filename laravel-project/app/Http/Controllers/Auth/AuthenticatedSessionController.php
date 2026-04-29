@@ -33,6 +33,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = Auth::user();
+        if ($user->role === 'restaurant_admin') {
+            $request->session()->put('selected_restaurant_id', $user->restaurant_id);
+        } else {
+            $request->session()->forget('selected_restaurant_id');
+        }
+
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 

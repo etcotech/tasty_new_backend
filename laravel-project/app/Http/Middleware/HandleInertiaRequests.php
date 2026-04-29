@@ -43,7 +43,15 @@ class HandleInertiaRequests extends Middleware
 
         // Share restaurant info if user is authenticated and on an admin route
         if ($request->user() && ($request->is('admin*') || $request->is('kitchen*'))) {
-            $restaurants = \App\Models\Restaurant::all(['id', 'name_ar', 'name_en', 'slug', 'logo_url', 'tax_percentage']);
+            $user = $request->user();
+            
+            if ($user->role === 'super_admin') {
+                $restaurants = \App\Models\Restaurant::all(['id', 'name_ar', 'name_en', 'slug', 'logo_url', 'tax_percentage']);
+            } else {
+                $restaurants = \App\Models\Restaurant::where('id', $user->restaurant_id)
+                    ->get(['id', 'name_ar', 'name_en', 'slug', 'logo_url', 'tax_percentage']);
+            }
+
             $selectedId = $request->session()->get('selected_restaurant_id');
             
             $currentRestaurant = null;

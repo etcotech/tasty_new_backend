@@ -261,7 +261,7 @@ export default function Menu({ slug }) {
     });
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('sv_branch')) || null; } catch { return null; }
+        try { return JSON.parse(localStorage.getItem(`sv_branch_${slug}`)) || null; } catch { return null; }
     });
     const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
     const [lang, setLang] = useState(() => {
@@ -275,9 +275,31 @@ export default function Menu({ slug }) {
         try { localStorage.setItem('sv_lang', lang); } catch {}
     }, [lang]);
 
+    /* Load cart per slug */
+    useEffect(() => {
+        try {
+            const savedCart = localStorage.getItem(`sv_cart_${slug}`);
+            if (savedCart) setCart(JSON.parse(savedCart));
+            else setCart([]);
+        } catch {
+            setCart([]);
+        }
+    }, [slug]);
+
+    /* Save cart per slug */
+    useEffect(() => {
+        if (!loading) {
+            try { localStorage.setItem(`sv_cart_${slug}`, JSON.stringify(cart)); } catch {}
+        }
+    }, [cart, slug, loading]);
+
     /* Fetch menu */
     useEffect(() => {
         setLoading(true);
+        setRestaurant(null);
+        setCategories([]);
+        setProducts([]);
+        
         const url = selectedBranch 
             ? `/api/restaurants/${slug}/menu?branch_id=${selectedBranch.id}` 
             : `/api/restaurants/${slug}/menu`;
@@ -291,19 +313,32 @@ export default function Menu({ slug }) {
                 setRestaurant(data.restaurant);
                 setCategories(data.categories);
                 setProducts(data.products);
-                setBranches(data.branches || []);
-                setActiveCategory('all');
-                
-                // Auto-select if only one branch
-                if (data.branches?.length === 1 && !selectedBranch) {
-                    const singleBranch = data.branches[0];
+                // Branch logic:
+                const branchList = data.branches || [];
+                setBranches(branchList);
+
+                // Tenant Isolation Check: If selectedBranch from localStorage doesn't belong to this restaurant, clear it.
+                if (selectedBranch && !branchList.some(b => b.id === selectedBranch.id)) {
+                    setSelectedBranch(null);
+                    localStorage.removeItem('sv_branch');
+                }
+
+                if (branchList.length === 0) {
+                    setSelectedBranch(null);
+                    localStorage.removeItem(`sv_branch_${slug}`);
+                    setIsBranchModalOpen(false);
+                }
+                else if (branchList.length === 1) {
+                    const singleBranch = branchList[0];
                     setSelectedBranch(singleBranch);
-                    localStorage.setItem('sv_branch', JSON.stringify(singleBranch));
+                    localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(singleBranch));
+                    setIsBranchModalOpen(false);
                 } 
-                // Force modal if multiple branches and none selected
-                else if (data.branches?.length > 1 && !selectedBranch) {
+                else if (branchList.length > 1 && !selectedBranch) {
                     setIsBranchModalOpen(true);
                 }
+
+                setActiveCategory('all');
 
                 // Update currency translation dynamically
                 if (data.restaurant.currency) {
@@ -348,9 +383,10 @@ export default function Menu({ slug }) {
 
     const handleBranchSelect = (branch) => {
         setSelectedBranch(branch);
-        localStorage.setItem('sv_branch', JSON.stringify(branch));
+        localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(branch));
         setIsBranchModalOpen(false);
-        setCart([]); // Clear cart when branch changes
+        // Note: cart is already scoped by slug, so we don't necessarily need to clear it here 
+        // unless we want branch-specific carts too.
     };
 
     const getCartItemKey = (product, addons) => {
@@ -532,11 +568,6 @@ export default function Menu({ slug }) {
                                 {lang === 'ar' ? (restaurant.name_ar || restaurant.name_en) : (restaurant.name_en || restaurant.name_ar)}
                             </span>
                         )}
-                        
-                        {/* is_open badge */}
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)', color: restaurant.is_open ? '#16a34a' : '#dc2626', border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`, backdropFilter: 'blur(4px)', flexShrink: 0 }}>
-                            {restaurant.is_open ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open') : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
-                        </span>
                     </div>
                     <div className="sv-header__right">
                         {selectedBranch && (
@@ -558,6 +589,9 @@ export default function Menu({ slug }) {
                             🛒
                             {cartCount > 0 && <span className="sv-cart-badge">{cartCount}</span>}
                         </button>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: restaurant.is_open ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)', color: restaurant.is_open ? '#16a34a' : '#dc2626', border: `1px solid ${restaurant.is_open ? '#86efac' : '#fca5a5'}`, backdropFilter: 'blur(4px)', flexShrink: 0, marginInlineEnd: '0.5rem' }}>
+                            {restaurant.is_open ? (lang === 'ar' ? '🟢 مفتوح' : '🟢 Open') : (lang === 'ar' ? '🔴 مغلق' : '🔴 Closed')}
+                        </span>
                         <button
                             className="sv-lang-btn"
                             onClick={() => setLang(l => l === 'ar' ? 'en' : 'ar')}

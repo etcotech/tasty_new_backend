@@ -8,25 +8,24 @@ use Illuminate\Support\Facades\Validator;
 
 class KitchenController extends Controller
 {
-    protected function getCurrentRestaurant()
-    {
-        $user = auth()->user();
-        if ($user && $user->restaurant_id) {
-            return \App\Models\Restaurant::find($user->restaurant_id);
-        }
-
-        if ($user && session()->has('selected_restaurant_id')) {
-            return \App\Models\Restaurant::find(session()->get('selected_restaurant_id'));
-        }
-
-        return \App\Models\Restaurant::first(); // Fallback
-    }
-
     public function index(Request $request)
     {
         $restaurant = $this->getCurrentRestaurant();
+        
         if (!$restaurant) {
-            return response()->json(['success' => false, 'message' => 'Restaurant not found'], 404);
+            $user = auth()->user();
+            $message = 'No restaurant selected. Please select a restaurant from management first.';
+            
+            if ($user && $user->role === 'restaurant_admin' && !$user->restaurant_id) {
+                $message = 'Account Error: Restaurant admin has no restaurant assigned. Please contact support.';
+            }
+
+            return response()->json([
+                'success' => false, 
+                'message' => $message,
+                'orders' => [],
+                'branches' => []
+            ]);
         }
 
         $branchId = $request->query('branch_id');

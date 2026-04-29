@@ -43,6 +43,20 @@ class OrderController extends Controller
             ], 404);
         }
 
+        // Validate branch belongs to restaurant
+        if ($request->branch_id) {
+            $branchExists = DB::table('branches')
+                ->where('id', $request->branch_id)
+                ->where('restaurant_id', $restaurant->id)
+                ->exists();
+            if (!$branchExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid branch for this restaurant'
+                ], 422);
+            }
+        }
+
         try {
             DB::beginTransaction();
 

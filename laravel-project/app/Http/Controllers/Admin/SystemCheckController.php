@@ -102,7 +102,7 @@ class SystemCheckController extends Controller
         ];
 
         // 9. Restaurant & Tax Config
-        $restaurant = Restaurant::first();
+        $restaurant = $this->getCurrentRestaurant();
         $taxConfigured = $restaurant && $restaurant->tax_percentage > 0;
         $checks[] = [
             'label' => 'Restaurant Config',

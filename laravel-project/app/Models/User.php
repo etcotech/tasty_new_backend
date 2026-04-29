@@ -10,12 +10,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'restaurant_id', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    public function restaurant()
+    {
+        return $this->belongsTo(Restaurant::class);
+    }
+
+    public function isSuperAdmin()
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isRestaurantAdmin()
+    {
+        return $this->role === 'restaurant_admin' || $this->role === 'super_admin';
+    }
 
     /**
      * Get the attributes that should be cast.

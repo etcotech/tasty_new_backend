@@ -91,6 +91,8 @@ const Toast = ({ message, type = 'success', onClose }) => {
 };
 
 export default function Restaurants({ restaurants }) {
+    const { auth } = usePage().props;
+    const isSuperAdmin = auth.user.role === 'super_admin';
     const { flash } = usePage().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRestaurant, setEditingRestaurant] = useState(null);
@@ -110,7 +112,10 @@ export default function Restaurants({ restaurants }) {
         subtitle_en: '',
         tax_percentage: 8,
         currency: 'SAR',
-        is_open: true
+        is_open: true,
+        admin_name: '',
+        admin_email: '',
+        admin_password: ''
     });
 
     const openModal = (restaurant = null) => {
@@ -146,7 +151,10 @@ export default function Restaurants({ restaurants }) {
                 subtitle_en: '',
                 tax_percentage: 8,
                 currency: 'SAR',
-                is_open: true
+                is_open: true,
+                admin_name: '',
+                admin_email: '',
+                admin_password: ''
             });
         }
         setIsModalOpen(true);
@@ -197,7 +205,9 @@ export default function Restaurants({ restaurants }) {
 
             <div className="admin-title-row">
                 <h1 className="admin-title">المطاعم (Restaurants)</h1>
-                <button className="btn-primary" onClick={() => openModal()}>إضافة مطعم جديد</button>
+                {isSuperAdmin && (
+                    <button className="btn-primary" onClick={() => openModal()}>إضافة مطعم جديد</button>
+                )}
             </div>
 
             <div className="table-container">
@@ -230,8 +240,14 @@ export default function Restaurants({ restaurants }) {
                                 </td>
                                 <td>{new Date(res.created_at).toLocaleDateString('ar-SA')}</td>
                                 <td>
-                                    <button className="btn-edit" onClick={() => openModal(res)}>تعديل</button>
-                                    <button className="btn-delete" onClick={() => handleDelete(res.id)}>حذف</button>
+                                    {isSuperAdmin ? (
+                                        <>
+                                            <button className="btn-edit" onClick={() => openModal(res)}>تعديل</button>
+                                            <button className="btn-delete" onClick={() => handleDelete(res.id)}>حذف</button>
+                                        </>
+                                    ) : (
+                                        <button className="btn-edit" onClick={() => openModal(res)}>عرض التفاصيل</button>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -328,17 +344,47 @@ export default function Restaurants({ restaurants }) {
                                     </select>
                                 </div>
 
-                                <button type="submit" disabled={processing} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    {processing ? (
-                                        <>
-                                            <svg className="animate-spin" style={{ width: '1.2rem', height: '1.2rem', animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24">
-                                                <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                                <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                            </svg>
-                                            جاري الحفظ...
-                                        </>
-                                    ) : 'حفظ بيانات المطعم'}
-                                </button>
+                                {!editingRestaurant && (
+                                    <>
+                                        <div style={{ borderTop: '1px solid #eee', margin: '1.5rem 0', paddingTop: '1rem' }}>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>بيانات المدير (Admin Credentials)</h3>
+                                        </div>
+                                        
+                                        <div className="form-group">
+                                            <label className="form-label">اسم المدير *</label>
+                                            <input className="form-input" value={formData.admin_name} onChange={e => setFormData({ ...formData, admin_name: e.target.value })} required={!editingRestaurant} />
+                                        </div>
+
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">البريد الإلكتروني *</label>
+                                                <input type="email" className="form-input" value={formData.admin_email} onChange={e => setFormData({ ...formData, admin_email: e.target.value })} required={!editingRestaurant} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">كلمة المرور *</label>
+                                                <input type="password" className="form-input" value={formData.admin_password} onChange={e => setFormData({ ...formData, admin_password: e.target.value })} required={!editingRestaurant} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {isSuperAdmin ? (
+                                    <button type="submit" disabled={processing} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        {processing ? (
+                                            <>
+                                                <svg className="animate-spin" style={{ width: '1.2rem', height: '1.2rem', animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24">
+                                                    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                    <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                </svg>
+                                                جاري الحفظ...
+                                            </>
+                                        ) : 'حفظ بيانات المطعم'}
+                                    </button>
+                                ) : (
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
+                                        إغلاق
+                                    </button>
+                                )}
                             </form>
                         </div>
                     </div>
