@@ -9,7 +9,7 @@ class Product extends Model
     protected $fillable = [
         'restaurant_id', 'category_id', 'name_ar', 'name_en', 
         'description_ar', 'description_en', 'price', 
-        'image_path', 'is_available', 'sort_order'
+        'image_path', 'is_available', 'available_all_branches', 'sort_order'
     ];
 
     public function restaurant()
@@ -25,5 +25,10 @@ class Product extends Model
     public function addons()
     {
         return $this->belongsToMany(Addon::class);
+    }
+
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class);
     }
 }

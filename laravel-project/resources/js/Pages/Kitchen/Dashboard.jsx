@@ -582,11 +582,16 @@ export default function KitchenDashboard() {
     const [soundEnabled, setSoundEnabled] = useState(false);
     const [autoPrint, setAutoPrint] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [branches, setBranches] = useState([]);
+    const [selectedBranch, setSelectedBranch] = useState(null);
     const lastOrderIds = React.useRef(new Set());
 
     const fetchOrders = async (isInitial = false) => {
         try {
-            const res = await fetch('/api/kitchen/orders');
+            const url = selectedBranch 
+                ? `/api/kitchen/orders?branch_id=${selectedBranch}` 
+                : '/api/kitchen/orders';
+            const res = await fetch(url);
             const data = await res.json();
             if (data.success) {
                 const activeOrders = data.orders.filter(o => o.status !== 'completed');
@@ -617,6 +622,7 @@ export default function KitchenDashboard() {
 
                 setOrders(activeOrders);
                 setRestaurant(data.restaurant);
+                setBranches(data.branches || []);
             }
         } catch (e) {
             console.error(e);
@@ -636,7 +642,7 @@ export default function KitchenDashboard() {
             clearInterval(interval);
             document.removeEventListener('fullscreenchange', fsChange);
         };
-    }, [soundEnabled, autoPrint]); // Refresh interval depends on these for detection closure if needed
+    }, [soundEnabled, autoPrint, selectedBranch]); // Refresh interval depends on these for detection closure if needed
 
     const updateStatus = async (id, status) => {
         try {
@@ -717,6 +723,11 @@ export default function KitchenDashboard() {
 
             <div className="k-context-line">
                 {getContextLabel(order)} {order.customer_name ? `| ${order.customer_name}` : ''}
+                {order.branch && (
+                    <span style={{ float: 'left', background: '#FEF3C7', color: '#B45309', padding: '1px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>
+                        📍 {order.branch.name_ar}
+                    </span>
+                )}
             </div>
 
             <div className="k-items-area">
@@ -826,6 +837,26 @@ export default function KitchenDashboard() {
                         <span>{isFullscreen ? '↙️' : '↗️'}</span>
                         {isFullscreen ? 'خروج من الشاشة' : 'ملء الشاشة'}
                     </button>
+
+                    {branches.length > 0 && (
+                        <div style={{ display: 'flex', gap: '0.4rem', borderRight: '1px solid #eee', paddingRight: '0.75rem', marginRight: '0.75rem' }}>
+                            <button 
+                                className={`k-btn-control ${!selectedBranch ? 'active' : ''}`}
+                                onClick={() => setSelectedBranch(null)}
+                            >
+                                الكل
+                            </button>
+                            {branches.map(b => (
+                                <button 
+                                    key={b.id}
+                                    className={`k-btn-control ${selectedBranch === b.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedBranch(b.id)}
+                                >
+                                    {b.name_ar}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="k-stats-row">

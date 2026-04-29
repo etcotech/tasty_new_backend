@@ -17,7 +17,7 @@ class StorefrontController extends Controller
         ]);
     }
 
-    public function menu($slug)
+    public function menu(Request $request, $slug)
     {
         $restaurant = Restaurant::where('slug', $slug)
             ->where('is_active', true)
@@ -27,22 +27,38 @@ class StorefrontController extends Controller
             return response()->json(['message' => 'Restaurant not found'], 404);
         }
 
+        $branches = $restaurant->branches()->where('is_active', true)->get([
+            'id', 'name_ar', 'name_en', 'phone', 'address'
+        ]);
+
         $categories = Category::where('restaurant_id', $restaurant->id)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['id', 'name_ar', 'name_en', 'sort_order']);
 
-        $products = Product::where('restaurant_id', $restaurant->id)
+        $branchId = $request->query('branch_id');
+        
+        $productsQuery = Product::where('restaurant_id', $restaurant->id)
             ->where('is_available', true)
             ->with(['addons' => function($query) {
                 $query->where('is_active', true)->select('addons.id', 'name_ar', 'name_en', 'price');
-            }])
-            ->orderBy('sort_order')
+            }]);
+
+        if ($branchId) {
+            $productsQuery->where(function($q) use ($branchId) {
+                $q->where('available_all_branches', true)
+                  ->orWhereHas('branches', function($bq) use ($branchId) {
+                      $bq->where('branches.id', $branchId);
+                  });
+            });
+        }
+
+        $products = $productsQuery->orderBy('sort_order')
             ->get([
                 'id', 'category_id', 'name_ar', 'name_en', 
                 'description_ar', 'description_en', 'price', 
-                'image_path', 'is_available', 'sort_order'
+                'image_path', 'is_available', 'available_all_branches', 'sort_order'
             ]);
 
         return response()->json([
@@ -65,6 +81,7 @@ class StorefrontController extends Controller
                 'subtitle_en'    => $restaurant->subtitle_en,
                 'is_open'        => (bool)$restaurant->is_open,
             ],
+            'branches' => $branches,
             'categories' => $categories,
             'products' => $products
         ]);

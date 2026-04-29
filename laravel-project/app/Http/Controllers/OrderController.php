@@ -79,6 +79,7 @@ class OrderController extends Controller
 
             $order = Order::create([
                 'restaurant_id' => $restaurant->id,
+                'branch_id' => $request->branch_id,
                 'order_number' => $orderNumber,
                 'order_type' => $request->order_type,
                 'status' => 'pending',

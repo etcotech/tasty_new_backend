@@ -20,9 +20,10 @@ class ProductController extends Controller
         }
 
         return Inertia::render('Admin/Products', [
-            'products' => Product::where('restaurant_id', $restaurant->id)->with(['category', 'addons'])->get(),
+            'products' => Product::where('restaurant_id', $restaurant->id)->with(['category', 'addons', 'branches'])->get(),
             'categories' => Category::where('restaurant_id', $restaurant->id)->get(),
-            'extras' => Addon::where('restaurant_id', $restaurant->id)->get()
+            'extras' => Addon::where('restaurant_id', $restaurant->id)->get(),
+            'branches' => $restaurant->branches()->get(['id', 'name_ar', 'name_en'])
         ]);
     }
 
@@ -42,14 +43,22 @@ class ProductController extends Controller
             'price'          => 'required|numeric|min:0',
             'image_path'     => 'nullable|string',
             'is_available'   => 'boolean',
+            'available_all_branches' => 'boolean',
+            'branch_ids'     => 'nullable|array',
+            'branch_ids.*'   => 'exists:branches,id',
             'extra_ids'      => 'nullable|array',
             'extra_ids.*'    => 'exists:addons,id'
         ]);
 
         $product = Product::create(array_merge($request->all(), [
             'restaurant_id' => $restaurant->id,
-            'is_available'  => $request->boolean('is_available', true)
+            'is_available'  => $request->boolean('is_available', true),
+            'available_all_branches' => $request->boolean('available_all_branches', true)
         ]));
+
+        if (!$product->available_all_branches && $request->has('branch_ids')) {
+            $product->branches()->sync($request->branch_ids);
+        }
 
         if ($request->has('extra_ids')) {
             $product->addons()->sync($request->extra_ids);
@@ -69,13 +78,23 @@ class ProductController extends Controller
             'price'          => 'required|numeric|min:0',
             'image_path'     => 'nullable|string',
             'is_available'   => 'boolean',
+            'available_all_branches' => 'boolean',
+            'branch_ids'     => 'nullable|array',
+            'branch_ids.*'   => 'exists:branches,id',
             'extra_ids'      => 'nullable|array',
             'extra_ids.*'    => 'exists:addons,id'
         ]);
 
         $product->update(array_merge($request->all(), [
-            'is_available' => $request->boolean('is_available')
+            'is_available' => $request->boolean('is_available'),
+            'available_all_branches' => $request->boolean('available_all_branches')
         ]));
+
+        if ($product->available_all_branches) {
+            $product->branches()->detach();
+        } elseif ($request->has('branch_ids')) {
+            $product->branches()->sync($request->branch_ids);
+        }
 
         if ($request->has('extra_ids')) {
             $product->addons()->sync($request->extra_ids);
@@ -93,21 +112,14 @@ class ProductController extends Controller
 
     public function exportTemplate()
     {
-        $headers = [
-            'category_ar', 'category_en', 'name_ar', 'name_en', 
-            'description_ar', 'description_en', 'price', 
-            'image_path', 'is_available'
-        ];
-
         $callback = function() {
             $file = fopen('php://output', 'w');
-            // Add UTF-8 BOM for Excel
             fwrite($file, "\xEF\xBB\xBF");
             
             $headers = [
                 'category_ar', 'category_en', 'name_ar', 'name_en', 
                 'description_ar', 'description_en', 'price', 
-                'image_path', 'is_available'
+                'image_path', 'is_available', 'available_all_branches', 'branch_names'
             ];
             
             fputcsv($file, $headers);
@@ -116,10 +128,7 @@ class ProductController extends Controller
 
         return response()->stream($callback, 200, [
             "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=products_template.csv",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Content-Disposition" => "attachment; filename=products_template.csv"
         ]);
     }
 
@@ -130,22 +139,16 @@ class ProductController extends Controller
             return redirect()->route('admin.restaurants.index');
         }
 
-        $products = Product::where('restaurant_id', $restaurant->id)->with('category')->get();
-        $headers = [
-            'category_ar', 'category_en', 'name_ar', 'name_en', 
-            'description_ar', 'description_en', 'price', 
-            'image_path', 'is_available'
-        ];
-
+        $products = Product::where('restaurant_id', $restaurant->id)->with(['category', 'branches'])->get();
+        
         $callback = function() use ($products) {
             $file = fopen('php://output', 'w');
-            // Add UTF-8 BOM for Excel
             fwrite($file, "\xEF\xBB\xBF");
 
             $headers = [
                 'category_ar', 'category_en', 'name_ar', 'name_en', 
                 'description_ar', 'description_en', 'price', 
-                'image_path', 'is_available'
+                'image_path', 'is_available', 'available_all_branches', 'branch_names'
             ];
             
             fputcsv($file, $headers);
@@ -161,6 +164,8 @@ class ProductController extends Controller
                     $product->price,
                     $product->image_path,
                     $product->is_available ? '1' : '0',
+                    $product->available_all_branches ? '1' : '0',
+                    $product->branches->pluck('name_ar')->implode('|'),
                 ]);
             }
             fclose($file);
@@ -168,10 +173,7 @@ class ProductController extends Controller
 
         return response()->stream($callback, 200, [
             "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=products_export.csv",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Content-Disposition" => "attachment; filename=products_export.csv"
         ]);
     }
 
@@ -182,101 +184,63 @@ class ProductController extends Controller
             return redirect()->route('admin.restaurants.index');
         }
 
-        $request->validate([
-            'file' => 'required|file|mimes:csv,txt'
-        ]);
+        $request->validate(['file' => 'required|file|mimes:csv,txt']);
 
         $path = $request->file('file')->getRealPath();
         $content = file_get_contents($path);
 
-        // Detect and convert encoding
+        // Encoding handle...
         $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-6'], true);
-        
-        if ($encoding === 'ISO-8859-6') {
-            $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-6');
-        } elseif (!$encoding) {
-            // If not detected as UTF-8 or ISO-8859-6, try CP1256 fallback
-            try {
-                $converted = @mb_convert_encoding($content, 'UTF-8', 'CP1256');
-                if ($converted !== false) {
-                    $content = $converted;
-                }
-            } catch (\Throwable $e) {
-                // Fallback to original content
-            }
-        }
+        if ($encoding === 'ISO-8859-6') $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-6');
 
-        // Strip UTF-8 BOM if present
         $bom = "\xEF\xBB\xBF";
-        if (substr($content, 0, 3) === $bom) {
-            $content = substr($content, 3);
-        }
+        if (substr($content, 0, 3) === $bom) $content = substr($content, 3);
 
-        // Use temporary stream to parse CSV
         $temp = fopen('php://temp', 'r+');
         fwrite($temp, $content);
         rewind($temp);
 
         $headers = fgetcsv($temp);
+        if (!$headers) { fclose($temp); return back()->withErrors(['file' => 'Invalid CSV']); }
+
+        $headers = array_map(function($h) { return strtolower(trim($h)); }, $headers);
         
-        if (!$headers) {
-            fclose($temp);
-            return redirect()->back()->withErrors(['file' => 'The CSV file is empty or invalid.']);
-        }
-
-        // Normalize headers: trim and lowercase
-        $headers = array_map(function($h) {
-            return strtolower(trim($h));
-        }, $headers);
-
-        // Required columns validation
-        $required = ['category_ar', 'name_ar', 'price'];
-        foreach ($required as $col) {
-            if (!in_array($col, $headers)) {
-                fclose($temp);
-                return redirect()->back()->withErrors(['file' => "Required column '$col' is missing. Please check the template."]);
-            }
-        }
-
         while (($row = fgetcsv($temp)) !== false) {
-            if (empty($row) || count($row) < count($headers)) continue;
-
-            $data = array_combine($headers, $row);
-            
-            // Basic data cleaning
+            if (empty($row) || count($row) < 3) continue;
+            $data = array_combine(array_slice($headers, 0, count($row)), $row);
             $data = array_map('trim', $data);
 
             if (empty($data['category_ar']) || empty($data['name_ar'])) continue;
 
-            // Find or create category
             $category = Category::firstOrCreate(
-                [
-                    'restaurant_id' => $restaurant->id,
-                    'name_ar' => $data['category_ar']
-                ],
+                ['restaurant_id' => $restaurant->id, 'name_ar' => $data['category_ar']],
                 ['name_en' => $data['category_en'] ?? $data['category_ar']]
             );
 
-            // Create or update product
-            Product::updateOrCreate(
-                [
-                    'restaurant_id' => $restaurant->id,
-                    'name_ar' => $data['name_ar'],
-                    'category_id' => $category->id
-                ],
+            $product = Product::updateOrCreate(
+                ['restaurant_id' => $restaurant->id, 'name_ar' => $data['name_ar'], 'category_id' => $category->id],
                 [
                     'name_en' => $data['name_en'] ?? $data['name_ar'],
                     'description_ar' => $data['description_ar'] ?? '',
                     'description_en' => $data['description_en'] ?? '',
                     'price' => (float)$data['price'],
                     'image_path' => $data['image_path'] ?? '',
-                    'is_available' => isset($data['is_available']) ? (int)$data['is_available'] : 1
+                    'is_available' => isset($data['is_available']) ? (int)$data['is_available'] : 1,
+                    'available_all_branches' => isset($data['available_all_branches']) ? (int)$data['available_all_branches'] : 1,
                 ]
             );
+
+            if (!$product->available_all_branches && !empty($data['branch_names'])) {
+                $branchNames = explode('|', $data['branch_names']);
+                $branchIds = \App\Models\Branch::where('restaurant_id', $restaurant->id)
+                    ->whereIn('name_ar', $branchNames)
+                    ->pluck('id');
+                $product->branches()->sync($branchIds);
+            } else {
+                $product->branches()->detach();
+            }
         }
-
         fclose($temp);
-
-        return redirect()->back()->with('message', 'Products imported successfully');
+        return back()->with('message', 'Products imported successfully');
     }
 }

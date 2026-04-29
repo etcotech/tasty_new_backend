@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AddonController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\RestaurantController;
+use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\SystemCheckController;
 
 Route::middleware('auth')->group(function () {
@@ -33,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/products/import', [ProductController::class, 'import'])->name('admin.products.import');
     Route::resource('/admin/products', ProductController::class);
     Route::resource('/admin/extras', AddonController::class);
+    Route::resource('/admin/branches', BranchController::class);
     Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
     Route::post('/admin/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
 

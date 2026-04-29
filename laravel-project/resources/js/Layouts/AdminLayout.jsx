@@ -173,17 +173,18 @@ export default function AdminLayout({ children, title }) {
     const currentPath = window.location.pathname;
 
     const handleRestaurantSwitch = (e) => {
-        router.post('/admin/restaurants/switch', { 
-            restaurant_id: e.target.value 
+        router.post('/admin/restaurants/switch', {
+            restaurant_id: e.target.value
         });
     };
 
     const navLinks = [
-        { href: '/admin/dashboard', label: 'لوحة القيادة', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { href: '/admin/dashboard', label: 'لوحة التحكم', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
         { href: '/admin/orders', label: 'الطلبات', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
         { href: '/admin/categories', label: 'التصنيفات', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
         { href: '/admin/products', label: 'المنتجات', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
         { href: '/admin/extras', label: 'الإضافات', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { href: '/admin/branches', label: 'الفروع', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
         { href: '/kitchen', label: 'المطبخ', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
         { href: '/admin/restaurants', label: 'المطاعم', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
         { href: '/admin/settings', label: 'الإعدادات', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
@@ -197,12 +198,12 @@ export default function AdminLayout({ children, title }) {
 
             <aside className="admin-sidebar">
                 <Link href="/admin/dashboard" className="sidebar-brand">SAVOR</Link>
-                
+
                 <nav className="sidebar-nav">
                     {navLinks.map((link) => (
-                        <Link 
-                            key={link.href} 
-                            href={link.href} 
+                        <Link
+                            key={link.href}
+                            href={link.href}
                             className={`nav-item ${currentPath === link.href ? 'active' : ''}`}
                         >
                             <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,10 +213,10 @@ export default function AdminLayout({ children, title }) {
                         </Link>
                     ))}
 
-                    <Link 
-                        href="/logout" 
-                        method="post" 
-                        as="button" 
+                    <Link
+                        href="/logout"
+                        method="post"
+                        as="button"
                         className="nav-item logout-btn"
                         style={{ width: '100%', textAlign: 'right', border: 'none', background: 'none', cursor: 'pointer' }}
                     >
@@ -233,8 +234,8 @@ export default function AdminLayout({ children, title }) {
                         {/* Restaurant Selector */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: MUTED }}>المتجر الحالي:</span>
-                            <select 
-                                value={admin?.current_restaurant?.id || ''} 
+                            <select
+                                value={admin?.current_restaurant?.id || ''}
                                 onChange={handleRestaurantSwitch}
                                 style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff', fontSize: '0.9rem', fontWeight: 600, outline: 'none', minWidth: '180px', cursor: 'pointer' }}
                             >

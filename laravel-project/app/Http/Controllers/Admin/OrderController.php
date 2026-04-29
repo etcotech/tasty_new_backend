@@ -18,7 +18,7 @@ class OrderController extends Controller
         }
 
         $orders = Order::where('restaurant_id', $restaurant->id)
-            ->with(['restaurant', 'items.addons'])
+            ->with(['restaurant', 'branch', 'items.addons'])
             ->latest()
             ->get();
 

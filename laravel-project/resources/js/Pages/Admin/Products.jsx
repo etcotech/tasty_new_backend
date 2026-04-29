@@ -75,10 +75,11 @@ input:checked + .slider:before { transform: translateX(24px); }
 @keyframes toast-in { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 `;
 
-export default function Products({ products, categories, extras }) {
+export default function Products({ products, categories, extras, branches }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [toast, setToast] = useState(null);
+    const [isImporting, setIsImporting] = useState(false);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         category_id: '',
@@ -89,6 +90,8 @@ export default function Products({ products, categories, extras }) {
         price: '',
         image_path: '',
         is_available: true,
+        available_all_branches: true,
+        branch_ids: [],
         extra_ids: []
     });
 
@@ -116,12 +119,20 @@ export default function Products({ products, categories, extras }) {
                 price: product.price,
                 image_path: product.image_path || '',
                 is_available: !!product.is_available,
+                available_all_branches: !!product.available_all_branches,
+                branch_ids: product.branches.map(b => b.id),
                 extra_ids: product.addons.map(a => a.id)
             });
         } else {
             setEditingProduct(null);
             reset();
-            setData('category_id', categories[0]?.id || '');
+            setData(prev => ({ 
+                ...prev, 
+                category_id: categories[0]?.id || '',
+                available_all_branches: true,
+                branch_ids: [],
+                extra_ids: []
+            }));
         }
         setIsModalOpen(true);
     };
@@ -131,6 +142,13 @@ export default function Products({ products, categories, extras }) {
             ? data.extra_ids.filter(x => x !== id)
             : [...data.extra_ids, id];
         setData('extra_ids', ids);
+    };
+
+    const handleBranchToggle = (id) => {
+        const ids = data.branch_ids.includes(id)
+            ? data.branch_ids.filter(x => x !== id)
+            : [...data.branch_ids, id];
+        setData('branch_ids', ids);
     };
 
     const handleSubmit = (e) => {
@@ -160,6 +178,27 @@ export default function Products({ products, categories, extras }) {
         }
     };
 
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setIsImporting(true);
+        router.post('/admin/products/import', formData, {
+            forceFormData: true,
+            onSuccess: () => {
+                setIsImporting(false);
+                showToast('تم استيراد المنتجات بنجاح ✅');
+            },
+            onError: (errors) => {
+                setIsImporting(false);
+                showToast(errors.file || 'حدث خطأ أثناء الاستيراد ❌', 'error');
+            }
+        });
+    };
+
     return (
         <AdminLayout title="إدارة المنتجات">
             <style>{pageStyles}</style>
@@ -174,8 +213,15 @@ export default function Products({ products, categories, extras }) {
 
             <div className="admin-title-row">
                 <h1 className="admin-title">قائمة المنتجات</h1>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <a href="/admin/products/export-template" className="btn-primary" style={{ background: '#f0f0f0', color: MUTED, fontSize: '0.85rem' }}>تحميل النموذج</a>
                     <a href="/admin/products/export" className="btn-primary" style={{ background: '#eee', color: TEXT }}>تصدير CSV</a>
+                    
+                    <label className="btn-primary" style={{ background: '#E3F2FD', color: '#1976D2', cursor: processing || isImporting ? 'not-allowed' : 'pointer' }}>
+                        {isImporting ? 'جاري الاستيراد...' : 'استيراد CSV'}
+                        <input type="file" accept=".csv" onChange={handleImport} style={{ display: 'none' }} disabled={isImporting} />
+                    </label>
+
                     <button className="btn-primary" onClick={() => openModal()}>إضافة منتج جديد +</button>
                 </div>
             </div>
@@ -307,6 +353,44 @@ export default function Products({ products, categories, extras }) {
                                 <div className="form-group--full">
                                     <label className="form-label">رابط الصورة (URL)</label>
                                     <input className="form-input" value={data.image_path} onChange={e => setData('image_path', e.target.value)} placeholder="https://..." />
+                                </div>
+
+                                <div className="section-title">📍 توفر الفروع</div>
+
+                                <div className="form-group--full">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: '10px', marginBottom: '1rem' }}>
+                                        <label className="toggle">
+                                            <input type="checkbox" checked={data.available_all_branches} onChange={e => setData('available_all_branches', e.target.checked)} />
+                                            <span className="slider"></span>
+                                        </label>
+                                        <div>
+                                            <div style={{ fontWeight: 800 }}>متاح في جميع الفروع</div>
+                                            <div style={{ fontSize: '0.8rem', color: MUTED }}>سيظهر المنتج في جميع فروع المطعم</div>
+                                        </div>
+                                    </div>
+
+                                    {!data.available_all_branches && branches.length > 0 && (
+                                        <div className="extras-selection">
+                                            {branches.map(branch => (
+                                                <div 
+                                                    key={branch.id} 
+                                                    className={`extra-card ${data.branch_ids.includes(branch.id) ? 'selected' : ''}`}
+                                                    onClick={() => handleBranchToggle(branch.id)}
+                                                >
+                                                    <input type="checkbox" checked={data.branch_ids.includes(branch.id)} readOnly />
+                                                    <div className="extra-info">
+                                                        <span className="extra-name">{branch.name_ar}</span>
+                                                        <span className="extra-price">{branch.name_en}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {!data.available_all_branches && branches.length === 0 && (
+                                        <div style={{ padding: '1rem', background: '#FFF3E0', borderRadius: '10px', color: '#E65100', fontSize: '0.9rem', fontWeight: 600 }}>
+                                            ⚠️ لم تقم بإضافة أي فروع لهذا المطعم بعد.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="section-title">✨ الإضافات (Extras)</div>

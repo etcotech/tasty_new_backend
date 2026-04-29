@@ -54,6 +54,11 @@ const t = {
     submitting:  { ar: 'جاري الإرسال...',                 en: 'Submitting...' },
     trackOrder:  { ar: 'تتبع الطلب',                      en: 'Track Order' },
     orderSuccessMsg: { ar: 'تم إنشاء الطلب بنجاح',        en: 'Order created successfully' },
+    selectBranch: { ar: 'اختر الفرع',                   en: 'Select Branch' },
+    branchTitle: { ar: 'اختر أقرب فرع إليك',            en: 'Select Nearest Branch' },
+    branchDesc: { ar: 'يرجى اختيار الفرع لتتمكن من رؤية القائمة المتاحة والطلب', en: 'Please select a branch to see available menu and start ordering' },
+    choose: { ar: 'اختيار',                             en: 'Choose' },
+    changeBranch: { ar: 'تغيير الفرع',                  en: 'Change Branch' },
 };
 
 /* ======================================
@@ -254,6 +259,11 @@ export default function Menu({ slug }) {
         customer_name: '',
         notes: ''
     });
+    const [branches, setBranches] = useState([]);
+    const [selectedBranch, setSelectedBranch] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('sv_branch')) || null; } catch { return null; }
+    });
+    const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
     const [lang, setLang] = useState(() => {
         try { return localStorage.getItem('sv_lang') || 'ar'; } catch { return 'ar'; }
     });
@@ -268,7 +278,11 @@ export default function Menu({ slug }) {
     /* Fetch menu */
     useEffect(() => {
         setLoading(true);
-        fetch(`/api/restaurants/${slug}/menu`)
+        const url = selectedBranch 
+            ? `/api/restaurants/${slug}/menu?branch_id=${selectedBranch.id}` 
+            : `/api/restaurants/${slug}/menu`;
+
+        fetch(url)
             .then(res => {
                 if (!res.ok) throw new Error('not_found');
                 return res.json();
@@ -277,8 +291,20 @@ export default function Menu({ slug }) {
                 setRestaurant(data.restaurant);
                 setCategories(data.categories);
                 setProducts(data.products);
+                setBranches(data.branches || []);
                 setActiveCategory('all');
                 
+                // Auto-select if only one branch
+                if (data.branches?.length === 1 && !selectedBranch) {
+                    const singleBranch = data.branches[0];
+                    setSelectedBranch(singleBranch);
+                    localStorage.setItem('sv_branch', JSON.stringify(singleBranch));
+                } 
+                // Force modal if multiple branches and none selected
+                else if (data.branches?.length > 1 && !selectedBranch) {
+                    setIsBranchModalOpen(true);
+                }
+
                 // Update currency translation dynamically
                 if (data.restaurant.currency) {
                     t.sar.ar = data.restaurant.currency === 'SAR' ? 'ر.س' : data.restaurant.currency;
@@ -287,7 +313,7 @@ export default function Menu({ slug }) {
             })
             .catch(err => setError(err.message))
             .finally(() => setLoading(false));
-    }, [slug]);
+    }, [slug, selectedBranch]);
 
     /* Filtered products */
     const filteredProducts = useMemo(() => {
@@ -318,6 +344,13 @@ export default function Menu({ slug }) {
 
     const toggleAddon = (addonId) => {
         setSelectedAddons(prev => ({ ...prev, [addonId]: !prev[addonId] }));
+    };
+
+    const handleBranchSelect = (branch) => {
+        setSelectedBranch(branch);
+        localStorage.setItem('sv_branch', JSON.stringify(branch));
+        setIsBranchModalOpen(false);
+        setCart([]); // Clear cart when branch changes
     };
 
     const getCartItemKey = (product, addons) => {
@@ -417,6 +450,7 @@ export default function Menu({ slug }) {
                     customer_name,
                     notes,
                     cart,
+                    branch_id: selectedBranch?.id
                 })
             });
             
@@ -505,6 +539,15 @@ export default function Menu({ slug }) {
                         </span>
                     </div>
                     <div className="sv-header__right">
+                        {selectedBranch && (
+                            <button 
+                                className="sv-lang-btn" 
+                                style={{ background: 'rgba(201,168,76,0.15)', borderColor: GOLD, color: GOLD_H }}
+                                onClick={() => setIsBranchModalOpen(true)}
+                            >
+                                📍 {lang === 'ar' ? selectedBranch.name_ar : selectedBranch.name_en}
+                            </button>
+                        )}
                         <button 
                             style={{ background: '#1A1714', color: '#C9A84C', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginInlineEnd: '0.5rem' }}
                             onClick={() => window.location.href = '/track'}
@@ -906,6 +949,56 @@ export default function Menu({ slug }) {
                                     {lang === 'ar' ? 'إغلاق' : 'Close'}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── BRANCH MODAL ── */}
+                {isBranchModalOpen && (
+                    <div className="sv-modal-overlay">
+                        <div className="sv-modal" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+                            <div className="sv-modal__body" style={{ textAlign: 'center', padding: '2rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
+                                <h2 className="sv-modal__title">{tr('branchTitle')}</h2>
+                                <p style={{ color: MUTED, fontSize: '0.9rem', marginBottom: '1.5rem' }}>{tr('branchDesc')}</p>
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {branches.map(branch => (
+                                        <div 
+                                            key={branch.id} 
+                                            onClick={() => handleBranchSelect(branch)}
+                                            style={{ 
+                                                padding: '1rem', 
+                                                border: '1.5px solid #eee', 
+                                                borderRadius: '12px', 
+                                                cursor: 'pointer', 
+                                                textAlign: 'start',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.borderColor = GOLD}
+                                            onMouseOut={e => e.currentTarget.style.borderColor = '#eee'}
+                                        >
+                                            <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.2rem' }}>
+                                                {lang === 'ar' ? branch.name_ar : branch.name_en}
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: MUTED }}>
+                                                {branch.address || branch.phone}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            {selectedBranch && (
+                                <div className="sv-modal__footer" style={{ borderTop: '1px solid #eee', justifyContent: 'center' }}>
+                                    <button 
+                                        className="sv-modal__btn-cancel" 
+                                        style={{ width: '100%' }}
+                                        onClick={() => setIsBranchModalOpen(false)}
+                                    >
+                                        {tr('cancel')}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

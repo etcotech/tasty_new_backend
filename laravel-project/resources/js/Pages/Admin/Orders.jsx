@@ -194,6 +194,7 @@ export default function Orders({ orders: initialOrders }) {
                     <thead>
                         <tr>
                             <th>رقم الطلب (Order #)</th>
+                            <th>الفرع (Branch)</th>
                             <th>النوع (Type)</th>
                             <th>المجموع (Total)</th>
                             <th>الحالة (Status)</th>
@@ -205,6 +206,11 @@ export default function Orders({ orders: initialOrders }) {
                         {orders.map(order => (
                             <tr key={order.id}>
                                 <td style={{ fontWeight: 700 }}>{order.order_number}</td>
+                                <td>
+                                    <span style={{ fontWeight: 600, color: MUTED }}>
+                                        {order.branch ? (order.branch.name_ar || order.branch.name_en) : '-'}
+                                    </span>
+                                </td>
                                 <td>
                                     {order.order_type === 'dine_in' ? 'داخل المطعم' : 
                                      order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
@@ -265,6 +271,7 @@ export default function Orders({ orders: initialOrders }) {
                         </div>
                         <div className="modal-body">
                             <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', background: '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
+                                <div><strong>الفرع:</strong> {selectedOrder.branch ? (selectedOrder.branch.name_ar || selectedOrder.branch.name_en) : '-'}</div>
                                 <div><strong>العميل:</strong> {selectedOrder.customer_name || '-'}</div>
                                 <div><strong>الجوال:</strong> {selectedOrder.phone || '-'}</div>
                                 {selectedOrder.order_type === 'dine_in' && <div><strong>الطاولة:</strong> {selectedOrder.table_number}</div>}
