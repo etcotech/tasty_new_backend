@@ -28,10 +28,33 @@ Route::get('/', function () {
     $setting = \App\Models\Setting::where('key', 'site_config')->first();
     $config = $setting ? json_decode($setting->value, true) : [];
     
+    $stats = [
+        'totalRestaurants' => 0,
+        'totalBranches' => 0,
+        'completedOrders' => 0,
+        'totalOrders' => 0,
+    ];
+
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('restaurants')) {
+            $stats['totalRestaurants'] = \DB::table('restaurants')->count();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('branches')) {
+            $stats['totalBranches'] = \DB::table('branches')->count();
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('orders')) {
+            $stats['totalOrders'] = \DB::table('orders')->count();
+            $stats['completedOrders'] = \DB::table('orders')->whereIn('status', ['completed', 'delivered'])->count();
+        }
+    } catch (\Exception $e) {
+        // Fallback to 0
+    }
+
     return Inertia::render('SaaS/Landing', [
         'settings' => array_merge($config, [
             'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null
-        ])
+        ]),
+        'stats' => $stats
     ]);
 });
 
