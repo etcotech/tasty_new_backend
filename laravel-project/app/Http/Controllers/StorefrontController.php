@@ -10,7 +10,7 @@ use Inertia\Inertia;
 
 class StorefrontController extends Controller
 {
-    public function page($slug = 'savor')
+    public function page($slug = 'tasty')
     {
         return Inertia::render('Storefront/Menu', [
             'slug' => $slug,

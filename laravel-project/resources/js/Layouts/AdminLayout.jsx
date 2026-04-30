@@ -186,10 +186,29 @@ body {
 [dir="ltr"] .admin-wrapper { direction: ltr; }
 [dir="ltr"] .admin-sidebar { right: auto; left: 0; border-left: none; border-right: 1px solid var(--border); }
 [dir="ltr"] .admin-main { margin-right: 0; margin-left: 280px; }
+
+.flash-message {
+    padding: 1rem 2rem;
+    background: #2ECC71;
+    color: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
 `;
 
 export default function AdminLayout({ children, title }) {
-    const { auth, admin } = usePage().props;
+    const { auth, admin, flash } = usePage().props;
     const currentPath = window.location.pathname;
 
     const handleRestaurantSwitch = (e) => {
@@ -205,6 +224,7 @@ export default function AdminLayout({ children, title }) {
         { href: '/admin/products', label: 'المنتجات', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
         { href: '/admin/extras', label: 'الإضافات', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' },
         { href: '/admin/branches', label: 'الفروع', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+        { href: '/admin/qr-codes', label: 'رموز QR', icon: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z' },
         { href: '/kitchen', label: 'المطبخ', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
         { href: '/admin/restaurants', label: 'المطاعم', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', superAdminOnly: true },
         { href: '/admin/settings', label: 'الإعدادات', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
@@ -217,7 +237,7 @@ export default function AdminLayout({ children, title }) {
             <style>{css}</style>
 
             <aside className="admin-sidebar">
-                <Link href="/admin/dashboard" className="sidebar-brand">SAVOR</Link>
+                <Link href="/admin/dashboard" className="sidebar-brand">منصة تيستي</Link>
 
                 <nav className="sidebar-nav">
                     {navLinks.map((link) => (
@@ -291,6 +311,12 @@ export default function AdminLayout({ children, title }) {
                 </header>
 
                 <div className="content-inner">
+                    {flash?.success && (
+                        <div className="flash-message">
+                            <span>🎉</span>
+                            {flash.success}
+                        </div>
+                    )}
                     {children}
                 </div>
             </main>

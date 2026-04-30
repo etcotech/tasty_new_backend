@@ -519,6 +519,7 @@ const printOrder = (order, restaurant) => {
             <div class="info-grid">
                 <div class="info-row"><span>رقم الطلب:</span> <b>#${order.order_number}</b></div>
                 <div class="info-row"><span>التاريخ:</span> <span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
+                <div class="info-row"><span>الفرع:</span> <b>${order.branch ? (order.branch.name_ar || order.branch.name_en) : 'الفرع الرئيسي'}</b></div>
                 <div class="info-row"><span>النوع:</span> <b>${order.order_type === 'dine_in' ? '🍽️ محلي' : order.order_type === 'car' ? '🚗 سيارة' : '🥡 سفري'}</b></div>
                 ${order.table_number ? `<div class="info-row"><span>الطاولة:</span> <b>${order.table_number}</b></div>` : ''}
                 ${order.car_number ? `<div class="info-row"><span>السيارة:</span> <b>${order.car_number}</b></div>` : ''}

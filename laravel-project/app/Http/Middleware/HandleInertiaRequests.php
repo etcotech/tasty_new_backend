@@ -59,9 +59,12 @@ class HandleInertiaRequests extends Middleware
                 $currentRestaurant = $restaurants->firstWhere('id', $selectedId);
             }
             
+            // Auto-select for restaurant_admin or if super_admin hasn't selected yet (optional, but user said NO fallback for super_admin)
             if (!$currentRestaurant && $restaurants->isNotEmpty()) {
-                $currentRestaurant = $restaurants->first();
-                $request->session()->put('selected_restaurant_id', $currentRestaurant->id);
+                if ($user->role !== 'super_admin') {
+                    $currentRestaurant = $restaurants->first();
+                    $request->session()->put('selected_restaurant_id', $currentRestaurant->id);
+                }
             }
 
             $shared['admin'] = [

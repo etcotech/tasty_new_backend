@@ -3,274 +3,142 @@ import { Head, Link, useForm } from '@inertiajs/react';
 
 const Signup = () => {
     const { data, setData, post, processing, errors } = useForm({
-        restaurant_name_ar: '',
-        restaurant_name_en: '',
-        slug: '',
-        phone: '',
-        address_ar: '',
-        address_en: '',
+        restaurant_name: '',
         admin_name: '',
-        admin_email: '',
-        admin_password: '',
-        admin_password_confirmation: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
     });
 
-    const handleSubmit = (e) => {
+    const submit = (e) => {
         e.preventDefault();
         post('/restaurant-signup');
     };
 
     return (
-        <div style={styles.container}>
-            <Head title="تسجيل مطعم جديد | SAVOR" />
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" dir="rtl">
+            <Head title="تسجيل مطعم جديد" />
+            
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                <Link href="/">
+                    <img className="mx-auto h-12 w-auto" src="/images/tasty-logo.png" alt="Tasty Platform" />
+                </Link>
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-cairo">
+                    سجل مطعمك في منصة تيستي
+                </h2>
+            </div>
+
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                    <form className="space-y-6" onSubmit={submit}>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">اسم المطعم</label>
+                            <div className="mt-1">
+                                <input
+                                    type="text"
+                                    value={data.restaurant_name}
+                                    onChange={e => setData('restaurant_name', e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    required
+                                />
+                            </div>
+                            {errors.restaurant_name && <p className="mt-2 text-sm text-red-600">{errors.restaurant_name}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">اسم المدير المسئول</label>
+                            <div className="mt-1">
+                                <input
+                                    type="text"
+                                    value={data.admin_name}
+                                    onChange={e => setData('admin_name', e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    required
+                                />
+                            </div>
+                            {errors.admin_name && <p className="mt-2 text-sm text-red-600">{errors.admin_name}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">البريد الإلكتروني</label>
+                            <div className="mt-1">
+                                <input
+                                    type="email"
+                                    value={data.email}
+                                    onChange={e => setData('email', e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    required
+                                />
+                            </div>
+                            {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">كلمة المرور</label>
+                            <div className="mt-1">
+                                <input
+                                    type="password"
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    required
+                                />
+                            </div>
+                            {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">تأكيد كلمة المرور</label>
+                            <div className="mt-1">
+                                <input
+                                    type="password"
+                                    value={data.password_confirmation}
+                                    onChange={e => setData('password_confirmation', e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                            >
+                                {processing ? 'جاري التسجيل...' : 'تسجيل المطعم'}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="mt-6">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-300" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-2 bg-white text-gray-500">لديك حساب بالفعل؟</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                            <Link
+                                href="/login"
+                                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                                تسجيل الدخول
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Cairo:wght@400;600;700;800&display=swap');
-                
-                :root {
-                    --primary: #c9a84c;
-                    --bg: #0f172a;
-                    --text-main: #f8fafc;
-                    --text-muted: #94a3b8;
-                    --glass: rgba(255, 255, 255, 0.03);
-                    --glass-border: rgba(255, 255, 255, 0.1);
-                    --danger: #ef4444;
-                }
-
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                
-                body {
-                    background: var(--bg);
-                    color: var(--text-main);
-                    font-family: 'Cairo', 'Inter', sans-serif;
-                    direction: rtl;
-                }
-
-                .gradient-bg {
-                    position: fixed;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background: radial-gradient(circle at 50% -20%, #1e293b 0%, #0f172a 100%);
-                    z-index: -1;
-                }
-
-                .signup-card {
-                    max-width: 800px;
-                    margin: 60px auto;
-                    background: var(--glass);
-                    border: 1px solid var(--glass-border);
-                    backdrop-filter: blur(12px);
-                    border-radius: 24px;
-                    padding: 3rem;
-                }
-
-                .section-title {
-                    font-size: 1.25rem;
-                    font-weight: 800;
-                    margin: 2rem 0 1.5rem;
-                    color: var(--primary);
-                    border-bottom: 1px solid var(--glass-border);
-                    padding-bottom: 0.5rem;
-                }
-
-                .form-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 1.5rem;
-                }
-
-                .form-group {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.5rem;
-                }
-
-                label {
-                    font-size: 0.9rem;
-                    font-weight: 600;
-                    color: var(--text-muted);
-                }
-
-                input {
-                    background: rgba(0,0,0,0.2);
-                    border: 1px solid var(--glass-border);
-                    padding: 0.75rem 1rem;
-                    border-radius: 10px;
-                    color: #fff;
-                    font-family: inherit;
-                    transition: border-color 0.2s;
-                }
-
-                input:focus {
-                    outline: none;
-                    border-color: var(--primary);
-                }
-
-                .error-msg {
-                    color: var(--danger);
-                    font-size: 0.8rem;
-                    margin-top: 0.25rem;
-                }
-
-                .btn-submit {
-                    background: var(--primary);
-                    color: #000;
-                    border: none;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    font-weight: 800;
-                    font-size: 1.1rem;
-                    cursor: pointer;
-                    margin-top: 3rem;
-                    width: 100%;
-                    transition: transform 0.2s;
-                }
-
-                .btn-submit:hover {
-                    transform: translateY(-2px);
-                }
-
-                .btn-submit:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-
-                .back-link {
-                    display: block;
-                    text-align: center;
-                    margin-top: 1.5rem;
-                    color: var(--text-muted);
-                    text-decoration: none;
-                    font-size: 0.9rem;
-                }
-
-                .back-link:hover { color: var(--text-main); }
-
-                @media (max-width: 640px) {
-                    .form-grid { grid-template-columns: 1fr; }
-                    .signup-card { margin: 20px; padding: 1.5rem; }
-                }
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+                .font-cairo { font-family: 'Cairo', sans-serif; }
             `}</style>
-
-            <div className="gradient-bg" />
-
-            <div className="signup-card">
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>انضم إلى SAVOR</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>ابدأ إدارة مطعمك وفروعك باحترافية اليوم</p>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                    <h3 className="section-title">بيانات المطعم</h3>
-                    <div className="form-grid">
-                        <div className="form-group">
-                            <label>اسم المطعم (عربي) *</label>
-                            <input 
-                                value={data.restaurant_name_ar} 
-                                onChange={e => setData('restaurant_name_ar', e.target.value)} 
-                                placeholder="مثال: مطعم سيفور"
-                                required 
-                            />
-                            {errors.restaurant_name_ar && <div className="error-msg">{errors.restaurant_name_ar}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>اسم المطعم (English) *</label>
-                            <input 
-                                value={data.restaurant_name_en} 
-                                onChange={e => setData('restaurant_name_en', e.target.value)} 
-                                placeholder="Example: Savor Restaurant"
-                                required 
-                            />
-                            {errors.restaurant_name_en && <div className="error-msg">{errors.restaurant_name_en}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>رابط المطعم (Slug) *</label>
-                            <div style={{ position: 'relative' }}>
-                                <input 
-                                    style={{ paddingLeft: '110px', direction: 'ltr', textAlign: 'left', width: '100%' }}
-                                    value={data.slug} 
-                                    onChange={e => setData('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))} 
-                                    placeholder="my-restaurant"
-                                    required 
-                                />
-                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem', pointerEvents: 'none' }}>
-                                    .savor.com/
-                                </span>
-                            </div>
-                            <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>سيصبح الرابط: saver.test/slug</small>
-                            {errors.slug && <div className="error-msg">{errors.slug}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>رقم الجوال *</label>
-                            <input 
-                                value={data.phone} 
-                                onChange={e => setData('phone', e.target.value)} 
-                                placeholder="05xxxxxxxx"
-                                required 
-                            />
-                            {errors.phone && <div className="error-msg">{errors.phone}</div>}
-                        </div>
-                    </div>
-
-                    <h3 className="section-title">بيانات المدير</h3>
-                    <div className="form-grid">
-                        <div className="form-group">
-                            <label>اسم المدير *</label>
-                            <input 
-                                value={data.admin_name} 
-                                onChange={e => setData('admin_name', e.target.value)} 
-                                required 
-                            />
-                            {errors.admin_name && <div className="error-msg">{errors.admin_name}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>البريد الإلكتروني *</label>
-                            <input 
-                                type="email"
-                                value={data.admin_email} 
-                                onChange={e => setData('admin_email', e.target.value)} 
-                                required 
-                            />
-                            {errors.admin_email && <div className="error-msg">{errors.admin_email}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>كلمة المرور *</label>
-                            <input 
-                                type="password"
-                                value={data.admin_password} 
-                                onChange={e => setData('admin_password', e.target.value)} 
-                                required 
-                            />
-                            {errors.admin_password && <div className="error-msg">{errors.admin_password}</div>}
-                        </div>
-                        <div className="form-group">
-                            <label>تأكيد كلمة المرور *</label>
-                            <input 
-                                type="password"
-                                value={data.admin_password_confirmation} 
-                                onChange={e => setData('admin_password_confirmation', e.target.value)} 
-                                required 
-                            />
-                        </div>
-                    </div>
-
-                    {errors.error && <div className="error-msg" style={{ marginTop: '1rem', textAlign: 'center' }}>{errors.error}</div>}
-
-                    <button type="submit" className="btn-submit" disabled={processing}>
-                        {processing ? 'جاري إنشاء الحساب...' : 'إنشاء حساب المطعم'}
-                    </button>
-
-                    <Link href="/" className="back-link">العودة للرئيسية</Link>
-                </form>
-            </div>
         </div>
     );
-};
-
-const styles = {
-    container: {
-        minHeight: '100vh',
-        paddingBottom: '40px'
-    }
 };
 
 export default Signup;

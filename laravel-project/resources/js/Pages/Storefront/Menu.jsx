@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 
 /* ======================================
@@ -270,6 +270,19 @@ export default function Menu({ slug }) {
 
     const tr = (key) => t[key]?.[lang] ?? t[key]?.ar ?? '';
 
+    /* ── Read QR params from URL and auto-apply ── */
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const qrBranchId = params.get('branch');
+
+        if (qrBranchId) {
+            // Branch will be resolved once the API returns branch list — store id for matching
+            sessionStorage.setItem(`sv_qr_branch_${slug}`, qrBranchId);
+        }
+    // Run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     /* Persist language */
     useEffect(() => {
         try { localStorage.setItem('sv_lang', lang); } catch {}
@@ -293,16 +306,22 @@ export default function Menu({ slug }) {
         }
     }, [cart, slug, loading]);
 
+    const didInitBranch = useRef(false);
+
     /* Fetch menu */
     useEffect(() => {
-        setLoading(true);
-        setRestaurant(null);
-        setCategories([]);
-        setProducts([]);
+        // Prevent clearing state if we're just updating the branch
+        // but for a clean slug change, we do want to reset.
+        const isInitialLoad = !restaurant;
         
-        const url = selectedBranch 
-            ? `/api/restaurants/${slug}/menu?branch_id=${selectedBranch.id}` 
-            : `/api/restaurants/${slug}/menu`;
+        if (isInitialLoad) {
+            setLoading(true);
+            setCategories([]);
+            setProducts([]);
+        }
+        
+        const branchIdParam = selectedBranch?.id ? `?branch_id=${selectedBranch.id}` : '';
+        const url = `/api/restaurants/${slug}/menu${branchIdParam}`;
 
         fetch(url)
             .then(res => {
@@ -313,29 +332,46 @@ export default function Menu({ slug }) {
                 setRestaurant(data.restaurant);
                 setCategories(data.categories);
                 setProducts(data.products);
-                // Branch logic:
+                
                 const branchList = data.branches || [];
                 setBranches(branchList);
 
-                // Tenant Isolation Check: If selectedBranch from localStorage doesn't belong to this restaurant, clear it.
-                if (selectedBranch && !branchList.some(b => b.id === selectedBranch.id)) {
-                    setSelectedBranch(null);
-                    localStorage.removeItem('sv_branch');
-                }
+                // ── QR/Auto-selection Logic (Run only once per mount/slug) ──
+                if (!didInitBranch.current) {
+                    didInitBranch.current = true;
 
-                if (branchList.length === 0) {
-                    setSelectedBranch(null);
-                    localStorage.removeItem(`sv_branch_${slug}`);
-                    setIsBranchModalOpen(false);
-                }
-                else if (branchList.length === 1) {
-                    const singleBranch = branchList[0];
-                    setSelectedBranch(singleBranch);
-                    localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(singleBranch));
-                    setIsBranchModalOpen(false);
-                } 
-                else if (branchList.length > 1 && !selectedBranch) {
-                    setIsBranchModalOpen(true);
+                    // 1. QR param: auto-select branch
+                    const qrBranchId = sessionStorage.getItem(`sv_qr_branch_${slug}`);
+                    if (qrBranchId) {
+                        const qrBranch = branchList.find(b => String(b.id) === String(qrBranchId));
+                        if (qrBranch) {
+                            setSelectedBranch(qrBranch);
+                            localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(qrBranch));
+                            sessionStorage.removeItem(`sv_qr_branch_${slug}`);
+                            setIsBranchModalOpen(false);
+                            return; // setSelectedBranch will trigger next effect
+                        }
+                    }
+
+                    // 2. Tenant Isolation Check: If stored branch doesn't belong to this restaurant, clear it.
+                    if (selectedBranch && !branchList.some(b => b.id === selectedBranch.id)) {
+                        setSelectedBranch(null);
+                        localStorage.removeItem(`sv_branch_${slug}`);
+                    }
+
+                    // 3. Auto-select if exactly 1 branch
+                    if (branchList.length === 1) {
+                        const singleBranch = branchList[0];
+                        if (!selectedBranch || selectedBranch.id !== singleBranch.id) {
+                            setSelectedBranch(singleBranch);
+                            localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(singleBranch));
+                        }
+                        setIsBranchModalOpen(false);
+                    }
+                    // 4. Multiple branches but none selected -> we stay at restaurant level (as per previous requirements)
+                    else if (branchList.length > 1 && !selectedBranch) {
+                        setIsBranchModalOpen(false);
+                    }
                 }
 
                 setActiveCategory('all');
@@ -346,9 +382,14 @@ export default function Menu({ slug }) {
                     t.sar.en = data.restaurant.currency;
                 }
             })
-            .catch(err => setError(err.message))
+            .catch(err => {
+                console.error("Menu fetch error:", err);
+                setError(err.message);
+            })
             .finally(() => setLoading(false));
-    }, [slug, selectedBranch]);
+    // We depend on slug and selectedBranch.id to avoid unnecessary re-fetches if the whole object changes but ID remains same.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slug, selectedBranch?.id]);
 
     /* Filtered products */
     const filteredProducts = useMemo(() => {
@@ -570,13 +611,21 @@ export default function Menu({ slug }) {
                         )}
                     </div>
                     <div className="sv-header__right">
-                        {selectedBranch && (
+                        {selectedBranch ? (
                             <button 
                                 className="sv-lang-btn" 
                                 style={{ background: 'rgba(201,168,76,0.15)', borderColor: GOLD, color: GOLD_H }}
                                 onClick={() => setIsBranchModalOpen(true)}
                             >
                                 📍 {lang === 'ar' ? selectedBranch.name_ar : selectedBranch.name_en}
+                            </button>
+                        ) : branches.length > 1 && (
+                            <button 
+                                className="sv-lang-btn" 
+                                style={{ background: 'rgba(201,168,76,0.15)', borderColor: GOLD, color: GOLD_H }}
+                                onClick={() => setIsBranchModalOpen(true)}
+                            >
+                                📍 {tr('selectBranch')}
                             </button>
                         )}
                         <button 

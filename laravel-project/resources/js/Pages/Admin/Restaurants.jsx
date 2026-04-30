@@ -282,7 +282,7 @@ export default function Restaurants({ restaurants }) {
                                             className="form-input" 
                                             value={formData.slug} 
                                             onChange={e => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} 
-                                            placeholder="مثال: savor-restaurant"
+                                            placeholder="مثال: tasty-restaurant"
                                             required 
                                         />
                                     </div>
