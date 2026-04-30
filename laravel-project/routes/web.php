@@ -25,7 +25,14 @@ use App\Http\Controllers\SaaS\SignupController;
 */
 
 Route::get('/', function () {
-    return Inertia::render('SaaS/Landing');
+    $setting = \App\Models\Setting::where('key', 'site_config')->first();
+    $config = $setting ? json_decode($setting->value, true) : [];
+    
+    return Inertia::render('SaaS/Landing', [
+        'settings' => array_merge($config, [
+            'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null
+        ])
+    ]);
 });
 
 Route::get('/restaurant-signup', [SignupController::class, 'create'])->name('restaurant-signup');
@@ -65,6 +72,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/site-settings', [SettingsController::class, 'systemIndex'])->name('site-settings');
+    Route::post('/site-settings', [SettingsController::class, 'updateSite'])->name('site-settings.update');
+    Route::get('/payment-gateways', [SettingsController::class, 'paymentGatewaysIndex'])->name('payment-gateways');
+    Route::get('/reports', [DashboardController::class, 'reportsIndex'])->name('reports');
 
     // QR Codes
     Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');

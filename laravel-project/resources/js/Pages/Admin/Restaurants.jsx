@@ -113,6 +113,7 @@ export default function Restaurants({ restaurants }) {
         tax_percentage: 8,
         currency: 'SAR',
         is_open: true,
+        is_active: true,
         admin_name: '',
         admin_email: '',
         admin_password: ''
@@ -134,7 +135,8 @@ export default function Restaurants({ restaurants }) {
                 subtitle_en: restaurant.subtitle_en || '',
                 tax_percentage: restaurant.tax_percentage,
                 currency: restaurant.currency || 'SAR',
-                is_open: !!restaurant.is_open
+                is_open: !!restaurant.is_open,
+                is_active: !!restaurant.is_active
             });
         } else {
             setEditingRestaurant(null);
@@ -152,6 +154,7 @@ export default function Restaurants({ restaurants }) {
                 tax_percentage: 8,
                 currency: 'SAR',
                 is_open: true,
+                is_active: true,
                 admin_name: '',
                 admin_email: '',
                 admin_password: ''
@@ -218,7 +221,8 @@ export default function Restaurants({ restaurants }) {
                             <th>الرابط (Slug)</th>
                             <th>الجوال</th>
                             <th>الضريبة</th>
-                            <th>الحالة</th>
+                            <th>المتجر</th>
+                            <th>الاشتراك</th>
                             <th>تاريخ الإنشاء</th>
                             <th>إجراءات</th>
                         </tr>
@@ -236,6 +240,11 @@ export default function Restaurants({ restaurants }) {
                                 <td>
                                     <span className={`badge ${res.is_open ? 'badge-success' : 'badge-danger'}`}>
                                         {res.is_open ? 'مفتوح' : 'مغلق'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span className={`badge ${res.is_active ? 'badge-success' : 'badge-danger'}`}>
+                                        {res.is_active ? 'نشط' : 'موقوف'}
                                     </span>
                                 </td>
                                 <td>{new Date(res.created_at).toLocaleDateString('ar-SA')}</td>
@@ -336,12 +345,21 @@ export default function Restaurants({ restaurants }) {
                                     </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">حالة المطعم</label>
-                                    <select className="form-input" value={formData.is_open ? '1' : '0'} onChange={e => setFormData({ ...formData, is_open: e.target.value === '1' })}>
-                                        <option value="1">مفتوح (Open)</option>
-                                        <option value="0">مغلق (Closed)</option>
-                                    </select>
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label">حالة المتجر (Storefront)</label>
+                                        <select className="form-input" value={formData.is_open ? '1' : '0'} onChange={e => setFormData({ ...formData, is_open: e.target.value === '1' })}>
+                                            <option value="1">مفتوح (Open)</option>
+                                            <option value="0">مغلق (Closed)</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">حالة الاشتراك (Platform)</label>
+                                        <select className="form-input" value={formData.is_active ? '1' : '0'} onChange={e => setFormData({ ...formData, is_active: e.target.value === '1' })}>
+                                            <option value="1">نشط (Active)</option>
+                                            <option value="0">موقوف (Suspended)</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {!editingRestaurant && (

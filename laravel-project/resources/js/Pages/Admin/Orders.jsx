@@ -142,7 +142,7 @@ const printOrder = (order, restaurant) => {
 };
 
 export default function Orders({ orders: initialOrders }) {
-    const { admin } = usePage().props;
+    const { auth, admin } = usePage().props;
     const currentRestaurant = admin?.current_restaurant;
 
     const [orders, setOrders] = useState(initialOrders);
@@ -195,6 +195,7 @@ export default function Orders({ orders: initialOrders }) {
                     <thead>
                         <tr>
                             <th>رقم الطلب (Order #)</th>
+                            {auth.user.role === 'super_admin' && <th>المطعم (Restaurant)</th>}
                             <th>الفرع (Branch)</th>
                             <th>النوع (Type)</th>
                             <th>المجموع (Total)</th>
@@ -207,6 +208,9 @@ export default function Orders({ orders: initialOrders }) {
                         {orders.map(order => (
                             <tr key={order.id}>
                                 <td style={{ fontWeight: 700 }}>{order.order_number}</td>
+                                {auth.user.role === 'super_admin' && (
+                                    <td style={{ fontWeight: 600, color: GOLD }}>{order.restaurant?.name_ar || 'N/A'}</td>
+                                )}
                                 <td>
                                     <span style={{ fontWeight: 600, color: MUTED }}>
                                         {order.branch ? (order.branch.name_ar || order.branch.name_en) : '-'}

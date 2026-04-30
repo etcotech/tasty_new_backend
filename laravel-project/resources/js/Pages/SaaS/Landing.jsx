@@ -1,37 +1,35 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 
-const Landing = () => {
+export default function Landing({ settings = {} }) {
     return (
         <div className="landing-wrapper" dir="rtl">
             <Head title="منصة تيستي | نظام إدارة المطاعم المتكامل" />
             
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap');
                 
                 :root {
-                    --primary: #D4AF37;
-                    --primary-hover: #B8962E;
-                    --secondary: #FF9F43;
-                    --success: #28C76F;
-                    --bg: #FFFFFF;
-                    --bg-soft: #F9FAFB;
-                    --text-main: #1F2937;
-                    --text-muted: #6B7280;
-                    --border: #E5E7EB;
-                    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+                    --bg: #F9F7F5;
+                    --primary: #5D4432;
+                    --secondary: #E9E3DD;
+                    --text: #3E2B1E;
+                    --success: #16A34A;
+                    --warning: #D97706;
+                    --danger: #DC2626;
+                    --white: #FFFFFF;
                 }
 
                 * { 
                     box-sizing: border-box; 
                     margin: 0; 
                     padding: 0; 
-                    font-family: 'Cairo', 'Inter', sans-serif;
+                    font-family: 'Poppins', 'Cairo', sans-serif;
                 }
                 
                 body {
                     background-color: var(--bg);
-                    color: var(--text-main);
+                    color: var(--text);
                     overflow-x: hidden;
                     line-height: 1.6;
                 }
@@ -39,7 +37,7 @@ const Landing = () => {
                 .container {
                     max-width: 1200px;
                     margin: 0 auto;
-                    padding: 0 1.5rem;
+                    padding: 0 24px;
                 }
 
                 /* Header */
@@ -47,13 +45,14 @@ const Landing = () => {
                     height: 80px;
                     display: flex;
                     align-items: center;
+                    background: var(--bg);
+                }
+
+                .header-inner {
+                    display: flex;
                     justify-content: space-between;
-                    background: rgba(255, 255, 255, 0.9);
-                    backdrop-filter: blur(10px);
-                    border-bottom: 1px solid var(--border);
-                    position: sticky;
-                    top: 0;
-                    z-index: 1000;
+                    width: 100%;
+                    align-items: center;
                 }
 
                 .logo {
@@ -68,21 +67,15 @@ const Landing = () => {
                     display: block;
                 }
 
-                @media (max-width: 768px) {
-                    .logo-img {
-                        height: 42px;
-                    }
-                }
-
                 .nav-actions {
                     display: flex;
-                    gap: 1rem;
+                    gap: 16px;
                     align-items: center;
                 }
 
                 .btn {
-                    padding: 0.6rem 1.5rem;
-                    border-radius: 12px;
+                    padding: 12px 24px;
+                    border-radius: 8px;
                     font-weight: 600;
                     text-decoration: none;
                     transition: all 0.2s ease;
@@ -90,54 +83,39 @@ const Landing = () => {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 0.95rem;
-                }
-
-                .btn-login {
-                    color: var(--text-main);
-                    border: 1px solid var(--border);
-                }
-
-                .btn-login:hover {
-                    background: var(--bg-soft);
-                    border-color: var(--primary);
+                    font-size: 16px;
                 }
 
                 .btn-primary {
                     background: var(--primary);
-                    color: white;
-                    border: none;
-                    box-shadow: 0 4px 14px 0 rgba(212, 175, 55, 0.3);
+                    color: var(--white);
+                    border: 1px solid var(--primary);
                 }
 
                 .btn-primary:hover {
-                    background: var(--primary-hover);
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+                    opacity: 0.9;
                 }
 
                 .btn-outline {
-                    background: white;
+                    background: transparent;
                     color: var(--primary);
-                    border: 2px solid var(--primary);
+                    border: 1px solid var(--primary);
                 }
 
                 .btn-outline:hover {
-                    background: rgba(212, 175, 55, 0.05);
-                    transform: translateY(-2px);
+                    background: var(--secondary);
                 }
 
                 /* Hero */
                 .hero {
-                    padding: 100px 0 60px;
-                    background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
-                                radial-gradient(circle at bottom left, rgba(255, 159, 67, 0.05) 0%, transparent 40%);
+                    padding: 64px 0;
+                    background: var(--bg);
                 }
 
                 .hero-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 4rem;
+                    gap: 48px;
                     align-items: center;
                 }
 
@@ -145,195 +123,223 @@ const Landing = () => {
                     text-align: right;
                 }
 
-                .hero-badge {
-                    display: inline-block;
-                    padding: 0.4rem 1rem;
-                    background: rgba(40, 199, 111, 0.1);
-                    color: var(--success);
-                    border-radius: 100px;
-                    font-size: 0.85rem;
-                    font-weight: 700;
-                    margin-bottom: 1.5rem;
-                }
-
                 .hero-title {
-                    font-size: 3.5rem;
-                    font-weight: 900;
+                    font-size: 48px;
+                    font-weight: 700;
                     line-height: 1.2;
-                    margin-bottom: 1.5rem;
-                    color: #111827;
+                    margin-bottom: 24px;
+                    color: var(--text);
                 }
 
                 .hero-subtitle {
-                    font-size: 1.25rem;
-                    color: var(--text-muted);
-                    margin-bottom: 2.5rem;
-                    max-width: 540px;
+                    font-size: 18px;
+                    color: var(--text);
+                    margin-bottom: 32px;
                 }
 
                 .hero-visual {
                     position: relative;
-                }
-
-                .mockup-container {
-                    background: white;
-                    padding: 1rem;
-                    border-radius: 24px;
-                    box-shadow: var(--shadow);
-                    border: 1px solid var(--border);
-                    transform: perspective(1000px) rotateY(-5deg) rotateX(5deg);
-                    transition: transform 0.5s ease;
-                }
-
-                .mockup-container:hover {
-                    transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
-                }
-
-                .mockup-img {
                     width: 100%;
+                }
+
+                /* Custom CSS Mockup */
+                .mockup-ui {
+                    background: var(--white);
+                    border-radius: 24px;
+                    padding: 24px;
+                    box-shadow: 0 10px 40px rgba(62, 43, 30, 0.08);
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                    position: relative;
+                }
+
+                .mockup-card {
+                    background: var(--bg);
                     border-radius: 16px;
-                    display: block;
+                    padding: 16px;
+                    box-shadow: 0 4px 12px rgba(62, 43, 30, 0.04);
+                }
+
+                .mockup-card.full-width {
+                    grid-column: span 2;
+                }
+
+                .mockup-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+                }
+                
+                .mockup-title {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--text);
+                }
+
+                .mockup-icon {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    background: var(--secondary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--primary);
+                }
+
+                .mockup-value {
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: var(--primary);
+                }
+
+                .mockup-badge {
+                    font-size: 12px;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-weight: 600;
+                }
+
+                .badge-success { background: rgba(22, 163, 74, 0.1); color: var(--success); }
+                .badge-warning { background: rgba(217, 119, 6, 0.1); color: var(--warning); }
+
+                .mockup-bar-chart {
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 8px;
+                    height: 60px;
+                    margin-top: 16px;
+                }
+
+                .mockup-bar {
+                    flex: 1;
+                    background: var(--secondary);
+                    border-radius: 4px;
+                    height: 100%;
+                    position: relative;
+                }
+
+                .mockup-bar-fill {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: var(--primary);
+                    border-radius: 4px;
+                }
+
+                .mockup-order-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .mockup-order-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px;
+                    background: var(--white);
+                    border-radius: 8px;
                 }
 
                 /* Features */
-                .section-header {
-                    text-align: center;
-                    margin-bottom: 4rem;
-                }
-
-                .section-title {
-                    font-size: 2.2rem;
-                    font-weight: 800;
-                    margin-bottom: 1rem;
-                }
-
                 .features {
-                    padding: 100px 0;
-                    background-color: var(--bg-soft);
+                    padding: 64px 0;
+                    background-color: var(--bg);
                 }
 
                 .features-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                    gap: 2rem;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 24px;
                 }
 
                 .feature-card {
-                    background: white;
-                    padding: 2.5rem;
-                    border-radius: 24px;
-                    border: 1px solid var(--border);
-                    transition: all 0.3s ease;
+                    background: var(--white);
+                    padding: 24px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 12px rgba(62, 43, 30, 0.04);
                     text-align: right;
-                    position: relative;
-                    overflow: hidden;
-                }
-
-                .feature-card::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    width: 4px;
-                    height: 100%;
-                    background: var(--primary);
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                }
-
-                .feature-card:hover {
-                    transform: translateY(-10px);
-                    box-shadow: var(--shadow);
-                }
-
-                .feature-card:hover::after {
-                    opacity: 1;
                 }
 
                 .feature-icon-wrapper {
-                    width: 60px;
-                    height: 60px;
-                    background: rgba(212, 175, 55, 0.1);
-                    border-radius: 16px;
+                    width: 48px;
+                    height: 48px;
+                    background: var(--secondary);
+                    border-radius: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.8rem;
-                    margin-bottom: 1.5rem;
+                    font-size: 24px;
+                    margin-bottom: 16px;
                     color: var(--primary);
                 }
 
                 .feature-title {
-                    font-size: 1.4rem;
+                    font-size: 20px;
                     font-weight: 700;
-                    margin-bottom: 1rem;
+                    margin-bottom: 8px;
+                    color: var(--text);
                 }
 
                 .feature-desc {
-                    color: var(--text-muted);
-                    font-size: 1rem;
+                    color: var(--text);
+                    font-size: 16px;
                 }
 
-                /* Categories Section */
-                .types-section {
-                    padding: 80px 0;
+                /* CTA Section */
+                .cta-section {
+                    padding: 64px 0;
+                    background-color: var(--secondary);
                     text-align: center;
                 }
 
-                .types-container {
-                    display: flex;
-                    justify-content: center;
-                    gap: 2rem;
-                    flex-wrap: wrap;
-                    margin-top: 2rem;
-                }
-
-                .type-pill {
-                    padding: 0.8rem 2rem;
-                    background: white;
-                    border: 1px solid var(--border);
-                    border-radius: 100px;
-                    font-weight: 600;
-                    color: var(--text-main);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                .cta-title {
+                    font-size: 32px;
+                    font-weight: 700;
+                    margin-bottom: 24px;
+                    color: var(--text);
                 }
 
                 /* Footer */
                 .footer {
-                    padding: 60px 0;
-                    border-top: 1px solid var(--border);
+                    padding: 48px 0;
+                    background: var(--bg);
                     text-align: center;
-                    color: var(--text-muted);
-                    font-size: 0.95rem;
-                }
-
-                @media (max-width: 1024px) {
-                    .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
-                    .hero-content { text-align: center; display: flex; flex-direction: column; align-items: center; }
-                    .hero-title { font-size: 2.8rem; }
-                    .hero-visual { order: -1; max-width: 600px; margin: 0 auto; }
-                    .mockup-container { transform: none; }
+                    color: var(--text);
+                    font-size: 16px;
                 }
 
                 @media (max-width: 768px) {
-                    .hero-title { font-size: 2.2rem; }
-                    .cta-group { flex-direction: column; width: 100%; gap: 1rem; }
-                    .btn { width: 100%; }
+                    .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+                    .hero-content { text-align: center; }
+                    .hero-title { font-size: 32px; }
+                    .hero-visual { order: -1; }
+                    .nav-actions { gap: 8px; flex-direction: column; width: 100%; }
+                    .btn { padding: 12px 16px; font-size: 14px; width: 100%; }
+                    .header-inner { flex-direction: column; gap: 16px; padding: 16px 0; }
+                    .header { height: auto; }
+                    .cta-group { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+                    .logo-img { height: 42px; }
                 }
             `}</style>
 
             <header className="header">
-                <div className="container" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <div className="container header-inner">
                     <Link href="/" className="logo">
-                        <img src="/images/tasty-logo.png" alt="منصة تيستي" className="logo-img" />
+                        {settings.site_logo ? (
+                            <img src={settings.site_logo} alt="منصة تيستي" className="logo-img" />
+                        ) : (
+                            <span style={{ fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: '1.5rem', color: 'var(--primary)' }}>تيستي</span>
+                        )}
                     </Link>
                     
                     <div className="nav-actions">
-                        <Link href="/login" className="btn btn-login">تسجيل الدخول</Link>
                         <Link href="/restaurant-signup" className="btn btn-primary">سجل مطعمك</Link>
+                        <Link href="/login" className="btn btn-outline">تسجيل الدخول</Link>
                     </div>
                 </div>
             </header>
@@ -343,101 +349,129 @@ const Landing = () => {
                     <div className="container">
                         <div className="hero-grid">
                             <div className="hero-content">
-                                <div className="hero-badge">إصدار 2026 الجديد 🚀</div>
-                                <h1 className="hero-title">نظام ذكي لإدارة طلبات المطاعم والفروع والمطابخ</h1>
+                                <h1 className="hero-title">نظام ذكي لإدارة طلبات المطاعم والفروع</h1>
                                 <p className="hero-subtitle">
-                                    منصة تيستي تساعد المطاعم على إدارة المنيو الإلكتروني، الطلبات، الفروع، وشاشات المطبخ من لوحة تحكم واحدة.
+                                    منصة تيستي تساعدك على إدارة الطلبات، الفروع، والمطابخ من لوحة تحكم واحدة
                                 </p>
                                 
-                                <div className="cta-group" style={{ display: 'flex', gap: '1rem' }}>
-                                    <Link href="/restaurant-signup" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
-                                        تسجيل مطعم جديد
+                                <div className="cta-group" style={{ display: 'flex', gap: '16px' }}>
+                                    <Link href="/restaurant-signup" className="btn btn-primary">
+                                        سجل مطعمك
                                     </Link>
-                                    <Link href="/tasty" className="btn btn-outline" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
+                                    <Link href="/tasty" className="btn btn-outline">
                                         تجربة مطعم تيستي
                                     </Link>
                                 </div>
                             </div>
                             
                             <div className="hero-visual">
-                                <div className="mockup-container">
-                                    <img src="/images/hero-mockup.png" alt="Tasty Dashboard" className="mockup-img" />
+                                <div className="mockup-ui">
+                                    <div className="mockup-card full-width">
+                                        <div className="mockup-header">
+                                            <div className="mockup-title">إجمالي المبيعات</div>
+                                            <div className="mockup-icon">💰</div>
+                                        </div>
+                                        <div className="mockup-value">٤,٥٢٠ رس</div>
+                                        <div className="mockup-bar-chart">
+                                            <div className="mockup-bar"><div className="mockup-bar-fill" style={{ height: '40%' }}></div></div>
+                                            <div className="mockup-bar"><div className="mockup-bar-fill" style={{ height: '70%' }}></div></div>
+                                            <div className="mockup-bar"><div className="mockup-bar-fill" style={{ height: '50%' }}></div></div>
+                                            <div className="mockup-bar"><div className="mockup-bar-fill" style={{ height: '90%' }}></div></div>
+                                            <div className="mockup-bar"><div className="mockup-bar-fill" style={{ height: '60%' }}></div></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="mockup-card">
+                                        <div className="mockup-header">
+                                            <div className="mockup-title">الطلبات النشطة</div>
+                                            <div className="mockup-badge badge-warning">١٢ طلب</div>
+                                        </div>
+                                        <div className="mockup-order-list" style={{ marginTop: '12px' }}>
+                                            <div className="mockup-order-item">
+                                                <span style={{ fontSize: '12px', fontWeight: '600' }}>#1042</span>
+                                                <span style={{ fontSize: '12px', color: 'var(--warning)' }}>جاري التجهيز</span>
+                                            </div>
+                                            <div className="mockup-order-item">
+                                                <span style={{ fontSize: '12px', fontWeight: '600' }}>#1041</span>
+                                                <span style={{ fontSize: '12px', color: 'var(--success)' }}>مكتمل</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mockup-card">
+                                        <div className="mockup-header">
+                                            <div className="mockup-title">حالة الفروع</div>
+                                            <div className="mockup-icon">🏪</div>
+                                        </div>
+                                        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '12px' }}>فرع العليا</span>
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></div>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '12px' }}>فرع الملقا</span>
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <section className="types-section">
-                    <div className="container">
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '2rem' }}>مناسب للمطاعم، الكافيهات، والمطابخ السحابية</h2>
-                        <div className="types-container">
-                            <div className="type-pill">🍔 مطاعم الوجبات السريعة</div>
-                            <div className="type-pill">☕ كافيهات</div>
-                            <div className="type-pill">☁️ مطابخ سحابية</div>
-                            <div className="type-pill">🍕 بيتزا وباستا</div>
-                            <div className="type-pill">🍨 حلويات</div>
-                        </div>
-                    </div>
-                </section>
-
                 <section className="features">
                     <div className="container">
-                        <div className="section-header">
-                            <h2 className="section-title">مميزات منصة تيستي</h2>
-                            <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
-                                كل ما تحتاجه لتنمية نشاطك التجاري في عالم المطاعم، في منصة واحدة سهلة الاستخدام.
-                            </p>
-                        </div>
-                        
                         <div className="features-grid">
                             <div className="feature-card">
                                 <div className="feature-icon-wrapper">🏪</div>
                                 <h3 className="feature-title">إدارة الفروع</h3>
-                                <p className="feature-desc">أضف فروعك وخصص إعدادات كل فرع بشكل مستقل مع عزل كامل للطلبات والتقارير.</p>
-                            </div>
-                            
-                            <div className="feature-card">
-                                <div className="feature-icon-wrapper">📜</div>
-                                <h3 className="feature-title">منيو إلكتروني</h3>
-                                <p className="feature-desc">منيو QR احترافي وسريع، يتيح لعملائك الطلب والدفع بسهولة تامة.</p>
+                                <p className="feature-desc">تحكم بفروع مطعمك، وخصص إعدادات كل فرع بسهولة تامة.</p>
                             </div>
                             
                             <div className="feature-card">
                                 <div className="feature-icon-wrapper">🍳</div>
-                                <h3 className="feature-title">شاشة مطبخ KDS</h3>
-                                <p className="feature-desc">نظام إدارة مطبخ متطور ينظم تدفق الطلبات ويقلل وقت الانتظار والأخطاء.</p>
+                                <h3 className="feature-title">شاشة المطبخ KDS</h3>
+                                <p className="feature-desc">نظم تدفق الطلبات داخل المطبخ لتقليل وقت الانتظار وتجنب الأخطاء.</p>
+                            </div>
+                            
+                            <div className="feature-card">
+                                <div className="feature-icon-wrapper">📱</div>
+                                <h3 className="feature-title">QR للطلبات</h3>
+                                <p className="feature-desc">استقبل طلبات عملائك من خلال مسح كود QR بكل سهولة وسرعة.</p>
                             </div>
                             
                             <div className="feature-card">
                                 <div className="feature-icon-wrapper">📊</div>
-                                <h3 className="feature-title">طلبات حسب الفرع</h3>
-                                <p className="feature-desc">نظام ذكي يوجه كل طلب إلى الفرع الأقرب أو المختار تلقائياً لضمان دقة التنفيذ.</p>
-                            </div>
-                            
-                            <div className="feature-card">
-                                <div className="feature-icon-wrapper">🛡️</div>
-                                <h3 className="feature-title">لوحة تحكم SaaS</h3>
-                                <p className="feature-desc">تحكم شامل بجميع جوانب المنصة، من الأسعار والضرائب إلى الموظفين والصلاحيات.</p>
-                            </div>
-                            
-                            <div className="feature-card">
-                                <div className="feature-icon-wrapper">🚀</div>
-                                <h3 className="feature-title">أداء فائق</h3>
-                                <p className="feature-desc">تقنيات حديثة تضمن سرعة تحميل خيالية واستقرار تام حتى في أوقات الذروة.</p>
+                                <h3 className="feature-title">تقارير وتحليلات</h3>
+                                <p className="feature-desc">تابع أداء مطعمك ومبيعاتك من خلال تقارير شاملة ومفصلة.</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <section className="cta-section">
+                    <div className="container">
+                        <h2 className="cta-title">ابدأ الآن واطلق نظام مطعمك خلال دقائق</h2>
+                        <Link href="/restaurant-signup" className="btn btn-primary" style={{ padding: '16px 32px', fontSize: '18px' }}>
+                            سجل مطعمك
+                        </Link>
                     </div>
                 </section>
             </main>
 
             <footer className="footer">
                 <div className="container">
-                    <p>&copy; {new Date().getFullYear()} منصة تيستي لتقنية المعلومات. جميع الحقوق محفوظة.</p>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                        {settings.site_logo ? (
+                            <img src={settings.site_logo} alt="منصة تيستي" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+                        ) : (
+                            <span style={{ fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: '1.2rem', color: 'var(--primary)' }}>تيستي Platform</span>
+                        )}
+                    </div>
+                    <p>&copy; {new Date().getFullYear()} Tasty Platform. جميع الحقوق محفوظة.</p>
                 </div>
             </footer>
         </div>
     );
-};
-
-export default Landing;
+}

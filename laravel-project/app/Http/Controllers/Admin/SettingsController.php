@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Restaurant;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -62,5 +63,64 @@ class SettingsController extends Controller
         $restaurant->update($validated);
 
         return redirect()->back()->with('success', 'تم حفظ الإعدادات بنجاح');
+    }
+
+    public function systemIndex()
+    {
+        if (auth()->user()->role !== 'super_admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $setting = Setting::where('key', 'site_config')->first();
+        $config = $setting ? json_decode($setting->value, true) : [];
+        
+        return Inertia::render('Admin/SiteSettings', [
+            'settings' => array_merge($config, [
+                'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null
+            ])
+        ]);
+    }
+
+    public function updateSite(Request $request)
+    {
+        if (auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'site_logo' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'landing_title' => 'nullable|string|max:255',
+            'landing_subtitle' => 'nullable|string|max:255',
+            'hero_content' => 'nullable|string|max:1000',
+        ]);
+
+        $setting = Setting::firstOrCreate(['key' => 'site_config']);
+        
+        if ($request->hasFile('site_logo')) {
+            if ($setting->site_logo) {
+                Storage::disk('public')->delete($setting->site_logo);
+            }
+            $path = $request->file('site_logo')->store('site', 'public');
+            $setting->site_logo = $path;
+        }
+
+        $config = json_decode($setting->value, true) ?: [];
+        $config['landing_title'] = $request->landing_title ?? ($config['landing_title'] ?? '');
+        $config['landing_subtitle'] = $request->landing_subtitle ?? ($config['landing_subtitle'] ?? '');
+        $config['hero_content'] = $request->hero_content ?? ($config['hero_content'] ?? '');
+        
+        $setting->value = json_encode($config);
+        $setting->save();
+
+        return redirect()->back()->with('success', 'تم حفظ إعدادات الموقع بنجاح');
+    }
+
+    public function paymentGatewaysIndex()
+    {
+        if (auth()->user()->role !== 'super_admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return Inertia::render('Admin/PaymentGateways');
     }
 }

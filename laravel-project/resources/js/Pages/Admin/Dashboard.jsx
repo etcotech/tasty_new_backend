@@ -1,5 +1,6 @@
 import React from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { usePage } from '@inertiajs/react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -72,6 +73,8 @@ const pageStyles = `
 `;
 
 export default function Dashboard({ stats, charts }) {
+    const { auth } = usePage().props;
+
     const statusColors = {
         pending: '#E67E22',
         preparing: '#3498DB',
@@ -107,58 +110,107 @@ export default function Dashboard({ stats, charts }) {
             <div className="dashboard-container" dir="rtl">
                 <h1 className="admin-title">نظرة عامة (Overview)</h1>
 
-                {/* KPI Section with Colored Cards */}
-                <div className="stats-grid">
-                    <div className="stat-card stat-theme-blue">
-                        <div className="stat-icon-box">
-                            <ShoppingBag size={24} />
+                {/* KPI Section for Super Admin */}
+                {auth.user.role === 'super_admin' ? (
+                    <div className="stats-grid">
+                        <div className="stat-card stat-theme-blue">
+                            <div className="stat-icon-box">
+                                <ShoppingBag size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">إجمالي المطاعم</span>
+                                <span className="stat-value">{stats.totalRestaurants}</span>
+                                <span className="stat-subtitle">نشط: {stats.activeRestaurants} | موقوف: {stats.inactiveRestaurants}</span>
+                            </div>
                         </div>
-                        <div className="stat-content">
-                            <span className="stat-label">طلبات اليوم</span>
-                            <span className="stat-value">{stats.ordersToday}</span>
-                            <span className="stat-subtitle">إجمالي اليوم</span>
+                        
+                        <div className="stat-card stat-theme-green">
+                            <div className="stat-icon-box">
+                                <DollarSign size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">مبيعات اليوم (المنصة)</span>
+                                <span className="stat-value">{stats.revenueToday.toFixed(0)} ر.س</span>
+                                <span className="stat-subtitle">إجمالي كل المطاعم</span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div className="stat-card stat-theme-green">
-                        <div className="stat-icon-box">
-                            <DollarSign size={24} />
-                        </div>
-                        <div className="stat-content">
-                            <span className="stat-label">مبيعات اليوم</span>
-                            <span className="stat-value">{stats.revenueToday.toFixed(0)} ر.س</span>
-                            <span className="stat-subtitle">صافي الدخل</span>
-                        </div>
-                    </div>
 
-                    <div className="stat-card stat-theme-orange">
-                        <div className="stat-icon-box">
-                            <Clock size={24} />
+                        <div className="stat-card stat-theme-orange">
+                            <div className="stat-icon-box">
+                                <Clock size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">إجمالي الطلبات</span>
+                                <span className="stat-value">{stats.totalOrders}</span>
+                                <span className="stat-subtitle">منذ الانطلاق</span>
+                            </div>
                         </div>
-                        <div className="stat-content">
-                            <span className="stat-label">قيد التحضير</span>
-                            <span className="stat-value">{stats.pendingOrders}</span>
-                            <span className="stat-subtitle">بانتظار الانتهاء</span>
-                        </div>
-                    </div>
 
-                    <div className="stat-card stat-theme-gold">
-                        <div className="stat-icon-box">
-                            <Package size={24} />
-                        </div>
-                        <div className="stat-content">
-                            <span className="stat-label">المنتجات</span>
-                            <span className="stat-value">{stats.totalProducts}</span>
-                            <span className="stat-subtitle">في المنيو</span>
+                        <div className="stat-card stat-theme-gold">
+                            <div className="stat-icon-box">
+                                <MapPin size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">إجمالي الفروع</span>
+                                <span className="stat-value">{stats.totalBranches}</span>
+                                <span className="stat-subtitle">فروع المطاعم</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    /* KPI Section for Restaurant Admin */
+                    <div className="stats-grid">
+                        <div className="stat-card stat-theme-blue">
+                            <div className="stat-icon-box">
+                                <ShoppingBag size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">طلبات اليوم</span>
+                                <span className="stat-value">{stats.ordersToday}</span>
+                                <span className="stat-subtitle">إجمالي اليوم</span>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card stat-theme-green">
+                            <div className="stat-icon-box">
+                                <DollarSign size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">مبيعات اليوم</span>
+                                <span className="stat-value">{stats.revenueToday.toFixed(0)} ر.س</span>
+                                <span className="stat-subtitle">صافي الدخل</span>
+                            </div>
+                        </div>
+
+                        <div className="stat-card stat-theme-orange">
+                            <div className="stat-icon-box">
+                                <Clock size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">قيد التحضير</span>
+                                <span className="stat-value">{stats.pendingOrders}</span>
+                                <span className="stat-subtitle">بانتظار الانتهاء</span>
+                            </div>
+                        </div>
+
+                        <div className="stat-card stat-theme-gold">
+                            <div className="stat-icon-box">
+                                <Package size={24} />
+                            </div>
+                            <div className="stat-content">
+                                <span className="stat-label">المنتجات</span>
+                                <span className="stat-value">{stats.totalProducts}</span>
+                                <span className="stat-subtitle">في المنيو</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Revenue Section (Bar Chart) */}
                 <div className="charts-grid">
                     <div className="card-container">
                         <div className="card-header">
-                            <h2 className="card-title"><TrendingUp size={20} color={GOLD} /> إيرادات آخر 7 أيام</h2>
+                            <h2 className="card-title"><TrendingUp size={20} color={GOLD} /> إيرادات المنصة آخر 7 أيام</h2>
                         </div>
                         <div style={{ width: '100%', height: 320 }}>
                             <ResponsiveContainer width="100%" height="100%">
@@ -190,92 +242,111 @@ export default function Dashboard({ stats, charts }) {
                         </div>
                     </div>
 
-                    <div className="card-container">
-                        <div className="card-header">
-                            <h2 className="card-title"><Utensils size={20} color={GOLD} /> حالة الطلبات</h2>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                            {charts.ordersByStatus.map(s => (
-                                <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#FAFAFA', padding: '1rem', borderRadius: '16px' }}>
-                                    <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${statusColors[s.status]}15`, display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center' }}>
-                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColors[s.status] }}></div>
+                    {auth.user.role === 'super_admin' ? (
+                        <div className="card-container">
+                            <div className="card-header">
+                                <h2 className="card-title"><Utensils size={20} color={GOLD} /> الأعلى مبيعاً (مطاعم)</h2>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                {charts.topRestaurants?.map((res, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#FAFAFA', padding: '1rem', borderRadius: '16px' }}>
+                                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${GOLD}15`, display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center' }}>
+                                            <span style={{ fontWeight: 800, color: GOLD }}>{i+1}</span>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: TEXT }}>{res.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: MUTED }}>{res.total_orders} طلب</div>
+                                        </div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: GOLD }}>{res.total_sales.toFixed(0)}</div>
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: TEXT }}>{statusLabels[s.status] || s.status}</div>
-                                        <div style={{ fontSize: '0.75rem', color: MUTED }}>{((s.count / stats.ordersToday) * 100 || 0).toFixed(0)}% من طلبات اليوم</div>
-                                    </div>
-                                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: statusColors[s.status] }}>{s.count}</div>
-                                </div>
-                            ))}
-                            {charts.ordersByStatus.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '2rem', color: MUTED }}>لا توجد بيانات</div>
-                            )}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="card-container">
+                            <div className="card-header">
+                                <h2 className="card-title"><Utensils size={20} color={GOLD} /> حالة الطلبات</h2>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                {charts.ordersByStatus?.map(s => (
+                                    <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#FAFAFA', padding: '1rem', borderRadius: '16px' }}>
+                                        <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${statusColors[s.status]}15`, display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center' }}>
+                                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColors[s.status] }}></div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: TEXT }}>{statusLabels[s.status] || s.status}</div>
+                                            <div style={{ fontSize: '0.75rem', color: MUTED }}>{((s.count / stats.ordersToday) * 100 || 0).toFixed(0)}% من طلبات اليوم</div>
+                                        </div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: statusColors[s.status] }}>{s.count}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Branch Statistics Section */}
-                <div className="card-container" style={{ marginBottom: '2.5rem' }}>
-                    <div className="card-header">
-                        <h2 className="card-title"><MapPin size={20} color={GOLD} /> إحصائيات الفروع (Branch Stats)</h2>
-                    </div>
-                    <div className="branch-grid">
-                        {charts.branchStats.map((b, i) => (
-                            <div key={i} className="branch-card">
-                                <div className="branch-header">
-                                    <div className="branch-name">
-                                        <MapPin size={16} color={GOLD} />
-                                        {b.name}
-                                    </div>
-                                    <div className="branch-total">{b.total_sales.toFixed(2)} ر.س</div>
-                                </div>
-                                <div className="type-stats">
-                                    <div className="type-item">
-                                        <Utensils size={14} /> 
-                                        <span>محلي</span>
-                                        <span className="type-val">{b.dine_in}</span>
-                                    </div>
-                                    <div className="type-item">
-                                        <ShoppingCart size={14} /> 
-                                        <span>سفري</span>
-                                        <span className="type-val">{b.takeaway}</span>
-                                    </div>
-                                    <div className="type-item">
-                                        <Car size={14} /> 
-                                        <span>سيارة</span>
-                                        <span className="type-val">{b.car}</span>
-                                    </div>
-                                    <div className="type-item" style={{ background: 'rgba(201,168,76,0.05)', borderColor: GOLD }}>
-                                        <ShoppingBag size={14} color={GOLD} /> 
-                                        <span style={{ color: GOLD }}>الإجمالي</span>
-                                        <span className="type-val" style={{ color: GOLD }}>{b.total_orders}</span>
-                                    </div>
-                                </div>
+                {/* Branch/Product Statistics Section (Only for Restaurant Admin) */}
+                {auth.user.role !== 'super_admin' && (
+                    <>
+                        <div className="card-container" style={{ marginBottom: '2.5rem' }}>
+                            <div className="card-header">
+                                <h2 className="card-title"><MapPin size={20} color={GOLD} /> إحصائيات الفروع (Branch Stats)</h2>
                             </div>
-                        ))}
-                    </div>
-                </div>
+                            <div className="branch-grid">
+                                {charts.branchStats?.map((b, i) => (
+                                    <div key={i} className="branch-card">
+                                        <div className="branch-header">
+                                            <div className="branch-name">
+                                                <MapPin size={16} color={GOLD} />
+                                                {b.name}
+                                            </div>
+                                            <div className="branch-total">{b.total_sales.toFixed(2)} ر.س</div>
+                                        </div>
+                                        <div className="type-stats">
+                                            <div className="type-item">
+                                                <Utensils size={14} /> 
+                                                <span>محلي</span>
+                                                <span className="type-val">{b.dine_in}</span>
+                                            </div>
+                                            <div className="type-item">
+                                                <ShoppingCart size={14} /> 
+                                                <span>سفري</span>
+                                                <span className="type-val">{b.takeaway}</span>
+                                            </div>
+                                            <div className="type-item">
+                                                <Car size={14} /> 
+                                                <span>سيارة</span>
+                                                <span className="type-val">{b.car}</span>
+                                            </div>
+                                            <div className="type-item" style={{ background: 'rgba(201,168,76,0.05)', borderColor: GOLD }}>
+                                                <ShoppingBag size={14} color={GOLD} /> 
+                                                <span style={{ color: GOLD }}>الإجمالي</span>
+                                                <span className="type-val" style={{ color: GOLD }}>{b.total_orders}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
-                {/* Top Products Section */}
-                <div className="card-container">
-                    <div className="card-header">
-                        <h2 className="card-title"><Package size={20} color={GOLD} /> المنتجات الأكثر مبيعاً (Top 5)</h2>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                        {charts.topProducts.map((p, i) => (
-                            <div key={i} className="product-item">
-                                <div className="product-rank">{i + 1}</div>
-                                <div className="product-info">
-                                    <div className="product-name">{p.product_name_ar || p.product_name_en}</div>
-                                    <div className="product-sold">{p.total_sold} طلب</div>
-                                </div>
+                        <div className="card-container">
+                            <div className="card-header">
+                                <h2 className="card-title"><Package size={20} color={GOLD} /> المنتجات الأكثر مبيعاً (Top 5)</h2>
                             </div>
-                        ))}
-                        {charts.topProducts.length === 0 && (
-                            <div style={{ gridColumn: 'span 5', textAlign: 'center', padding: '2rem', color: MUTED }}>لا توجد مبيعات بعد</div>
-                        )}
-                    </div>
-                </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                                {charts.topProducts?.map((p, i) => (
+                                    <div key={i} className="product-item">
+                                        <div className="product-rank">{i + 1}</div>
+                                        <div className="product-info">
+                                            <div className="product-name">{p.product_name_ar || p.product_name_en}</div>
+                                            <div className="product-sold">{p.total_sold} طلب</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </AdminLayout>
     );

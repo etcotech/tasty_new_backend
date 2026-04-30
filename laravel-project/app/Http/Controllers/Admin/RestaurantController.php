@@ -91,6 +91,7 @@ class RestaurantController extends Controller
             'tax_percentage' => 'required|numeric|min:0|max:100',
             'currency' => 'required|string|max:10',
             'is_open' => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
         $restaurant->update($validated);
