@@ -217,7 +217,7 @@ class OrderController extends Controller
 
     public function track($order_number)
     {
-        $order = Order::with(['items.addons'])->where('order_number', $order_number)->first();
+        $order = Order::with(['items.addons', 'restaurant'])->where('order_number', $order_number)->first();
         
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);

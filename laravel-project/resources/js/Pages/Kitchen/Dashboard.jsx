@@ -886,7 +886,9 @@ export default function KitchenDashboard() {
                     </div>
                 </div>
 
-                <div className="k-brand">CITYSOFT KDS</div>
+                <div className="k-brand">
+                    {restaurant ? `لوحة مطبخ ${restaurant.name_ar || restaurant.name_en}` : 'CITYSOFT KDS'}
+                </div>
             </header>
 
             <main className="k-main">
