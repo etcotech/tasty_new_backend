@@ -12,7 +12,7 @@ class Restaurant extends Model
         'phone', 'country_code', 'address', 'tax_percentage', 'currency',
         'working_hours', 'logo_url', 'hero_image_url',
         'address_ar', 'address_en', 'is_open',
-        'subtitle_ar', 'subtitle_en',
+        'subtitle_ar', 'subtitle_en', 'google_review_url',
     ];
 
     protected $casts = [
@@ -44,5 +44,32 @@ class Restaurant extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function subscription()
+    {
+        return $this->hasOne(RestaurantSubscription::class)->latestOfMany();
+    }
+
+    public function plan()
+    {
+        return $this->hasOneThrough(
+            Plan::class,
+            RestaurantSubscription::class,
+            'restaurant_id', // Foreign key on restaurant_subscriptions table...
+            'id', // Foreign key on plans table...
+            'id', // Local key on restaurants table...
+            'plan_id' // Local key on restaurant_subscriptions table...
+        );
+    }
+
+    public function automations()
+    {
+        return $this->hasMany(TenantAutomation::class);
+    }
+
+    public function automationLogs()
+    {
+        return $this->hasMany(AutomationLog::class);
     }
 }

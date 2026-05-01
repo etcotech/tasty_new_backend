@@ -15,12 +15,15 @@ class RestaurantController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $restaurants = $user->role === 'super_admin' 
-            ? Restaurant::latest()->get()
-            : Restaurant::where('id', $user->restaurant_id)->get();
+        $isSuperAdmin = $user->role === 'super_admin';
+        
+        $restaurants = $isSuperAdmin 
+            ? Restaurant::with(['subscription.plan'])->latest()->get()
+            : Restaurant::with(['subscription.plan'])->where('id', $user->restaurant_id)->get();
 
         return Inertia::render('Admin/Restaurants', [
-            'restaurants' => $restaurants
+            'restaurants' => $restaurants,
+            'plans' => $isSuperAdmin ? \App\Models\Plan::where('is_active', true)->get() : []
         ]);
     }
 
@@ -44,6 +47,7 @@ class RestaurantController extends Controller
             'tax_percentage' => 'required|numeric|min:0|max:100',
             'currency' => 'required|string|max:10',
             'is_open' => 'boolean',
+            'plan_id' => 'required|exists:plans,id', // Add plan_id for new restaurants
             // Admin fields
             'admin_name' => 'required|string|max:255',
             'admin_email' => 'required|email|max:255|unique:users,email',
@@ -59,10 +63,18 @@ class RestaurantController extends Controller
             'country_code' => '+966',
         ]));
 
+        // Create subscription
+        \App\Models\RestaurantSubscription::create([
+            'restaurant_id' => $restaurant->id,
+            'plan_id' => $validated['plan_id'],
+            'status' => 'active',
+            'starts_at' => now(),
+        ]);
+
         User::create([
             'name' => $validated['admin_name'],
             'email' => $validated['admin_email'],
-            'password' => Hash::make($validated['admin_password']),
+            'password' => \Illuminate\Support\Facades\Hash::make($validated['admin_password']),
             'role' => 'restaurant_admin',
             'restaurant_id' => $restaurant->id,
         ]);
@@ -97,6 +109,27 @@ class RestaurantController extends Controller
         $restaurant->update($validated);
 
         return redirect()->back()->with('success', 'تم الحفظ بنجاح');
+    }
+
+    public function updateSubscription(Request $request, Restaurant $restaurant)
+    {
+        if (auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'plan_id' => 'required|exists:plans,id',
+            'status' => 'required|string|in:active,expired,suspended,trial',
+            'starts_at' => 'nullable|date',
+            'ends_at' => 'nullable|date',
+        ]);
+
+        \App\Models\RestaurantSubscription::updateOrCreate(
+            ['restaurant_id' => $restaurant->id],
+            $validated
+        );
+
+        return redirect()->back()->with('success', 'تم تحديث اشتراك المطعم بنجاح');
     }
 
     public function switch(Request $request)

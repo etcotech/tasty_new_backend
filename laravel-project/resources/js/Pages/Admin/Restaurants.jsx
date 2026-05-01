@@ -55,6 +55,7 @@ const toastStyles = `
 .badge { padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
 .badge-success { background: rgba(34,197,94,0.1); color: #16a34a; }
 .badge-danger { background: rgba(239,68,68,0.1); color: #dc2626; }
+.badge-info { background: rgba(59,130,246,0.1); color: #2563eb; }
 
 .btn-edit { color: ${GOLD}; background: none; border: none; cursor: pointer; font-weight: 600; margin-left: 1rem; font-family: inherit; }
 .btn-delete { color: #e74c3c; background: none; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
@@ -90,12 +91,13 @@ const Toast = ({ message, type = 'success', onClose }) => {
     );
 };
 
-export default function Restaurants({ restaurants }) {
+export default function Restaurants({ restaurants, plans }) {
     const { auth } = usePage().props;
     const isSuperAdmin = auth.user.role === 'super_admin';
-    const { flash } = usePage().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubModalOpen, setIsSubModalOpen] = useState(false);
     const [editingRestaurant, setEditingRestaurant] = useState(null);
+    const [selectedResForSub, setSelectedResForSub] = useState(null);
     const [toast, setToast] = useState(null);
     const [processing, setProcessing] = useState(false);
     
@@ -114,9 +116,17 @@ export default function Restaurants({ restaurants }) {
         currency: 'SAR',
         is_open: true,
         is_active: true,
+        plan_id: '',
         admin_name: '',
         admin_email: '',
         admin_password: ''
+    });
+
+    const [subData, setSubData] = useState({
+        plan_id: '',
+        status: 'active',
+        starts_at: '',
+        ends_at: ''
     });
 
     const openModal = (restaurant = null) => {
@@ -136,7 +146,8 @@ export default function Restaurants({ restaurants }) {
                 tax_percentage: restaurant.tax_percentage,
                 currency: restaurant.currency || 'SAR',
                 is_open: !!restaurant.is_open,
-                is_active: !!restaurant.is_active
+                is_active: !!restaurant.is_active,
+                plan_id: restaurant.subscription?.plan_id || ''
             });
         } else {
             setEditingRestaurant(null);
@@ -155,12 +166,24 @@ export default function Restaurants({ restaurants }) {
                 currency: 'SAR',
                 is_open: true,
                 is_active: true,
+                plan_id: plans[0]?.id || '',
                 admin_name: '',
                 admin_email: '',
                 admin_password: ''
             });
         }
         setIsModalOpen(true);
+    };
+
+    const openSubModal = (restaurant) => {
+        setSelectedResForSub(restaurant);
+        setSubData({
+            plan_id: restaurant.subscription?.plan_id || '',
+            status: restaurant.subscription?.status || 'active',
+            starts_at: restaurant.subscription?.starts_at ? new Date(restaurant.subscription.starts_at).toISOString().split('T')[0] : '',
+            ends_at: restaurant.subscription?.ends_at ? new Date(restaurant.subscription.ends_at).toISOString().split('T')[0] : ''
+        });
+        setIsSubModalOpen(true);
     };
 
     const handleSubmit = (e) => {
@@ -184,6 +207,22 @@ export default function Restaurants({ restaurants }) {
         } else {
             router.post('/admin/restaurants', formData, options);
         }
+    };
+
+    const handleSubSubmit = (e) => {
+        e.preventDefault();
+        setProcessing(true);
+        router.post(`/admin/restaurants/${selectedResForSub.id}/update-subscription`, subData, {
+            onSuccess: () => {
+                setProcessing(false);
+                setIsSubModalOpen(false);
+                setToast({ message: 'تم تحديث الاشتراك بنجاح ✅', type: 'success' });
+            },
+            onError: () => {
+                setProcessing(false);
+                setToast({ message: 'حدث خطأ أثناء التحديث ❌', type: 'error' });
+            }
+        });
     };
 
     const handleDelete = (id) => {
@@ -219,10 +258,9 @@ export default function Restaurants({ restaurants }) {
                         <tr>
                             <th>الاسم</th>
                             <th>الرابط (Slug)</th>
-                            <th>الجوال</th>
-                            <th>الضريبة</th>
-                            <th>المتجر</th>
-                            <th>الاشتراك</th>
+                            <th>الباقة الحالية</th>
+                            <th>حالة المتجر</th>
+                            <th>حالة المنصة</th>
                             <th>تاريخ الإنشاء</th>
                             <th>إجراءات</th>
                         </tr>
@@ -235,8 +273,10 @@ export default function Restaurants({ restaurants }) {
                                     <div style={{ fontSize: '0.8rem', color: MUTED }}>{res.name_en}</div>
                                 </td>
                                 <td><code>/{res.slug}</code></td>
-                                <td>{res.phone || '-'}</td>
-                                <td>{res.tax_percentage}%</td>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: GOLD }}>{res.subscription?.plan?.name_ar || 'بدون باقة'}</div>
+                                    <div style={{ fontSize: '0.75rem', color: MUTED }}>{res.subscription?.status === 'active' ? 'نشط' : 'موقوف'}</div>
+                                </td>
                                 <td>
                                     <span className={`badge ${res.is_open ? 'badge-success' : 'badge-danger'}`}>
                                         {res.is_open ? 'مفتوح' : 'مغلق'}
@@ -252,6 +292,7 @@ export default function Restaurants({ restaurants }) {
                                     {isSuperAdmin ? (
                                         <>
                                             <button className="btn-edit" onClick={() => openModal(res)}>تعديل</button>
+                                            <button className="btn-edit" style={{ color: '#2563eb' }} onClick={() => openSubModal(res)}>تعديل الاشتراك</button>
                                             <button className="btn-delete" onClick={() => handleDelete(res.id)}>حذف</button>
                                         </>
                                     ) : (
@@ -325,17 +366,6 @@ export default function Restaurants({ restaurants }) {
 
                                 <div className="form-grid">
                                     <div className="form-group">
-                                        <label className="form-label">رابط الشعار (Logo URL)</label>
-                                        <input className="form-input" value={formData.logo_url} onChange={e => setFormData({ ...formData, logo_url: e.target.value })} />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">رابط الغلاف (Hero Image URL)</label>
-                                        <input className="form-input" value={formData.hero_image_url} onChange={e => setFormData({ ...formData, hero_image_url: e.target.value })} />
-                                    </div>
-                                </div>
-
-                                <div className="form-grid">
-                                    <div className="form-group">
                                         <label className="form-label">نسبة الضريبة (%) *</label>
                                         <input type="number" step="0.01" className="form-input" value={formData.tax_percentage} onChange={e => setFormData({ ...formData, tax_percentage: e.target.value })} required />
                                     </div>
@@ -354,7 +384,7 @@ export default function Restaurants({ restaurants }) {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">حالة الاشتراك (Platform)</label>
+                                        <label className="form-label">حالة المنصة (Platform)</label>
                                         <select className="form-input" value={formData.is_active ? '1' : '0'} onChange={e => setFormData({ ...formData, is_active: e.target.value === '1' })}>
                                             <option value="1">نشط (Active)</option>
                                             <option value="0">موقوف (Suspended)</option>
@@ -364,6 +394,13 @@ export default function Restaurants({ restaurants }) {
 
                                 {!editingRestaurant && (
                                     <>
+                                        <div className="form-group">
+                                            <label className="form-label">اختر باقة الاشتراك *</label>
+                                            <select className="form-input" value={formData.plan_id} onChange={e => setFormData({ ...formData, plan_id: e.target.value })} required>
+                                                {plans.map(p => <option key={p.id} value={p.id}>{p.name_ar} ({p.price} رس)</option>)}
+                                            </select>
+                                        </div>
+
                                         <div style={{ borderTop: '1px solid #eee', margin: '1.5rem 0', paddingTop: '1rem' }}>
                                             <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>بيانات المدير (Admin Credentials)</h3>
                                         </div>
@@ -388,21 +425,56 @@ export default function Restaurants({ restaurants }) {
 
                                 {isSuperAdmin ? (
                                     <button type="submit" disabled={processing} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                        {processing ? (
-                                            <>
-                                                <svg className="animate-spin" style={{ width: '1.2rem', height: '1.2rem', animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24">
-                                                    <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                                    <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                </svg>
-                                                جاري الحفظ...
-                                            </>
-                                        ) : 'حفظ بيانات المطعم'}
+                                        {processing ? 'جاري الحفظ...' : 'حفظ بيانات المطعم'}
                                     </button>
                                 ) : (
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
                                         إغلاق
                                     </button>
                                 )}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isSubModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsSubModalOpen(false)}>
+                    <div className="modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">تعديل اشتراك: {selectedResForSub?.name_ar}</h2>
+                            <button onClick={() => setIsSubModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <form onSubmit={handleSubSubmit}>
+                                <div className="form-group">
+                                    <label className="form-label">باقة الاشتراك</label>
+                                    <select className="form-input" value={subData.plan_id} onChange={e => setSubData({ ...subData, plan_id: e.target.value })} required>
+                                        {plans.map(p => <option key={p.id} value={p.id}>{p.name_ar}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">الحالة</label>
+                                    <select className="form-input" value={subData.status} onChange={e => setSubData({ ...subData, status: e.target.value })}>
+                                        <option value="active">نشط (Active)</option>
+                                        <option value="trial">تجريبي (Trial)</option>
+                                        <option value="expired">منتهي (Expired)</option>
+                                        <option value="suspended">موقوف (Suspended)</option>
+                                    </select>
+                                </div>
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label">تاريخ البدء</label>
+                                        <input type="date" className="form-input" value={subData.starts_at} onChange={e => setSubData({ ...subData, starts_at: e.target.value })} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">تاريخ الانتهاء</label>
+                                        <input type="date" className="form-input" value={subData.ends_at} onChange={e => setSubData({ ...subData, ends_at: e.target.value })} />
+                                    </div>
+                                </div>
+                                <button type="submit" disabled={processing} className="btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }}>
+                                    {processing ? 'جاري التحديث...' : 'تحديث الاشتراك'}
+                                </button>
                             </form>
                         </div>
                     </div>

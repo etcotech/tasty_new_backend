@@ -502,12 +502,9 @@ export default function Menu({ slug }) {
     const handleCheckoutSubmit = async () => {
         const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
         
+        if (!phone.trim()) return alert(tr('reqPhone'));
         if (type === 'dine_in' && !table_number.trim()) return alert(tr('reqTable'));
-        if (type === 'takeaway' && !phone.trim()) return alert(tr('reqPhone'));
-        if (type === 'car') {
-            if (!car_number.trim()) return alert(tr('reqCar'));
-            if (!phone.trim()) return alert(tr('reqPhone'));
-        }
+        if (type === 'car' && !car_number.trim()) return alert(tr('reqCar'));
         
         setIsSubmitting(true);
         
@@ -958,12 +955,10 @@ export default function Menu({ slug }) {
                                     </div>
                                 )}
 
-                                {orderForm.type !== 'dine_in' && (
-                                    <div className="sv-form-group">
-                                        <label className="sv-form-label">{tr('phoneNumber')}</label>
-                                        <input type="tel" className="sv-form-input" placeholder="05xxxxxxxx" value={orderForm.phone} onChange={e => setOrderForm(prev => ({...prev, phone: e.target.value}))} />
-                                    </div>
-                                )}
+                                <div className="sv-form-group">
+                                    <label className="sv-form-label">{tr('phoneNumber')}</label>
+                                    <input type="tel" className="sv-form-input" placeholder="05xxxxxxxx" value={orderForm.phone} onChange={e => setOrderForm(prev => ({...prev, phone: e.target.value}))} />
+                                </div>
 
                                 {orderForm.type === 'car' && (
                                     <div className="sv-form-group">

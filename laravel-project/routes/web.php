@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\SystemCheckController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Admin\QrCodeController;
 use App\Http\Controllers\SaaS\SignupController;
+use App\Http\Controllers\Admin\PlanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +83,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::put('/restaurants/{restaurant}', [RestaurantController::class, 'update'])->name('restaurants.update');
     Route::delete('/restaurants/{restaurant}', [RestaurantController::class, 'destroy'])->name('restaurants.destroy');
     Route::post('/restaurants/switch', [RestaurantController::class, 'switch'])->name('restaurants.switch');
+    Route::post('/restaurants/{restaurant}/update-subscription', [RestaurantController::class, 'updateSubscription'])->name('restaurants.update-subscription');
 
     Route::resource('categories', CategoryController::class);
     
@@ -91,19 +93,38 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('products', ProductController::class);
     
     Route::resource('extras', AddonController::class);
-    Route::resource('branches', BranchController::class);
+    
+    Route::middleware('feature:branches')->group(function () {
+        Route::resource('branches', BranchController::class);
+    });
     
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::get('/site-settings', [SettingsController::class, 'systemIndex'])->name('site-settings');
     Route::post('/site-settings', [SettingsController::class, 'updateSite'])->name('site-settings.update');
     Route::get('/payment-gateways', [SettingsController::class, 'paymentGatewaysIndex'])->name('payment-gateways');
-    Route::get('/reports', [DashboardController::class, 'reportsIndex'])->name('reports');
+    
+    Route::get('/reports', [DashboardController::class, 'reportsIndex'])
+        ->middleware('feature:reports')
+        ->name('reports');
+
+    Route::get('/automation', function() {
+        return back()->with('error', 'نظام الأتمتة قيد التطوير.');
+    })->middleware('feature:automation')->name('automation');
+
+    Route::get('/smart-orders', function() {
+        return back()->with('error', 'الطلبات الذكية قيد التطوير.');
+    })->middleware('feature:smart_orders')->name('smart-orders');
 
     // QR Codes
-    Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
-    Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
-    Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
+    Route::middleware('feature:qr')->group(function () {
+        Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
+        Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
+        Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
+    });
+
+    // Subscription Plans
+    Route::resource('plans', PlanController::class);
 });
 
 /*
@@ -112,10 +133,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
-    Route::get('/kitchen', function () {
-        return Inertia::render('Kitchen/Dashboard');
-    })->name('kitchen');
+Route::middleware(['auth', 'feature:kds'])->group(function () {
+    Route::get('/kitchen', [KitchenController::class, 'dashboard'])->name('kitchen');
 
     Route::get('/api/kitchen/orders', [KitchenController::class, 'index']);
     Route::patch('/api/kitchen/orders/{id}/status', [KitchenController::class, 'updateStatus']);

@@ -12,17 +12,26 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\SubscriptionService;
+use App\Models\AutomationLog;
 
 class OrderController extends Controller
 {
+    protected $subscriptionService;
+
+    public function __construct(SubscriptionService $subscriptionService)
+    {
+        $this->subscriptionService = $subscriptionService;
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'restaurant_slug' => 'required|string',
             'order_type' => 'required|in:dine_in,takeaway,car',
             'cart' => 'required|array|min:1',
+            'phone' => 'required|string',
             'table_number' => 'required_if:order_type,dine_in',
-            'phone' => 'required_if:order_type,takeaway,car',
             'car_number' => 'required_if:order_type,car',
         ]);
 
@@ -41,6 +50,33 @@ class OrderController extends Controller
                 'success' => false,
                 'message' => 'Restaurant not found'
             ], 404);
+        }
+
+        if (!$restaurant->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant is currently suspended'
+            ], 403);
+        }
+
+        // Subscription checks
+        $plan = $restaurant->subscription?->plan;
+        if ($plan) {
+            // Check allowed order types
+            if ($plan->allowed_order_types && !in_array($request->order_type, $plan->allowed_order_types)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $this->subscriptionService->upgradeMessage('order_type')
+                ], 422);
+            }
+
+            // Check monthly order limit
+            if (!$this->subscriptionService->checkLimit($restaurant, 'orders')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $this->subscriptionService->upgradeMessage('monthly_orders_limit')
+                ], 422);
+            }
         }
 
         // Validate branch belongs to restaurant
@@ -135,44 +171,53 @@ class OrderController extends Controller
 
             DB::commit();
 
-            // Trigger n8n webhook
+            // First n8n automation integration: Send order data to n8n and log the attempt.
+            // This is triggered after the order is saved successfully.
             $webhookUrl = config('services.n8n.order_created_webhook');
             if ($webhookUrl) {
-                try {
-                    $order->load('items.addons');
-                    $payload = [
-                        'order_number' => $order->order_number,
-                        'restaurant' => $restaurant->name_ar ?? $restaurant->slug,
-                        'order_type' => $order->order_type,
-                        'status' => $order->status,
-                        'customer_name' => $order->customer_name,
-                        'phone' => $order->phone,
-                        'table_number' => $order->table_number,
-                        'car_number' => $order->car_number,
-                        'notes' => $order->notes,
-                        'subtotal' => (float)$order->subtotal,
-                        'tax' => (float)$order->tax,
-                        'total' => (float)$order->total,
-                        'tracking_url' => url('/track/' . $order->order_number),
-                        'items' => $order->items->map(fn($item) => [
-                            'name_ar' => $item->product_name_ar,
-                            'name_en' => $item->product_name_en,
-                            'quantity' => (int)$item->quantity,
-                            'unit_price' => (float)$item->unit_price,
-                            'total_price' => (float)$item->total_price,
-                            'addons' => $item->addons->map(fn($addon) => [
-                                'name_ar' => $addon->addon_name_ar,
-                                'name_en' => $addon->addon_name_en,
-                                'price' => (float)$addon->price,
-                            ])->toArray(),
-                        ])->toArray(),
-                    ];
+                $fulfillmentLabel = $this->getFulfillmentLabel($order);
 
-                    Http::timeout(5)->post($webhookUrl, $payload);
+                $payload = [
+                    'event_name' => 'order.created',
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'customer_name' => $order->customer_name,
+                    'customer_phone' => $order->phone, // Mapping phone to customer_phone as requested
+                    'table_number' => $order->table_number,
+                    'fulfillment_label' => $fulfillmentLabel,
+                    'total' => (float)$order->total,
+                    'restaurant_id' => $order->restaurant_id,
+                    'tenant_id' => $order->restaurant_id,
+                    'branch_id' => $order->branch_id,
+                    'order_type' => $order->order_type,
+                    'created_at' => $order->created_at,
+                ];
+
+                try {
+                    $response = Http::timeout(5)->post($webhookUrl, $payload);
+                    
+                    // Log the success
+                    AutomationLog::create([
+                        'restaurant_id' => $order->restaurant_id,
+                        'automation_id' => null,
+                        'event_name' => 'order.created',
+                        'payload' => $payload,
+                        'status' => $response->successful() ? 'success' : 'failed',
+                        'response' => $response->json() ?? ['raw' => $response->body()],
+                        'error_message' => $response->successful() ? null : 'HTTP Error: ' . $response->status(),
+                    ]);
                 } catch (\Exception $e) {
-                    Log::warning('n8n Order Created Webhook Failed: ' . $e->getMessage(), [
-                        'order_number' => $order->order_number,
-                        'webhook_url' => $webhookUrl
+                    // Log the failure
+                    Log::error('n8n Automation Failed: ' . $e->getMessage());
+                    
+                    AutomationLog::create([
+                        'restaurant_id' => $order->restaurant_id,
+                        'automation_id' => null,
+                        'event_name' => 'order.created',
+                        'payload' => $payload,
+                        'status' => 'failed',
+                        'response' => null,
+                        'error_message' => $e->getMessage(),
                     ]);
                 }
             }
@@ -204,15 +249,88 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid status'], 422);
         }
 
-        $order = Order::find($id);
+        $order = Order::with('restaurant')->find($id);
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
+        $oldStatus = $order->status;
         $order->status = $request->status;
         $order->save();
 
+        // Trigger n8n review webhook if status changed to completed
+        if ($request->status === 'completed' && $oldStatus !== 'completed') {
+            $this->sendOrderCompletedWebhook($order);
+        }
+
         return response()->json(['success' => true, 'message' => 'Status updated successfully', 'order' => $order]);
+    }
+
+    private function getFulfillmentLabel(Order $order)
+    {
+        return match($order->order_type) {
+            'dine_in' => 'رقم الطاولة: ' . $order->table_number,
+            'takeaway' => 'استلام من المطعم',
+            'car' => 'استلام من السيارة',
+            default => $order->order_type,
+        };
+    }
+
+    private function sendOrderCompletedWebhook(Order $order)
+    {
+        $webhookUrl = config('services.n8n.order_review_webhook');
+        if (!$webhookUrl) return;
+
+        // Ensure we only send this once per order
+        $alreadySent = AutomationLog::where('restaurant_id', $order->restaurant_id)
+            ->where('event_name', 'order.completed')
+            ->where('payload->order_id', $order->id)
+            ->where('status', 'success')
+            ->exists();
+
+        if ($alreadySent) return;
+
+        $payload = [
+            'event_name' => 'order.completed',
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'customer_phone' => $order->phone,
+            'total' => (float)$order->total,
+            'restaurant_id' => $order->restaurant_id,
+            'tenant_id' => $order->restaurant_id,
+            'branch_id' => $order->branch_id,
+            'order_type' => $order->order_type,
+            'fulfillment_label' => $this->getFulfillmentLabel($order),
+            'google_review_url' => $order->restaurant->google_review_url,
+            'completed_at' => now()->toIso8601String(),
+        ];
+
+        try {
+            $response = Http::timeout(5)->post($webhookUrl, $payload);
+            
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.completed',
+                'payload' => $payload,
+                'status' => $response->successful() ? 'success' : 'failed',
+                'response' => $response->json() ?? ['raw' => $response->body()],
+                'error_message' => $response->successful() ? null : 'HTTP Error: ' . $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('n8n Review Automation Failed: ' . $e->getMessage());
+            
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.completed',
+                'payload' => $payload,
+                'status' => 'failed',
+                'response' => null,
+                'error_message' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function track($order_number)

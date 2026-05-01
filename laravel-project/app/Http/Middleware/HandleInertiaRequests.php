@@ -69,7 +69,11 @@ class HandleInertiaRequests extends Middleware
 
             $shared['admin'] = [
                 'restaurants' => $restaurants,
-                'current_restaurant' => $currentRestaurant
+                'current_restaurant' => $currentRestaurant ? $currentRestaurant->load(['subscription.plan']) : null
+            ];
+
+            $shared['subscription'] = [
+                'plan' => $currentRestaurant?->subscription?->plan
             ];
         }
 

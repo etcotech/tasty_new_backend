@@ -37,6 +37,7 @@ return [
 
     'n8n' => [
         'order_created_webhook' => env('N8N_ORDER_CREATED_WEBHOOK'),
+        'order_review_webhook' => env('N8N_ORDER_REVIEW_WEBHOOK'),
     ],
 
 ];

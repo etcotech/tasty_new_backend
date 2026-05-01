@@ -17,6 +17,17 @@ class QrCodeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
+        // Check QR availability in plan
+        if (auth()->user()->role !== 'super_admin') {
+            $plan = $restaurant->subscription?->plan;
+            if (!$plan || !$plan->has_qr) {
+                return Inertia::render('Error', [
+                    'message' => 'خدمة رموز QR غير متاحة في باقتك الحالية',
+                    'title' => 'تحتاج إلى ترقية الباقة'
+                ]);
+            }
+        }
+
         $qrCodes = QrCode::with('branch')
             ->where('restaurant_id', $restaurant->id)
             ->latest()

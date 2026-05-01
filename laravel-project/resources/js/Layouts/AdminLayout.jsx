@@ -201,6 +201,11 @@ body {
     animation: slideDown 0.4s ease;
 }
 
+.flash-message.error {
+    background: #E74C3C;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+}
+
 @keyframes slideDown {
     from { transform: translateY(-20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -233,17 +238,82 @@ export default function AdminLayout({ children, title }) {
         { href: '/admin/categories', label: 'التصنيفات', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', restaurantOnly: true },
         { href: '/admin/products', label: 'المنتجات', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', restaurantOnly: true },
         { href: '/admin/extras', label: 'الإضافات', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', restaurantOnly: true },
-        { href: '/admin/branches', label: 'الفروع', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', restaurantOnly: true },
-        { href: '/admin/qr-codes', label: 'رموز QR', icon: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z', restaurantOnly: true },
-        { href: '/kitchen', label: 'المطبخ', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', restaurantOnly: true },
+        
+        { 
+            href: '/admin/branches', 
+            label: 'الفروع', 
+            icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', 
+            restaurantOnly: true,
+            feature: 'branches'
+        },
+        { 
+            href: '/admin/qr-codes', 
+            label: 'رموز QR', 
+            icon: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z', 
+            restaurantOnly: true,
+            feature: 'qr'
+        },
+        { 
+            href: '/kitchen', 
+            label: 'المطبخ', 
+            icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', 
+            restaurantOnly: true,
+            feature: 'kds'
+        },
+        { 
+            href: '/admin/automation', 
+            label: 'الأتمتة', 
+            icon: 'M13 10V3L4 14h7v7l9-11h-7z', 
+            restaurantOnly: true,
+            feature: 'automation'
+        },
+        { 
+            href: '/admin/smart-orders', 
+            label: 'الطلبات الذكية', 
+            icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', 
+            restaurantOnly: true,
+            feature: 'smart_orders'
+        },
+        { 
+            href: '/admin/reports', 
+            label: 'التقارير', 
+            icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 
+            restaurantOnly: true,
+            feature: 'reports'
+        },
         
         // Settings
         { href: '/admin/settings', label: 'إعدادات المطعم', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', restaurantOnly: true },
         
         { href: '/admin/system-check', label: 'فحص النظام', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', superAdminOnly: true },
+        { href: '/admin/plans', label: 'إدارة الباقات', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', superAdminOnly: true },
     ].filter(link => {
         if (link.superAdminOnly && !isSuperAdmin) return false;
         if (link.restaurantOnly && isSuperAdmin) return false;
+
+        // Plan-based filtering for restaurant admins
+        if (!isSuperAdmin && link.feature) {
+            const plan = admin?.current_restaurant?.subscription?.plan;
+            if (!plan) return false;
+
+            switch (link.feature) {
+                case 'branches':
+                    return plan.branches_limit === null || plan.branches_limit > 0;
+                case 'qr':
+                    return !!plan.has_qr;
+                case 'kds':
+                    return !!plan.has_kds;
+                case 'automation':
+                    return !!plan.has_automation;
+                case 'smart_orders':
+                    return !!plan.has_smart_orders;
+                case 'reports':
+                    return plan.reports_level && plan.reports_level !== 'none';
+                default:
+                    return true;
+            }
+        }
+
         return true;
     });
 
@@ -337,6 +407,12 @@ export default function AdminLayout({ children, title }) {
                         <div className="flash-message">
                             <span>🎉</span>
                             {flash.success}
+                        </div>
+                    )}
+                    {flash?.error && (
+                        <div className="flash-message error">
+                            <span>⚠️</span>
+                            {flash.error}
                         </div>
                     )}
                     {children}

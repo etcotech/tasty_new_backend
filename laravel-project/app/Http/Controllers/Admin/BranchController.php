@@ -8,9 +8,17 @@ use App\Models\Restaurant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
+use App\Services\SubscriptionService;
 
 class BranchController extends Controller
 {
+    protected $subscriptionService;
+
+    public function __construct(SubscriptionService $subscriptionService)
+    {
+        $this->subscriptionService = $subscriptionService;
+    }
+
     public function index()
     {
         $restaurant = $this->getCurrentRestaurant();
@@ -36,6 +44,11 @@ class BranchController extends Controller
         $restaurant = $this->getCurrentRestaurant();
         if (!$restaurant) {
             return back()->withErrors(['error' => 'No restaurant context found.']);
+        }
+
+        // Check branch limit
+        if (!$this->subscriptionService->checkLimit($restaurant, 'branches')) {
+            return back()->with('error', $this->subscriptionService->upgradeMessage('branches_limit'));
         }
 
         $validator = Validator::make($request->all(), [

@@ -5,9 +5,29 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class KitchenController extends Controller
 {
+    public function dashboard()
+    {
+        $restaurant = $this->getCurrentRestaurant();
+        
+        if (auth()->user()->role !== 'super_admin') {
+            if (!$restaurant) return redirect()->route('admin.dashboard');
+            
+            $plan = $restaurant->subscription?->plan;
+            if (!$plan || !$plan->has_kds) {
+                return Inertia::render('Error', [
+                    'message' => 'شاشة المطبخ غير متاحة في باقتك الحالية',
+                    'title' => 'تحتاج إلى ترقية الباقة'
+                ]);
+            }
+        }
+
+        return Inertia::render('Kitchen/Dashboard');
+    }
+
     public function index(Request $request)
     {
         $restaurant = $this->getCurrentRestaurant();
