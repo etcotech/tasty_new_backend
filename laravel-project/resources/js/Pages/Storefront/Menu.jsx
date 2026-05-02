@@ -251,6 +251,7 @@ export default function Menu({ slug }) {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successOrderNumber, setSuccessOrderNumber] = useState(null);
+    const [successOrderTotal, setSuccessOrderTotal] = useState(0);
     const [orderForm, setOrderForm] = useState({
         type: 'dine_in',
         table_number: '',
@@ -539,6 +540,7 @@ export default function Menu({ slug }) {
             
             if (data.success) {
                 setSuccessOrderNumber(data.order_number);
+                setSuccessOrderTotal(data.total ?? data.order?.total ?? data.order?.data?.total ?? 0);
                 setCart([]);
                 setIsCheckoutOpen(false);
                 setIsCartOpen(false);
@@ -1035,7 +1037,7 @@ export default function Menu({ slug }) {
                                 <p style={{ color: '#6B6460' }}>{lang === 'ar' ? 'رقم طلبك هو' : 'Your order number is'}</p>
                                 <div className="sv-success-ord-num">{successOrderNumber}</div>
                                 <div className="sv-success-total">
-                                    {tr('total')}: <span style={{ fontWeight: 800, color: '#1A1714' }}>{cartTotal.toFixed(2)} {tr('sar')}</span>
+                                    {tr('total')}: <span style={{ fontWeight: 800, color: '#1A1714' }}>{parseFloat(successOrderTotal).toFixed(2)} {tr('sar')}</span>
                                 </div>
                                 <button 
                                     className="sv-success-btn"
