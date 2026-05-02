@@ -225,6 +225,9 @@ class OrderController extends Controller
                 }
             }
 
+            // Trigger n8n invoice webhook for new order
+            $this->sendOrderInvoiceWebhook($order);
+
             return response()->json([
                 'success' => true,
                 'order_number' => $orderNumber,

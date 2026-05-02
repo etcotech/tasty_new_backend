@@ -91,4 +91,82 @@ trait HasOrderWebhooks
             ]);
         }
     }
+
+    /**
+     * Send the order invoice webhook to n8n.
+     */
+    protected function sendOrderInvoiceWebhook(Order $order)
+    {
+        $webhookUrl = config('services.n8n.invoice_webhook');
+        if (!$webhookUrl) {
+            return;
+        }
+
+        // Ensure we only send this once per order successfully
+        $alreadySent = AutomationLog::where('restaurant_id', $order->restaurant_id)
+            ->where('event_name', 'order.invoice')
+            ->where('payload->order_id', $order->id)
+            ->where('status', 'success')
+            ->exists();
+
+        if ($alreadySent) {
+            return;
+        }
+
+        // Ensure relations are loaded
+        $order->loadMissing(['restaurant', 'items']);
+
+        $itemsPayload = $order->items->map(function ($item) {
+            return [
+                'name' => $item->product_name_ar ?? $item->product_name_en ?? 'Unknown',
+                'quantity' => $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'total' => (float) $item->total_price,
+            ];
+        })->toArray();
+
+        $payload = [
+            'event_name' => 'order.invoice',
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'customer_phone' => $order->phone,
+            'fulfillment_label' => $this->getFulfillmentLabel($order),
+            'subtotal' => (float)$order->subtotal,
+            'tax' => (float)$order->tax,
+            'total' => (float)$order->total,
+            'currency' => 'ريال',
+            'restaurant_name' => $order->restaurant?->name ?? 'المطعم',
+            'items' => $itemsPayload,
+        ];
+
+        try {
+            // Send POST request to n8n with 5s timeout to prevent blocking
+            $response = Http::timeout(5)->post($webhookUrl, $payload);
+            
+            // Log the result in automation_logs
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.invoice',
+                'payload' => $payload,
+                'status' => $response->successful() ? 'success' : 'failed',
+                'response' => $response->json() ?? ['raw' => $response->body()],
+                'error_message' => $response->successful() ? null : 'HTTP Error: ' . $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('n8n Invoice Automation Failed: ' . $e->getMessage());
+            
+            // Log the exception failure
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.invoice',
+                'payload' => $payload,
+                'status' => 'failed',
+                'response' => null,
+                'error_message' => $e->getMessage(),
+            ]);
+        }
+    }
 }
