@@ -44,6 +44,20 @@ class SettingsController extends Controller
             'subtitle_en'    => 'nullable|string|max:255',
             'is_open'        => 'boolean',
             'logo_file'      => 'nullable|image|max:2048',
+            'google_review_url' => [
+                'nullable',
+                'url',
+                'max:1000',
+                function ($attribute, $value, $fail) {
+                    if (
+                        !str_contains($value, 'google.com') &&
+                        !str_contains($value, 'g.page') &&
+                        !str_contains($value, 'maps.app.goo.gl')
+                    ) {
+                        $fail('رابط التقييم يجب أن يكون من Google.');
+                    }
+                },
+            ],
         ]);
 
         // Handle logo file upload

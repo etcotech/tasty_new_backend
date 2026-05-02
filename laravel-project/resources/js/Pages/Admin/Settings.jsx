@@ -5,6 +5,16 @@ import AdminLayout from '@/Layouts/AdminLayout';
 const GOLD = '#C9A84C';
 
 /* ── helpers ── */
+function getFlagEmoji(code) {
+    if (!code || code.length !== 2) return code;
+    return code
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt())
+        .map(code => String.fromCodePoint(code))
+        .join('');
+}
+
 const Field = ({ label, hint, error, children }) => (
     <div>
         <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#374151', marginBottom: '0.35rem' }}>
@@ -116,16 +126,16 @@ const Toast = ({ message, type = 'success', onClose }) => {
 
 /* ── country codes list ── */
 const COUNTRIES = [
-    { code: '+966', flag: '🇸🇦', name: 'السعودية' },
-    { code: '+971', flag: '🇦🇪', name: 'الإمارات' },
-    { code: '+974', flag: '🇶🇦', name: 'قطر' },
-    { code: '+965', flag: '🇰🇼', name: 'الكويت' },
-    { code: '+968', flag: '🇴🇲', name: 'عُمان' },
-    { code: '+973', flag: '🇧🇭', name: 'البحرين' },
-    { code: '+962', flag: '🇯🇴', name: 'الأردن' },
-    { code: '+20',  flag: '🇪🇬', name: 'مصر' },
-    { code: '+1',   flag: '🇺🇸', name: 'USA' },
-    { code: '+44',  flag: '🇬🇧', name: 'UK' },
+    { code: '+966', flag: 'SA', name: 'السعودية' },
+    { code: '+971', flag: 'AE', name: 'الإمارات' },
+    { code: '+974', flag: 'QA', name: 'قطر' },
+    { code: '+965', flag: 'KW', name: 'الكويت' },
+    { code: '+968', flag: 'OM', name: 'عُمان' },
+    { code: '+973', flag: 'BH', name: 'البحرين' },
+    { code: '+962', flag: 'JO', name: 'الأردن' },
+    { code: '+20',  flag: 'EG', name: 'مصر' },
+    { code: '+1',   flag: 'US', name: 'USA' },
+    { code: '+249', flag: 'SD', name: 'السودان' },
 ];
 
 /* ── component ── */
@@ -134,22 +144,24 @@ export default function Settings({ restaurant }) {
     const logoInputRef = useRef(null);
     const [logoPreview, setLogoPreview] = useState(restaurant?.logo_url || null);
     const [toast, setToast] = useState(null); // { message, type }
+    const [showReviewHelp, setShowReviewHelp] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
-        name_ar:        restaurant?.name_ar        ?? '',
-        name_en:        restaurant?.name_en        ?? '',
-        country_code:   restaurant?.country_code   ?? '+966',
-        phone:          restaurant?.phone          ?? '',
-        address_ar:     restaurant?.address_ar     ?? '',
-        address_en:     restaurant?.address_en     ?? '',
+        name_ar: restaurant?.name_ar ?? '',
+        name_en: restaurant?.name_en ?? '',
+        country_code: restaurant?.country_code ?? '+966',
+        phone: restaurant?.phone ?? '',
+        address_ar: restaurant?.address_ar ?? '',
+        address_en: restaurant?.address_en ?? '',
         tax_percentage: restaurant?.tax_percentage ?? 8,
-        currency:       restaurant?.currency       ?? 'SAR',
-        working_hours:  restaurant?.working_hours  ?? '',
-        logo_url:       restaurant?.logo_url       ?? '',
-        logo_file:      null,
+        currency: restaurant?.currency ?? 'SAR',
+        working_hours: restaurant?.working_hours ?? '',
+        logo_url: restaurant?.logo_url ?? '',
+        logo_file: null,
         hero_image_url: restaurant?.hero_image_url ?? '',
-        subtitle_ar:    restaurant?.subtitle_ar    ?? '',
-        subtitle_en:    restaurant?.subtitle_en    ?? '',
-        is_open:        restaurant?.is_open        ?? true,
+        subtitle_ar: restaurant?.subtitle_ar ?? '',
+        subtitle_en: restaurant?.subtitle_en ?? '',
+        is_open: restaurant?.is_open ?? true,
+        google_review_url: restaurant?.google_review_url ?? '',
     });
 
     const handleLogoFile = (e) => {
@@ -180,10 +192,10 @@ export default function Settings({ restaurant }) {
             <style>{toastStyles}</style>
 
             {toast && (
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    onClose={() => setToast(null)} 
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
                 />
             )}
 
@@ -284,7 +296,7 @@ export default function Settings({ restaurant }) {
                             >
                                 {COUNTRIES.map(c => (
                                     <option key={c.code} value={c.code}>
-                                        {c.flag} {c.code} {c.name}
+                                        {getFlagEmoji(c.flag)} {c.code} {c.name}
                                     </option>
                                 ))}
                             </select>
@@ -335,7 +347,62 @@ export default function Settings({ restaurant }) {
                     </div>
                 </Card>
 
-                {/* ── 4. Status ── */}
+                {/* ── 4. Google Reviews ── */}
+                <Card>
+                    <SectionTitle>⭐ إعدادات التقييم (Google Reviews)</SectionTitle>
+                    <Field
+                        label="رابط تقييم Google"
+                        hint="سيتم استخدام هذا الرابط لإرسال طلب تقييم للعملاء بعد إكمال الطلب"
+                        error={errors.google_review_url}
+                    >
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <TextInput
+                                value={data.google_review_url}
+                                onChange={e => setData('google_review_url', e.target.value)}
+                                placeholder="https://g.page/your-business/review"
+                            />
+                            {data.google_review_url && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => window.open(data.google_review_url, '_blank')}
+                                        style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '0 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}
+                                        title="فتح الرابط"
+                                    >
+                                        🔗
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(data.google_review_url);
+                                            setToast({ message: 'تم نسخ الرابط بنجاح ✅', type: 'success' });
+                                        }}
+                                        style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '0 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}
+                                        title="نسخ الرابط"
+                                    >
+                                        📋
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </Field>
+
+                    {!data.google_review_url && (
+                        <p style={{ fontSize: '0.85rem', color: '#6B7280', marginTop: '0.75rem' }}>
+                            لم يتم تحديد رابط تقييم بعد.
+                        </p>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => setShowReviewHelp(true)}
+                        style={{ background: 'transparent', border: 'none', color: GOLD, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', marginTop: '1rem', textDecoration: 'underline', padding: 0 }}
+                    >
+                        كيفية الحصول على رابط التقييم؟
+                    </button>
+                </Card>
+
+                {/* ── 5. Status ── */}
                 <Card>
                     <SectionTitle>🟢 حالة المطعم</SectionTitle>
                     <div
@@ -376,6 +443,36 @@ export default function Settings({ restaurant }) {
                     </button>
                 </div>
             </form>
+
+            {/* Help Modal */}
+            {showReviewHelp && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }} onClick={() => setShowReviewHelp(false)}>
+                    <div style={{ background: '#fff', borderRadius: '16px', maxWidth: '450px', width: '100%', padding: '2rem', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+                        <button style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#9CA3AF' }} onClick={() => setShowReviewHelp(false)}>×</button>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', textAlign: 'center' }}>كيفية الحصول على رابط التقييم؟</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', direction: 'rtl' }}>
+                            {[
+                                'افتح Google Maps',
+                                'ابحث عن نشاطك التجاري',
+                                'اضغط "مشاركة" (Share)',
+                                'اختر "كتابة مراجعة" (Write a review)',
+                                'انسخ الرابط والصقه في الحقل المخصص'
+                            ].map((step, i) => (
+                                <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: GOLD, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>{i + 1}</div>
+                                    <div style={{ fontSize: '0.95rem', color: '#374151', fontWeight: 600 }}>{step}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setShowReviewHelp(false)}
+                            style={{ width: '100%', marginTop: '2rem', background: '#111827', color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                            فهمت ذلك
+                        </button>
+                    </div>
+                </div>
+            )}
         </AdminLayout>
     );
 }

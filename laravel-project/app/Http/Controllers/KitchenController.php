@@ -6,9 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
+use App\Traits\HasOrderWebhooks;
 
 class KitchenController extends Controller
 {
+    use HasOrderWebhooks;
+
     public function dashboard()
     {
         $restaurant = $this->getCurrentRestaurant();
@@ -91,8 +94,20 @@ class KitchenController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
+        $oldStatus = $order->status;
         $order->status = $request->status;
         $order->save();
+
+        // Trigger n8n review webhook if status changed to completed
+        if ($request->status === 'completed' && $oldStatus !== 'completed') {
+            \Illuminate\Support\Facades\Log::info("Order completed webhook attempted", [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'old_status' => $oldStatus,
+                'new_status' => $request->status
+            ]);
+            $this->sendOrderCompletedWebhook($order);
+        }
 
         return response()->json(['success' => true, 'message' => 'Status updated', 'order' => $order]);
     }

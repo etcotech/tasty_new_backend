@@ -503,6 +503,13 @@ export default function Menu({ slug }) {
         const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
         
         if (!phone.trim()) return alert(tr('reqPhone'));
+
+        if (!/^5\d{8}$/.test(phone)) {
+            return alert(lang === 'ar' ? 'رقم الجوال يجب أن يبدأ بـ 5 ويتكون من 9 أرقام' : 'Phone number must start with 5 and have 9 digits');
+        }
+
+        const normalizedPhone = `966${phone}`;
+
         if (type === 'dine_in' && !table_number.trim()) return alert(tr('reqTable'));
         if (type === 'car' && !car_number.trim()) return alert(tr('reqCar'));
         
@@ -520,7 +527,7 @@ export default function Menu({ slug }) {
                     order_type: type,
                     table_number,
                     car_number,
-                    phone,
+                    phone: normalizedPhone,
                     customer_name,
                     notes,
                     cart,
@@ -957,7 +964,23 @@ export default function Menu({ slug }) {
 
                                 <div className="sv-form-group">
                                     <label className="sv-form-label">{tr('phoneNumber')}</label>
-                                    <input type="tel" className="sv-form-input" placeholder="05xxxxxxxx" value={orderForm.phone} onChange={e => setOrderForm(prev => ({...prev, phone: e.target.value}))} />
+                                    <div style={{ display: 'flex', direction: 'ltr' }}>
+                                        <div style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRight: 'none', padding: '0.75rem 1rem', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', color: '#6B7280', display: 'flex', alignItems: 'center', fontWeight: 600 }}>+966</div>
+                                        <input 
+                                            type="tel" 
+                                            className="sv-form-input" 
+                                            style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                                            placeholder="5xxxxxxxx" 
+                                            value={orderForm.phone} 
+                                            onChange={e => {
+                                                let val = e.target.value.replace(/\D/g, '');
+                                                if (val.startsWith('0')) {
+                                                    val = val.substring(1);
+                                                }
+                                                setOrderForm(prev => ({...prev, phone: val}));
+                                            }} 
+                                        />
+                                    </div>
                                 </div>
 
                                 {orderForm.type === 'car' && (

@@ -88,6 +88,10 @@ const css = `
     .tr-step-h__label { font-size: 0.7rem; }
     .tr-step-h.active .tr-step-h__label { font-size: 0.75rem; }
 }
+
+/* REVIEW BUTTON */
+.tr-review-btn { display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #E8EAED; color: #3C4043; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 700; font-size: 1rem; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+.tr-review-btn:hover { border-color: #4285F4; color: #1A73E8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15); }
 `;
 
 export default function TrackOrder({ initialOrderNumber }) {
@@ -229,6 +233,17 @@ export default function TrackOrder({ initialOrderNumber }) {
                             {order.status !== 'completed' && (
                                 <div className="tr-refresh-mini">
                                     <span /> يتم التحديث تلقائياً كل 10 ثواني
+                                </div>
+                            )}
+
+                            {order.status === 'completed' && order.restaurant?.google_review_url && (
+                                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                                    <button 
+                                        onClick={() => window.open(order.restaurant?.google_review_url, '_blank')}
+                                        className="tr-review-btn"
+                                    >
+                                        ⭐ إذا أعجبتك التجربة، قيّمنا على Google
+                                    </button>
                                 </div>
                             )}
                         </div>
