@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Setting;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -18,9 +19,20 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
+        $setting = Setting::where('key', 'site_config')->first();
+        $config = $setting ? json_decode($setting->value, true) : [];
+        
+        $authLogo = null;
+        if (isset($config['auth_logo'])) {
+            $authLogo = asset('storage/' . $config['auth_logo']);
+        } elseif ($setting && $setting->site_logo) {
+            $authLogo = asset('storage/' . $setting->site_logo);
+        }
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'auth_logo' => $authLogo,
         ]);
     }
 

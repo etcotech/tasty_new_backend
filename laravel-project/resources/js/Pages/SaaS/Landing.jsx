@@ -152,10 +152,12 @@ export default function Landing({ settings = {}, stats = {} }) {
             <header className="header" id="header">
                 <div className="container header-inner">
                     <Link href="/" className="logo">
-                        {settings.site_logo ? (
+                        {settings.landing_logo ? (
+                            <img src={settings.landing_logo} alt="منصة تيستي" className="logo-img" />
+                        ) : settings.site_logo ? (
                             <img src={settings.site_logo} alt="منصة تيستي" className="logo-img" />
                         ) : (
-                            <span className="logo-text">منصة تيستي</span>
+                            <span className="logo-text">Tasty</span>
                         )}
                     </Link>
                     
@@ -315,10 +317,12 @@ export default function Landing({ settings = {}, stats = {} }) {
             <footer className="footer">
                 <div className="container footer-inner">
                     <Link href="/" className="logo">
-                        {settings.site_logo ? (
+                        {settings.landing_logo ? (
+                            <img src={settings.landing_logo} alt="منصة تيستي" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
+                        ) : settings.site_logo ? (
                             <img src={settings.site_logo} alt="منصة تيستي" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
                         ) : (
-                            <span className="logo-text">منصة تيستي</span>
+                            <span className="logo-text">Tasty</span>
                         )}
                     </Link>
                     

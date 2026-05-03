@@ -29,21 +29,27 @@ class SettingsController extends Controller
         $restaurant = $this->getCurrentRestaurant();
 
         $validated = $request->validate([
-            'name_ar'        => 'required|string|max:255',
-            'name_en'        => 'required|string|max:255',
-            'country_code'   => 'required|string|max:10',
-            'phone'          => 'nullable|string|max:30',
-            'address_ar'     => 'nullable|string|max:500',
-            'address_en'     => 'nullable|string|max:500',
+            'name_ar' => 'required|string|max:255',
+            'name_en' => 'required|string|max:255',
+            'country_code' => 'required|string|max:10',
+            'phone' => 'nullable|string|max:30',
+            'address_ar' => 'nullable|string|max:500',
+            'address_en' => 'nullable|string|max:500',
             'tax_percentage' => 'required|numeric|min:0|max:100',
-            'currency'       => 'required|string|max:10',
-            'working_hours'  => 'nullable|string|max:500',
-            'logo_url'       => 'nullable|string|max:1000',
+            'currency' => 'required|string|max:10',
+            'working_hours' => 'nullable|string|max:500',
+            'logo_url' => 'nullable|string|max:1000',
             'hero_image_url' => 'nullable|string|max:1000',
-            'subtitle_ar'    => 'nullable|string|max:255',
-            'subtitle_en'    => 'nullable|string|max:255',
-            'is_open'        => 'boolean',
-            'logo_file'      => 'nullable|image|max:2048',
+            'subtitle_ar' => 'nullable|string|max:255',
+            'subtitle_en' => 'nullable|string|max:255',
+            'is_open' => 'boolean',
+            'enable_loyalty' => 'boolean',
+            'enable_cashback' => 'boolean',
+            'loyalty_points_rate' => 'required|integer|min:1',
+            'cashback_percentage' => 'required|numeric|min:0|max:100',
+            'min_order_for_rewards' => 'required|numeric|min:0',
+            'points_value' => 'required|numeric|min:0',
+            'logo_file' => 'nullable|image|max:2048',
             'google_review_url' => [
                 'nullable',
                 'url',
@@ -87,10 +93,12 @@ class SettingsController extends Controller
 
         $setting = Setting::where('key', 'site_config')->first();
         $config = $setting ? json_decode($setting->value, true) : [];
-        
+
         return Inertia::render('Admin/SiteSettings', [
             'settings' => array_merge($config, [
-                'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null
+                'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null,
+                'auth_logo' => isset($config['auth_logo']) ? asset('storage/' . $config['auth_logo']) : null,
+                'landing_logo' => isset($config['landing_logo']) ? asset('storage/' . $config['landing_logo']) : null,
             ])
         ]);
     }
@@ -103,13 +111,16 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'site_logo' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'auth_logo' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'landing_logo' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
             'landing_title' => 'nullable|string|max:255',
             'landing_subtitle' => 'nullable|string|max:255',
             'hero_content' => 'nullable|string|max:1000',
         ]);
 
         $setting = Setting::firstOrCreate(['key' => 'site_config']);
-        
+        $config = json_decode($setting->value, true) ?: [];
+
         if ($request->hasFile('site_logo')) {
             if ($setting->site_logo) {
                 Storage::disk('public')->delete($setting->site_logo);
@@ -118,23 +129,31 @@ class SettingsController extends Controller
             $setting->site_logo = $path;
         }
 
-        $config = json_decode($setting->value, true) ?: [];
+        if ($request->hasFile('auth_logo')) {
+            if (isset($config['auth_logo'])) {
+                Storage::disk('public')->delete($config['auth_logo']);
+            }
+            $path = $request->file('auth_logo')->store('site', 'public');
+            $config['auth_logo'] = $path;
+        }
+
+        if ($request->hasFile('landing_logo')) {
+            if (isset($config['landing_logo'])) {
+                Storage::disk('public')->delete($config['landing_logo']);
+            }
+            $path = $request->file('landing_logo')->store('site', 'public');
+            $config['landing_logo'] = $path;
+        }
+
         $config['landing_title'] = $request->landing_title ?? ($config['landing_title'] ?? '');
         $config['landing_subtitle'] = $request->landing_subtitle ?? ($config['landing_subtitle'] ?? '');
         $config['hero_content'] = $request->hero_content ?? ($config['hero_content'] ?? '');
-        
+
         $setting->value = json_encode($config);
         $setting->save();
 
         return redirect()->back()->with('success', 'تم حفظ إعدادات الموقع بنجاح');
     }
 
-    public function paymentGatewaysIndex()
-    {
-        if (auth()->user()->role !== 'super_admin') {
-            return redirect()->route('admin.dashboard');
-        }
-
-        return Inertia::render('Admin/PaymentGateways');
-    }
 }
+

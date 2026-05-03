@@ -1,141 +1,352 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { 
+    ShoppingBag, 
+    MessageSquare, 
+    Gift, 
+    Store,
+    User,
+    Mail,
+    Phone,
+    Lock,
+    Globe,
+    Info,
+    AlertCircle
+} from 'lucide-react';
 
-const Signup = () => {
+const Signup = ({ restaurants_count, auth_logo }) => {
+    const [slugTouched, setSlugTouched] = useState(false);
+    
     const { data, setData, post, processing, errors } = useForm({
         restaurant_name: '',
+        slug: '',
         admin_name: '',
         email: '',
+        country_code: '966',
+        mobile_number: '',
         password: '',
         password_confirmation: '',
     });
+
+    // Auto-suggest slug
+    useEffect(() => {
+        if (data.restaurant_name && !slugTouched) {
+            const isArabic = /[\u0600-\u06FF]/.test(data.restaurant_name);
+            if (!isArabic) {
+                const suggestedSlug = data.restaurant_name
+                    .toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9-]/g, '')
+                    .substring(0, 30);
+                setData('slug', suggestedSlug);
+            }
+        }
+    }, [data.restaurant_name]);
+
+    const handleSlugChange = (e) => {
+        setSlugTouched(true);
+        const val = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        setData('slug', val);
+    };
 
     const submit = (e) => {
         e.preventDefault();
         post('/restaurant-signup');
     };
 
+    const features = [
+        {
+            title: "استقبال الطلبات أونلاين",
+            icon: <ShoppingBag className="w-5 h-5 text-amber-500" />,
+        },
+        {
+            title: "إدارة الفروع والقائمة",
+            icon: <Store className="w-5 h-5 text-amber-500" />,
+        },
+        {
+            title: "واتساب وفواتير تلقائية",
+            icon: <MessageSquare className="w-5 h-5 text-amber-500" />,
+        },
+        {
+            title: "نقاط ولاء وكاش باك",
+            icon: <Gift className="w-5 h-5 text-amber-500" />,
+        },
+    ];
+
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" dir="rtl">
-            <Head title="تسجيل مطعم جديد" />
-            
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <Link href="/">
-                    <img className="mx-auto h-12 w-auto" src="/images/tasty-logo.png" alt="Tasty Platform" />
-                </Link>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 font-cairo">
-                    سجل مطعمك في منصة تيستي
-                </h2>
+        <div className="min-h-screen bg-white flex flex-col md:flex-row-reverse font-cairo" dir="rtl">
+            <Head title="سجّل مطعمك في منصة تيستي" />
+
+            {/* Left Side: Features (Hidden on mobile) */}
+            <div className="hidden md:flex md:w-5/12 bg-amber-50 flex-col justify-center items-center p-12 relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-100 rounded-full opacity-50 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-amber-200 rounded-full opacity-30 blur-3xl"></div>
+                
+                <div className="relative z-10 max-w-lg">
+                    <div className="mb-12">
+                        {auth_logo ? (
+                            <img className="h-16 w-auto mb-8" src={auth_logo} alt="Tasty Platform" />
+                        ) : (
+                            <div className="text-4xl font-extrabold text-amber-600 mb-8">Tasty</div>
+                        )}
+                        <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                            ابدأ رحلة النجاح مع تيستي اليوم
+                        </h1>
+                        <p className="text-xl text-gray-600 mb-10">
+                            انضم إلى مئات المطاعم التي طورت أعمالها باستخدام منصتنا المتكاملة
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                        {features.map((feature, index) => (
+                            <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100 flex items-start gap-4 transition-transform hover:translate-x-[-8px]">
+                                <div className="bg-amber-50 p-3 rounded-xl">
+                                    {feature.icon}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-800 text-lg">{feature.title}</h3>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-12 p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/60">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-amber-500 p-2 rounded-full text-white">
+                                <Store className="w-6 h-6" />
+                            </div>
+                            <div className="text-lg">
+                                <span className="font-bold text-gray-900">+{restaurants_count} مطعم</span>
+                                <span className="text-gray-600 block text-sm">انضموا إلينا مؤخراً</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    <form className="space-y-6" onSubmit={submit}>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">اسم المطعم</label>
-                            <div className="mt-1">
-                                <input
-                                    type="text"
-                                    value={data.restaurant_name}
-                                    onChange={e => setData('restaurant_name', e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
-                                    required
-                                />
-                            </div>
-                            {errors.restaurant_name && <p className="mt-2 text-sm text-red-600">{errors.restaurant_name}</p>}
-                        </div>
+            {/* Right Side: Signup Form */}
+            <div className="flex-1 flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-20 bg-white overflow-y-auto">
+                <div className="mx-auto w-full max-w-lg">
+                    <div className="md:hidden mb-8 text-center">
+                        {auth_logo ? (
+                            <img className="mx-auto h-12 w-auto" src={auth_logo} alt="Tasty Platform" />
+                        ) : (
+                            <div className="text-3xl font-extrabold text-amber-600">Tasty</div>
+                        )}
+                    </div>
+                    
+                    <div className="text-right mb-10">
+                        <h2 className="text-3xl font-extrabold text-gray-900 mb-2 leading-tight">
+                            سجّل مطعمك في منصة تيستي
+                        </h2>
+                        <p className="text-gray-500">
+                            ابدأ باستقبال الطلبات وإدارة مطعمك بسهولة من لوحة تحكم واحدة
+                        </p>
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">اسم المدير المسئول</label>
-                            <div className="mt-1">
+                    <form className="space-y-6" onSubmit={submit}>
+                        <div className="grid grid-cols-1 gap-6">
+                            {/* Restaurant Name */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Store className="w-4 h-4 text-amber-500" />
+                                        اسم المطعم
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={data.restaurant_name}
+                                        onChange={e => setData('restaurant_name', e.target.value)}
+                                        placeholder="مثلاً: شاورما السلطان"
+                                        className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200"
+                                        required
+                                    />
+                                    {errors.restaurant_name && <p className="mt-1 text-xs text-red-500 font-bold">{errors.restaurant_name}</p>}
+                                </div>
+
+                                {/* Slug Field */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Globe className="w-4 h-4 text-amber-500" />
+                                        اسم الرابط (Slug)
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={data.slug}
+                                            onChange={handleSlugChange}
+                                            placeholder="chickenday"
+                                            className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200 text-left font-semibold"
+                                            dir="ltr"
+                                            required
+                                        />
+                                    </div>
+                                    <p className="mt-1.5 text-[11px] text-gray-400 flex items-center gap-1">
+                                        <Info className="w-3 h-3" />
+                                        (اكتب الرابط بالإنجليزي بدون مسافات، مثال: chickenday)
+                                    </p>
+                                    {errors.slug && <p className="mt-1 text-xs text-red-500 font-bold">{errors.slug}</p>}
+                                    {/[\u0600-\u06FF]/.test(data.slug) && (
+                                        <p className="mt-1 text-xs text-red-500 font-bold flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            الرابط يجب أن يكون باللغة الإنجليزية فقط
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Manager Name */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <User className="w-4 h-4 text-amber-500" />
+                                    اسم المدير المسؤول
+                                </label>
                                 <input
                                     type="text"
                                     value={data.admin_name}
                                     onChange={e => setData('admin_name', e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    placeholder="الاسم الثلاثي للمدير"
+                                    className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200"
                                     required
                                 />
+                                {errors.admin_name && <p className="mt-1 text-xs text-red-500 font-bold">{errors.admin_name}</p>}
                             </div>
-                            {errors.admin_name && <p className="mt-2 text-sm text-red-600">{errors.admin_name}</p>}
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">البريد الإلكتروني</label>
-                            <div className="mt-1">
+                            {/* Email */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-amber-500" />
+                                    البريد الإلكتروني
+                                </label>
                                 <input
                                     type="email"
                                     value={data.email}
                                     onChange={e => setData('email', e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                    placeholder="example@mail.com"
+                                    className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200"
                                     required
                                 />
+                                {errors.email && <p className="mt-1 text-xs text-red-500 font-bold">{errors.email}</p>}
                             </div>
-                            {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+
+                            {/* Mobile Number with Country Code */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-amber-500" />
+                                    رقم الجوال
+                                </label>
+                                <div className="flex gap-2" dir="ltr">
+                                    <select 
+                                        value={data.country_code}
+                                        onChange={(e) => setData('country_code', e.target.value)}
+                                        className="w-36 px-3 py-3.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-amber-500 outline-none text-center font-bold text-sm"
+                                    >
+                                        <option value="966">🇸🇦 +966</option>
+                                        <option value="971">🇦🇪 +971</option>
+                                        <option value="965">🇰🇼 +965</option>
+                                        <option value="974">🇶🇦 +974</option>
+                                        <option value="973">🇧🇭 +973</option>
+                                        <option value="968">🇴🇲 +968</option>
+                                        <option value="962">🇯🇴 +962</option>
+                                        <option value="20">🇪🇬 +20</option>
+                                    </select>
+                                    <input
+                                        type="tel"
+                                        value={data.mobile_number}
+                                        onChange={e => setData('mobile_number', e.target.value.replace(/[^0-9]/g, ''))}
+                                        placeholder="5XXXXXXXX"
+                                        className="flex-1 block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200 font-bold tracking-wider"
+                                        required
+                                    />
+                                </div>
+                                {data.country_code === '966' && data.mobile_number && !data.mobile_number.startsWith('5') && (
+                                    <p className="mt-1 text-xs text-amber-600 font-bold">رقم الجوال السعودي يجب أن يبدأ بـ 5</p>
+                                )}
+                                {errors.mobile_number && <p className="mt-1 text-xs text-red-500 font-bold">{errors.mobile_number}</p>}
+                            </div>
+
+                            {/* Password Section */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Lock className="w-4 h-4 text-amber-500" />
+                                        كلمة المرور
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={data.password}
+                                        onChange={e => setData('password', e.target.value)}
+                                        className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Lock className="w-4 h-4 text-amber-500" />
+                                        تأكيد كلمة المرور
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={data.password_confirmation}
+                                        onChange={e => setData('password_confirmation', e.target.value)}
+                                        className="block w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none bg-gray-50/50 hover:border-amber-200"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            {errors.password && <p className="mt-1 text-xs text-red-500 font-bold">{errors.password}</p>}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">كلمة المرور</label>
-                            <div className="mt-1">
-                                <input
-                                    type="password"
-                                    value={data.password}
-                                    onChange={e => setData('password', e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
-                                    required
-                                />
-                            </div>
-                            {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">تأكيد كلمة المرور</label>
-                            <div className="mt-1">
-                                <input
-                                    type="password"
-                                    value={data.password_confirmation}
-                                    onChange={e => setData('password_confirmation', e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
+                        <div className="pt-6">
                             <button
                                 type="submit"
-                                disabled={processing}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                                disabled={processing || /[\u0600-\u06FF]/.test(data.slug)}
+                                className="w-full flex justify-center items-center gap-3 py-4.5 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xl shadow-xl shadow-amber-100 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-amber-200"
                             >
-                                {processing ? 'جاري التسجيل...' : 'تسجيل المطعم'}
+                                {processing ? (
+                                    <>
+                                        <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        جاري المعالجة...
+                                    </>
+                                ) : 'ابدأ مطعمك الآن'}
                             </button>
                         </div>
                     </form>
 
-                    <div className="mt-6">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-gray-500">لديك حساب بالفعل؟</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6">
+                    <div className="mt-10 text-center">
+                        <p className="text-gray-600 font-medium">
+                            لديك حساب بالفعل؟{' '}
                             <Link
                                 href="/login"
-                                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                className="text-amber-600 font-bold hover:text-amber-700 underline underline-offset-4 decoration-amber-200 hover:decoration-amber-500 transition-all"
                             >
                                 تسجيل الدخول
                             </Link>
-                        </div>
+                        </p>
                     </div>
                 </div>
             </div>
             
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
                 .font-cairo { font-family: 'Cairo', sans-serif; }
+                
+                input::placeholder {
+                    color: #cbd5e1;
+                    font-weight: 500;
+                }
+                
+                select {
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+                    background-position: left 0.75rem center;
+                    background-repeat: no-repeat;
+                    background-size: 1.5em 1.5em;
+                    padding-left: 2.5rem;
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                }
             `}</style>
         </div>
     );

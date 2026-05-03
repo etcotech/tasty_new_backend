@@ -252,6 +252,46 @@ export default function Menu({ slug }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successOrderNumber, setSuccessOrderNumber] = useState(null);
     const [successOrderTotal, setSuccessOrderTotal] = useState(0);
+    const [successPoints, setSuccessPoints] = useState(0);
+    const [successCashback, setSuccessCashback] = useState(0);
+    
+    // Wallet States
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
+    const [walletPhone, setWalletPhone] = useState('');
+    const [walletData, setWalletData] = useState(null);
+    const [walletTransactions, setWalletTransactions] = useState([]);
+    const [isFetchingWallet, setIsFetchingWallet] = useState(false);
+    const [walletLookupError, setWalletLookupError] = useState(null);
+    const [walletNotFound, setWalletNotFound] = useState(false);
+
+    const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
+    const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
+    const cartTax        = cartSubtotal * taxRate;
+    const cartGrandTotal = cartSubtotal + cartTax;
+    const cartTotal      = cartGrandTotal;  // kept for back-compat
+    const cartCount      = cart.reduce((count, item) => count + item.quantity, 0);
+
+    // Calculated Rewards for Cart
+    const earnedRewards = useMemo(() => {
+        if (!restaurant) return { points: 0, cashback: 0 };
+        const total = cartGrandTotal;
+        const minAmount = parseFloat(restaurant.min_order_amount || 0);
+        
+        if (total < minAmount) return { points: 0, cashback: 0 };
+
+        let pts = 0;
+        if (restaurant.points_enabled && restaurant.points_rate > 0) {
+            pts = Math.floor(total / restaurant.points_rate);
+        }
+
+        let cb = 0;
+        if (restaurant.cashback_enabled && restaurant.cashback_percentage > 0) {
+            cb = total * (parseFloat(restaurant.cashback_percentage) / 100);
+        }
+
+        return { points: pts, cashback: cb };
+    }, [cartGrandTotal, restaurant]);
+
     const [orderForm, setOrderForm] = useState({
         type: 'dine_in',
         table_number: '',
@@ -493,12 +533,7 @@ export default function Menu({ slug }) {
         });
     };
 
-    const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
-    const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
-    const cartTax        = cartSubtotal * taxRate;
-    const cartGrandTotal = cartSubtotal + cartTax;
-    const cartTotal      = cartGrandTotal;  // kept for back-compat
-    const cartCount      = cart.reduce((count, item) => count + item.quantity, 0);
+
 
     const handleCheckoutSubmit = async () => {
         const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
@@ -541,6 +576,8 @@ export default function Menu({ slug }) {
             if (data.success) {
                 setSuccessOrderNumber(data.order_number);
                 setSuccessOrderTotal(data.total ?? data.order?.total ?? data.order?.data?.total ?? 0);
+                setSuccessPoints(data.earned_points ?? 0);
+                setSuccessCashback(data.earned_cashback ?? 0);
                 setCart([]);
                 setIsCheckoutOpen(false);
                 setIsCartOpen(false);
@@ -560,6 +597,57 @@ export default function Menu({ slug }) {
             alert('A network error occurred. Please try again.');
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const fetchWallet = async (e) => {
+        e.preventDefault();
+        if (!walletPhone) return;
+
+        setWalletLookupError(null);
+        setWalletNotFound(false);
+        setWalletData(null);
+
+        let normalized = walletPhone.replace(/\D/g, '');
+        if (normalized.startsWith('0')) normalized = normalized.substring(1);
+        
+        // Validation: must be exactly 9 digits starting with 5
+        if (!/^5\d{8}$/.test(normalized)) {
+            setWalletLookupError(lang === 'ar' 
+                ? "رقم الجوال غير صحيح. أدخل رقم سعودي يبدأ بـ 5 ويتكون من 9 أرقام." 
+                : "Invalid phone number. Enter a Saudi number starting with 5 and having 9 digits.");
+            return;
+        }
+
+        normalized = `966${normalized}`;
+
+        setIsFetchingWallet(true);
+        try {
+            const res = await fetch(`/api/${restaurant.slug}/wallet?phone=${normalized}`);
+            const data = await res.json();
+            
+            if (res.status === 404) {
+                setWalletNotFound(true);
+                setIsFetchingWallet(false);
+                return;
+            }
+
+            if (data.success) {
+                setWalletData(data);
+                
+                const resT = await fetch(`/api/${restaurant.slug}/wallet/transactions?phone=${normalized}`);
+                const dataT = await resT.json();
+                if (dataT.success) {
+                    setWalletTransactions(dataT.transactions);
+                }
+            } else {
+                setWalletLookupError(data.message || 'Error fetching wallet.');
+            }
+        } catch (error) {
+            console.error('Wallet fetch error:', error);
+            setWalletLookupError(lang === 'ar' ? 'حدث خطأ أثناء الاتصال بالخادم.' : 'Connection error.');
+        } finally {
+            setIsFetchingWallet(false);
         }
     };
 
@@ -639,6 +727,25 @@ export default function Menu({ slug }) {
                             onClick={() => window.location.href = '/track'}
                         >
                             {tr('trackOrder')}
+                        </button>
+                        <button 
+                            className="sv-lang-btn" 
+                            style={{ marginInlineEnd: '0.5rem', background: '#fef3c7', borderColor: '#f59e0b', color: '#b45309', fontWeight: 700 }}
+                            onClick={() => {
+                                setIsWalletOpen(true);
+                                setWalletLookupError(null);
+                                setWalletNotFound(false);
+                                setWalletData(null);
+                                // Auto-use last phone if available in order form
+                                if (!walletPhone && orderForm.phone) {
+                                    // Strip 966 if it was normalized for order
+                                    const p = orderForm.phone.startsWith('966') ? orderForm.phone.substring(3) : orderForm.phone;
+                                    setWalletPhone(p);
+                                }
+                            }}
+                            title={lang === 'ar' ? 'رصيدي' : 'My Balance'}
+                        >
+                            💰 {lang === 'ar' ? 'رصيدي' : 'Balance'}
                         </button>
                         <button className="sv-cart-btn" onClick={() => setIsCartOpen(true)}>
                             🛒
@@ -921,6 +1028,28 @@ export default function Menu({ slug }) {
                                     <span>{tr('total')}</span>
                                     <span>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
                                 </div>
+                                
+                                {earnedRewards.points > 0 || earnedRewards.cashback > 0 ? (
+                                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fefce8', border: '1px dashed #facc15', borderRadius: '8px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#854d0e', marginBottom: '0.2rem' }}>
+                                            {lang === 'ar' ? '✨ ستحصل على:' : '✨ You will earn:'}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                                            {earnedRewards.points > 0 && (
+                                                <span style={{ color: '#166534' }}>⭐ {earnedRewards.points} {lang === 'ar' ? 'نقطة' : 'Points'}</span>
+                                            )}
+                                            {earnedRewards.cashback > 0 && (
+                                                <span style={{ color: '#166534' }}>💰 {earnedRewards.cashback.toFixed(2)} {lang === 'ar' ? 'ريال كاش باك' : 'SAR Cashback'}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    restaurant?.min_order_amount > 0 && cartGrandTotal < restaurant.min_order_amount && (
+                                        <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center' }}>
+                                            {lang === 'ar' ? `أضف بقيمة ${(restaurant.min_order_amount - cartGrandTotal).toFixed(2)} ${tr('sar')} للحصول على مكافآت` : `Add ${(restaurant.min_order_amount - cartGrandTotal).toFixed(2)} more to get rewards`}
+                                        </div>
+                                    )
+                                )}
                             </div>
                             <button className="sv-drawer__checkout-btn" onClick={() => {
                                 setIsCartOpen(false);
@@ -1039,6 +1168,15 @@ export default function Menu({ slug }) {
                                 <div className="sv-success-total">
                                     {tr('total')}: <span style={{ fontWeight: 800, color: '#1A1714' }}>{parseFloat(successOrderTotal).toFixed(2)} {tr('sar')}</span>
                                 </div>
+                                {(successPoints > 0 || successCashback > 0) && (
+                                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '1rem', fontWeight: 700, color: '#166534', marginBottom: '0.5rem' }}>
+                                            {lang === 'ar' ? '✨ حصلت على:' : '✨ You earned:'}
+                                        </div>
+                                        {successPoints > 0 && <div style={{ color: '#15803d', fontWeight: 700, marginBottom: '0.25rem' }}>⭐ {successPoints} {lang === 'ar' ? 'نقطة' : 'Points'}</div>}
+                                        {successCashback > 0 && <div style={{ color: '#15803d', fontWeight: 700 }}>💰 {parseFloat(successCashback).toFixed(2)} {lang === 'ar' ? 'ريال كاش باك' : 'SAR Cashback'}</div>}
+                                    </div>
+                                )}
                                 <button 
                                     className="sv-success-btn"
                                     onClick={() => window.location.href = `/track/${successOrderNumber}`}
@@ -1051,6 +1189,109 @@ export default function Menu({ slug }) {
                                 >
                                     {lang === 'ar' ? 'إغلاق' : 'Close'}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── WALLET MODAL ── */}
+                {isWalletOpen && (
+                    <div className="sv-modal-overlay" onClick={() => setIsWalletOpen(false)}>
+                        <div className="sv-modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
+                            <div className="sv-modal__header" style={{ padding: '1.25rem 1.5rem' }}>
+                                <button className="sv-modal__close" onClick={() => setIsWalletOpen(false)}>&times;</button>
+                                <h2 className="sv-modal__title">{lang === 'ar' ? 'المحفظة والمكافآت 💳' : 'Wallet & Rewards 💳'}</h2>
+                            </div>
+                            <div className="sv-modal__body" style={{ padding: '1.5rem' }}>
+                                {!walletData ? (
+                                    <form onSubmit={fetchWallet} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <p style={{ color: '#6B6460' }}>
+                                            {lang === 'ar' ? 'أدخل رقم هاتفك للتحقق من رصيد محفظتك ونقاط الولاء.' : 'Enter your phone number to check your wallet balance and loyalty points.'}
+                                        </p>
+                                        
+                                        <div className="sv-form-group" style={{ marginBottom: 0 }}>
+                                            <div style={{ display: 'flex', direction: 'ltr' }}>
+                                                <div style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRight: 'none', padding: '0.75rem 1rem', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px', color: '#6B7280', display: 'flex', alignItems: 'center', fontWeight: 600 }}>+966</div>
+                                                <input 
+                                                    type="tel" 
+                                                    className="sv-form-input" 
+                                                    style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                                                    placeholder="5xxxxxxxx" 
+                                                    value={walletPhone} 
+                                                    onChange={e => {
+                                                        let val = e.target.value.replace(/\D/g, '');
+                                                        if (val.startsWith('0')) {
+                                                            val = val.substring(1);
+                                                        }
+                                                        setWalletPhone(val);
+                                                    }} 
+                                                />
+                                            </div>
+                                            {walletLookupError && (
+                                                <div style={{ color: '#EF4444', fontSize: '0.85rem', marginTop: '0.5rem', textAlign: 'start' }}>
+                                                    {walletLookupError}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {walletNotFound && (
+                                            <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '1rem', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#991B1B', marginBottom: '0.5rem' }}>
+                                                    {lang === 'ar' ? 'لا توجد محفظة أو مكافآت لهذا الرقم حتى الآن.' : 'No wallet or rewards found for this number yet.'}
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: '#B91C1C' }}>
+                                                    {lang === 'ar' ? 'اطلب من المطعم أولاً لتبدأ في جمع النقاط والكاش باك.' : 'Order from the restaurant first to start collecting points and cashback.'}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <button 
+                                            type="submit" 
+                                            disabled={isFetchingWallet || !walletPhone}
+                                            style={{ background: '#1A1714', color: '#fff', padding: '0.8rem', borderRadius: '8px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: (isFetchingWallet || !walletPhone) ? 0.7 : 1 }}
+                                        >
+                                            {isFetchingWallet ? (lang === 'ar' ? 'جاري التحقق...' : 'Checking...') : (lang === 'ar' ? 'عرض المحفظة' : 'View Wallet')}
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <div>
+                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div style={{ flex: 1, background: '#f3f4f6', padding: '1rem', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem', fontWeight: 700 }}>{lang === 'ar' ? '💰 الكاش باك' : '💰 Cashback'}</div>
+                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1A1714' }}>{parseFloat(walletData.cashback_balance).toFixed(2)} {tr('sar')}</div>
+                                            </div>
+                                            <div style={{ flex: 1, background: '#f0fdf4', padding: '1rem', borderRadius: '12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#166534', marginBottom: '0.25rem', fontWeight: 700 }}>{lang === 'ar' ? '⭐ النقاط' : '⭐ Points'}</div>
+                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#166534' }}>{walletData.points}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '0.5rem' }}>{lang === 'ar' ? 'سجل العمليات' : 'Transaction History'}</h3>
+                                        {walletTransactions.length === 0 ? (
+                                            <p style={{ color: '#6B6460', textAlign: 'center', padding: '1rem' }}>{lang === 'ar' ? 'لا توجد عمليات سابقة' : 'No past transactions'}</p>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
+                                                {walletTransactions.map(tx => (
+                                                    <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>{tx.description}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{new Date(tx.created_at).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</div>
+                                                        </div>
+                                                        <div style={{ fontWeight: 700, color: tx.type.includes('earned') ? '#16A34A' : '#EF4444' }}>
+                                                            {tx.type.includes('earned') ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <button 
+                                            onClick={() => setWalletData(null)}
+                                            style={{ width: '100%', marginTop: '1.5rem', background: '#F3F4F6', color: '#374151', border: 'none', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                            {lang === 'ar' ? 'بحث برقم آخر' : 'Search Another Number'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -9,10 +9,21 @@ use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Api\AutomationTemplateController;
 use App\Http\Controllers\Api\TenantAutomationController;
 use App\Http\Controllers\Api\AutomationLogController;
+use App\Http\Controllers\WalletController;
 
 Route::get('/restaurants/{slug}/menu', [StorefrontController::class, 'menu']);
+Route::post('/{slug}/webhooks/n8n/order-review', [OrderController::class, 'handleReviewWebhook']);
+
+// Wallet
+Route::get('/wallet/{phone}', [WalletController::class, 'getWalletByPhone']);
+Route::get('/{slug}/wallet', [WalletController::class, 'getBalance']);
+Route::get('/{slug}/wallet/transactions', [WalletController::class, 'getTransactions']);
+Route::get('/debug/wallet/{phone}', [WalletController::class, 'debugWallet']);
+Route::post('/debug/apply-rewards/{order}', [WalletController::class, 'repairRewards']);
+
 Route::post('/orders', [OrderController::class, 'store']);
 Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+Route::post('/orders/{id}/recalculate-rewards', [OrderController::class, 'recalculateRewards']);
 Route::get('/orders/{order_number}/track', [OrderController::class, 'track']);
 
 Route::get('/user', function (Request $request) {

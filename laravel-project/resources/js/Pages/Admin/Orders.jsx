@@ -173,6 +173,33 @@ export default function Orders({ orders: initialOrders }) {
         }
     };
 
+    const recalculateRewards = async (orderId) => {
+        if (!confirm('هل أنت متأكد من إعادة احتساب المكافآت لهذا الطلب؟ سيتم إضافة النقاط والكاش باك للعميل في حال لم يتم احتسابها مسبقاً.')) return;
+        
+        setIsUpdating(true);
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const res = await fetch(`/admin/orders/${orderId}/recalculate-rewards`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`تم بنجاح!\nالنقاط المضافة: ${data.earned.points || 0}\nالكاش باك: ${data.earned.cashback || 0} ر.س\nرصيد المحفظة الحالي: ${data.wallet_balance.points} نقطة و ${data.wallet_balance.cashback} ر.س`);
+            } else {
+                alert(data.message || 'فشل في إعادة الاحتساب');
+            }
+        } catch (e) {
+            alert('خطأ في الشبكة');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleString('ar-SA');
     };
@@ -268,6 +295,16 @@ export default function Orders({ orders: initialOrders }) {
                         <div className="modal-header">
                             <h2 className="modal-title">تفاصيل الطلب: {selectedOrder.order_number}</h2>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                {selectedOrder.status === 'completed' && (
+                                    <button 
+                                        className="btn-view" 
+                                        onClick={() => recalculateRewards(selectedOrder.id)}
+                                        disabled={isUpdating}
+                                        style={{ borderColor: '#2e7d32', color: '#2e7d32' }}
+                                    >
+                                        ✨ إعادة احتساب المكافآت
+                                    </button>
+                                )}
                                 <button className="btn-print" onClick={() => printOrder(selectedOrder, currentRestaurant)}>
                                     🖨️ طباعة الإيصال
                                 </button>

@@ -18,6 +18,8 @@ use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Admin\QrCodeController;
 use App\Http\Controllers\SaaS\SignupController;
 use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\PaymentGatewayController;
+use App\Http\Controllers\Admin\PosIntegrationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,7 +55,8 @@ Route::get('/', function () {
 
     return Inertia::render('SaaS/Landing', [
         'settings' => array_merge($config, [
-            'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null
+            'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null,
+            'landing_logo' => isset($config['landing_logo']) ? asset('storage/' . $config['landing_logo']) : null,
         ]),
         'stats' => $stats
     ]);
@@ -75,6 +78,7 @@ Route::get('/track/{order_number?}', function ($order_number = null) {
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders');
+    Route::post('/orders/{id}/recalculate-rewards', [AdminOrderController::class, 'recalculateRewards'])->name('orders.recalculate-rewards');
     Route::get('/system-check', [SystemCheckController::class, 'index'])->name('system-check');
     
     // Restaurants Management (Super Admin only check inside controller)
@@ -102,7 +106,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::get('/site-settings', [SettingsController::class, 'systemIndex'])->name('site-settings');
     Route::post('/site-settings', [SettingsController::class, 'updateSite'])->name('site-settings.update');
-    Route::get('/payment-gateways', [SettingsController::class, 'paymentGatewaysIndex'])->name('payment-gateways');
+    
+    // Payment Gateways
+    Route::get('/payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways');
+    Route::post('/payment-gateways', [PaymentGatewayController::class, 'update'])->name('payment-gateways.update');
+
+    // POS Integrations
+    Route::get('/pos-integrations', [PosIntegrationController::class, 'index'])->name('pos-integrations');
+    Route::post('/pos-integrations', [PosIntegrationController::class, 'update'])->name('pos-integrations.update');
+    Route::post('/pos-integrations/test', [PosIntegrationController::class, 'testConnection'])->name('pos-integrations.test');
     
     Route::get('/reports', [DashboardController::class, 'reportsIndex'])
         ->middleware('feature:reports')

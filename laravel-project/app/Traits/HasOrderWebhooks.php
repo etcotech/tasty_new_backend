@@ -125,6 +125,10 @@ trait HasOrderWebhooks
             ];
         })->toArray();
 
+        $wallet = \App\Models\CustomerWallet::where('phone', $order->phone)
+            ->where('restaurant_id', $order->restaurant_id)
+            ->first();
+
         $payload = [
             'event_name' => 'order.invoice',
             'order_id' => $order->id,
@@ -138,6 +142,10 @@ trait HasOrderWebhooks
             'currency' => 'ريال',
             'restaurant_name' => $order->restaurant?->name ?? 'المطعم',
             'items' => $itemsPayload,
+            'wallet' => [
+                'points' => $wallet ? $wallet->points : 0,
+                'cashback_balance' => $wallet ? (float) $wallet->cashback_balance : 0,
+            ]
         ];
 
         try {

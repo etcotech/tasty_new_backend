@@ -13,12 +13,18 @@ class Restaurant extends Model
         'working_hours', 'logo_url', 'hero_image_url',
         'address_ar', 'address_en', 'is_open',
         'subtitle_ar', 'subtitle_en', 'google_review_url',
+        'points_enabled', 'cashback_enabled', 'points_rate', 'cashback_percentage', 'min_order_amount',
     ];
 
     protected $casts = [
         'is_open'        => 'boolean',
         'is_active'      => 'boolean',
         'tax_percentage' => 'float',
+        'points_enabled' => 'boolean',
+        'cashback_enabled' => 'boolean',
+        'points_rate' => 'integer',
+        'cashback_percentage' => 'float',
+        'min_order_amount' => 'float',
     ];
 
     public function categories()
@@ -71,5 +77,10 @@ class Restaurant extends Model
     public function automationLogs()
     {
         return $this->hasMany(AutomationLog::class);
+    }
+
+    public function paymentGateway()
+    {
+        return $this->hasOne(PaymentGateway::class);
     }
 }

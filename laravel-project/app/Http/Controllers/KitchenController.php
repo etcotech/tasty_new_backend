@@ -7,10 +7,11 @@ use App\Models\Order;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use App\Traits\HasOrderWebhooks;
+use App\Traits\HasLoyaltyRewards;
 
 class KitchenController extends Controller
 {
-    use HasOrderWebhooks;
+    use HasOrderWebhooks, HasLoyaltyRewards;
 
     public function dashboard()
     {
@@ -83,7 +84,7 @@ class KitchenController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid status'], 422);
         }
 
-        $order = Order::find($id);
+        $order = Order::with('restaurant')->find($id);
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
@@ -100,13 +101,16 @@ class KitchenController extends Controller
 
         // Trigger n8n review webhook if status changed to completed
         if ($request->status === 'completed' && $oldStatus !== 'completed') {
-            \Illuminate\Support\Facades\Log::info("Order completed webhook attempted", [
+            \Illuminate\Support\Facades\Log::info("Kitchen Controller Status Updated to Completed", [
                 'order_id' => $order->id,
-                'order_number' => $order->order_number,
                 'old_status' => $oldStatus,
-                'new_status' => $request->status
+                'new_status' => $request->status,
+                'restaurant_id' => $order->restaurant_id,
+                'customer_phone' => $order->phone,
+                'total' => $order->total
             ]);
             $this->sendOrderCompletedWebhook($order);
+            $this->applyOrderRewards($order->fresh(['restaurant']));
         }
 
         return response()->json(['success' => true, 'message' => 'Status updated', 'order' => $order]);

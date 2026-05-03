@@ -15,10 +15,12 @@ use Illuminate\Support\Facades\Log;
 use App\Services\SubscriptionService;
 use App\Models\AutomationLog;
 use App\Traits\HasOrderWebhooks;
+use App\Traits\HasLoyaltyRewards;
+use App\Traits\HasPosSync;
 
 class OrderController extends Controller
 {
-    use HasOrderWebhooks;
+    use HasOrderWebhooks, HasLoyaltyRewards, HasPosSync;
 
     protected $subscriptionService;
 
@@ -174,6 +176,10 @@ class OrderController extends Controller
 
             DB::commit();
 
+            // POS Sync: Sync order to external POS system (Foodics, Rewaa, etc.)
+            // This is optional and will only run if an integration is enabled for this restaurant.
+            $this->syncOrderToPos($order);
+
             // First n8n automation integration: Send order data to n8n and log the attempt.
             // This is triggered after the order is saved successfully.
             $webhookUrl = config('services.n8n.order_created_webhook');
@@ -228,10 +234,25 @@ class OrderController extends Controller
             // Trigger n8n invoice webhook for new order
             $this->sendOrderInvoiceWebhook($order);
 
+            $wallet = \App\Models\CustomerWallet::where('phone', $order->phone)
+                ->where('restaurant_id', $restaurant->id)
+                ->first();
+
+            $expectedRewards = $this->calculateExpectedRewards($order, $restaurant);
+
             return response()->json([
                 'success' => true,
                 'order_number' => $orderNumber,
                 'total' => $total,
+                'subtotal' => $subtotal,
+                'tax' => $tax,
+                'order' => $order,
+                'earned_points' => $expectedRewards['points'],
+                'earned_cashback' => $expectedRewards['cashback'],
+                'wallet' => [
+                    'points' => $wallet ? $wallet->points : 0,
+                    'cashback_balance' => $wallet ? (float)$wallet->cashback_balance : 0
+                ],
                 'message' => 'Order created successfully'
             ]);
 
@@ -266,7 +287,16 @@ class OrderController extends Controller
 
         // Trigger n8n review webhook if status changed to completed
         if ($request->status === 'completed' && $oldStatus !== 'completed') {
+            \Illuminate\Support\Facades\Log::info("Order Controller Status Updated to Completed", [
+                'order_id' => $order->id,
+                'old_status' => $oldStatus,
+                'new_status' => $request->status,
+                'restaurant_id' => $order->restaurant_id,
+                'customer_phone' => $order->phone,
+                'total' => $order->total
+            ]);
             $this->sendOrderCompletedWebhook($order);
+            $this->applyOrderRewards($order->fresh(['restaurant']));
         }
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully', 'order' => $order]);
@@ -281,5 +311,39 @@ class OrderController extends Controller
         }
 
         return response()->json(['success' => true, 'order' => $order]);
+    }
+    public function recalculateRewards($id)
+    {
+        $order = Order::with('restaurant')->find($id);
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+        }
+
+        $result = $this->applyOrderRewards($order);
+
+        if (isset($result['error'])) {
+            $message = 'فشل في تطبيق المكافآت: ';
+            switch ($result['error']) {
+                case 'total below min amount': $message .= 'إجمالي الطلب أقل من الحد الأدنى (' . ($result['min_order'] ?? '0') . ')'; break;
+                case 'rewards disabled': $message .= 'نظام المكافآت معطل للمطعم'; break;
+                case 'already processed or invalid settings': $message .= 'تمت المعالجة مسبقاً أو الإعدادات غير صالحة'; break;
+                default: $message .= $result['error'];
+            }
+            return response()->json(['success' => false, 'message' => $message]);
+        }
+
+        $walletAfter = \App\Models\CustomerWallet::where('phone', $order->phone)
+            ->where('restaurant_id', $order->restaurant_id)
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إعادة احتساب المكافآت بنجاح',
+            'earned' => $result,
+            'wallet_balance' => [
+                'points' => $walletAfter ? $walletAfter->points : 0,
+                'cashback' => $walletAfter ? (float)$walletAfter->cashback_balance : 0
+            ]
+        ]);
     }
 }

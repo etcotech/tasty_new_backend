@@ -231,10 +231,11 @@ export default function AdminLayout({ children, title }) {
         
         // Super Admin Platform Menus
         { href: '/admin/site-settings', label: 'إعدادات الموقع', icon: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5', superAdminOnly: true },
-        { href: '/admin/payment-gateways', label: 'بوابات الدفع الإلكتروني', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', superAdminOnly: true },
         { href: '/admin/reports', label: 'التقارير', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', superAdminOnly: true },
 
         // Restaurant Operational Menus
+        { href: '/admin/payment-gateways', label: 'بوابات الدفع الإلكتروني', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', restaurantOnly: true },
+        { href: '/admin/pos-integrations', label: 'تكاملات نقاط البيع', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', restaurantOnly: true },
         { href: '/admin/categories', label: 'التصنيفات', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', restaurantOnly: true },
         { href: '/admin/products', label: 'المنتجات', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', restaurantOnly: true },
         { href: '/admin/extras', label: 'الإضافات', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z', restaurantOnly: true },

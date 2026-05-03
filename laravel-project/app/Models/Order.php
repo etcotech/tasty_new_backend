@@ -9,7 +9,16 @@ class Order extends Model
     protected $fillable = [
         'restaurant_id', 'branch_id', 'order_number', 'order_type', 'status', 
         'table_number', 'car_number', 'phone', 'customer_name', 
-        'notes', 'subtotal', 'tax', 'total'
+        'notes', 'subtotal', 'tax', 'total', 'cashback_used', 'points_used',
+        'pos_external_id'
+    ];
+    
+    protected $casts = [
+        'subtotal' => 'float',
+        'tax' => 'float',
+        'total' => 'float',
+        'cashback_used' => 'float',
+        'points_used' => 'integer',
     ];
 
     public function restaurant()
