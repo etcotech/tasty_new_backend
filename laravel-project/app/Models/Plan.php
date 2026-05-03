@@ -12,7 +12,7 @@ class Plan extends Model
     protected $fillable = [
         'name_ar', 'name_en', 'price', 'billing_cycle', 'branches_limit',
         'monthly_orders_limit', 'users_limit', 'allowed_order_types',
-        'has_kds', 'has_qr', 'has_automation', 'has_smart_orders',
+        'has_kds', 'has_qr', 'has_automation', 'has_smart_orders', 'has_ai_automation',
         'reports_level', 'is_active'
     ];
 
@@ -22,6 +22,7 @@ class Plan extends Model
         'has_qr' => 'boolean',
         'has_automation' => 'boolean',
         'has_smart_orders' => 'boolean',
+        'has_ai_automation' => 'boolean',
         'is_active' => 'boolean',
     ];
 

@@ -39,6 +39,7 @@ class PlanController extends Controller
             'has_qr' => 'boolean',
             'has_automation' => 'boolean',
             'has_smart_orders' => 'boolean',
+            'has_ai_automation' => 'boolean',
             'reports_level' => 'required|string|in:basic,advanced,pro',
             'is_active' => 'boolean',
         ]);
@@ -67,6 +68,7 @@ class PlanController extends Controller
             'has_qr' => 'boolean',
             'has_automation' => 'boolean',
             'has_smart_orders' => 'boolean',
+            'has_ai_automation' => 'boolean',
             'reports_level' => 'required|string|in:basic,advanced,pro',
             'is_active' => 'boolean',
         ]);

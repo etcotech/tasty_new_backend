@@ -19,6 +19,7 @@ export default function Plans({ plans }) {
         has_qr: true,
         has_automation: false,
         has_smart_orders: false,
+        has_ai_automation: false,
         reports_level: 'basic',
         is_active: true,
     });
@@ -39,6 +40,7 @@ export default function Plans({ plans }) {
                 has_qr: !!plan.has_qr,
                 has_automation: !!plan.has_automation,
                 has_smart_orders: !!plan.has_smart_orders,
+                has_ai_automation: !!plan.has_ai_automation,
                 reports_level: plan.reports_level,
                 is_active: !!plan.is_active,
             });
@@ -186,6 +188,10 @@ export default function Plans({ plans }) {
                                 <span className="feature-icon">{plan.has_smart_orders ? '✓' : '✕'}</span>
                                 الطلبات الذكية
                             </div>
+                            <div className={`feature-item ${!plan.has_ai_automation ? 'feature-disabled' : ''}`}>
+                                <span className="feature-icon">{plan.has_ai_automation ? '✓' : '✕'}</span>
+                                الأتمتة والذكاء الاصطناعي
+                            </div>
                             <div className="feature-item">
                                 <span className="feature-icon">✓</span>
                                 مستوى التقارير: {plan.reports_level === 'pro' ? 'احترافي' : plan.reports_level === 'advanced' ? 'متقدم' : 'أساسي'}
@@ -295,6 +301,10 @@ export default function Plans({ plans }) {
                                 <label className="check-item active">
                                     <input type="checkbox" checked={data.has_smart_orders} onChange={e => setData('has_smart_orders', e.target.checked)} />
                                     الطلبات الذكية
+                                </label>
+                                <label className="check-item active">
+                                    <input type="checkbox" checked={data.has_ai_automation} onChange={e => setData('has_ai_automation', e.target.checked)} />
+                                    الأتمتة والذكاء الاصطناعي
                                 </label>
                             </div>
 

@@ -41,4 +41,8 @@ return [
         'invoice_webhook' => env('N8N_ORDER_INVOICE_WEBHOOK'),
     ],
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
+
 ];

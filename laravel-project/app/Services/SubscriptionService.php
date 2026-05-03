@@ -22,6 +22,7 @@ class SubscriptionService
             'automation' => (bool) $plan->has_automation,
             'smart_orders' => (bool) $plan->has_smart_orders,
             'reports' => $plan->reports_level && $plan->reports_level !== 'none',
+            'ai_automation' => (bool) $plan->has_ai_automation,
             default => true,
         };
     }
@@ -53,6 +54,7 @@ class SubscriptionService
             'qr' => "رموز QR غير متاحة في باقتك الحالية. يرجى الترقية لاستخدامها.",
             'automation' => "نظام الأتمتة غير متاح في باقتك الحالية. يرجى الترقية لاستخدامه.",
             'smart_orders' => "الطلبات الذكية غير متاحة في باقتك الحالية. يرجى الترقية لاستخدامها.",
+            'ai_automation' => "ميزة الأتمتة والذكاء الاصطناعي غير متاحة في باقتك الحالية. يرجى الترقية لاستخدامها.",
             'branches' => "هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية للاستفادة منها.",
             'reports' => "هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية للاستفادة منها.",
             default => "هذه الميزة غير متاحة في باقتك الحالية. يرجى الترقية للاستفادة منها.",
