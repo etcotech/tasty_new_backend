@@ -17,10 +17,11 @@ use App\Models\AutomationLog;
 use App\Traits\HasOrderWebhooks;
 use App\Traits\HasLoyaltyRewards;
 use App\Traits\HasPosSync;
+use App\Traits\HasCustomerSync;
 
 class OrderController extends Controller
 {
-    use HasOrderWebhooks, HasLoyaltyRewards, HasPosSync;
+    use HasOrderWebhooks, HasLoyaltyRewards, HasPosSync, HasCustomerSync;
 
     protected $subscriptionService;
 
@@ -36,8 +37,12 @@ class OrderController extends Controller
             'order_type' => 'required|in:dine_in,takeaway,car',
             'cart' => 'required|array|min:1',
             'phone' => 'required|string',
+            'customer_name' => 'required|string|min:2',
             'table_number' => 'required_if:order_type,dine_in',
             'car_number' => 'required_if:order_type,car',
+        ], [
+            'customer_name.required' => 'الاسم مطلوب لإتمام الطلب',
+            'customer_name.min' => 'الاسم يجب أن يكون حرفين على الأقل',
         ]);
 
         if ($validator->fails()) {
@@ -175,6 +180,9 @@ class OrderController extends Controller
             }
 
             DB::commit();
+
+            // Sync customer record (restaurant_customers table)
+            $this->syncRestaurantCustomer($order);
 
             // POS Sync: Sync order to external POS system (Foodics, Rewaa, etc.)
             // This is optional and will only run if an integration is enabled for this restaurant.

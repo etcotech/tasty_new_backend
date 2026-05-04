@@ -20,6 +20,8 @@ use App\Http\Controllers\SaaS\SignupController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\PosIntegrationController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\AiCampaignController;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +117,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/pos-integrations', [PosIntegrationController::class, 'index'])->name('pos-integrations');
     Route::post('/pos-integrations', [PosIntegrationController::class, 'update'])->name('pos-integrations.update');
     Route::post('/pos-integrations/test', [PosIntegrationController::class, 'testConnection'])->name('pos-integrations.test');
+
+    // Customers
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/{id}', [CustomerController::class, 'show'])->name('customers.show');
     
     Route::get('/reports', [DashboardController::class, 'reportsIndex'])
         ->middleware('feature:reports')
@@ -139,6 +145,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::middleware('feature:ai_automation')->group(function () {
         Route::get('/ai-automation', [\App\Http\Controllers\Admin\AiAutomationController::class, 'index'])->name('ai-automation.index');
         Route::post('/ai-automation/suggest-offer', [\App\Http\Controllers\Admin\AiAutomationController::class, 'suggestOffer'])->name('ai-automation.suggest-offer');
+        
+        // AI Campaigns
+        Route::get('/ai-campaigns/{id}', [AiCampaignController::class, 'show'])->name('ai-campaigns.show');
+        Route::post('/ai-campaigns', [AiCampaignController::class, 'store'])->name('ai-campaigns.store');
+        Route::post('/ai-campaigns/{id}/schedule', [AiCampaignController::class, 'schedule'])->name('ai-campaigns.schedule');
+        Route::post('/ai-campaigns/{id}/cancel', [AiCampaignController::class, 'cancel'])->name('ai-campaigns.cancel');
     });
 
     // Subscription Plans

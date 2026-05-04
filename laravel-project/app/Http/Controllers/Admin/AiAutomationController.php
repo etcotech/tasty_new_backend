@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\AiAutomationLog;
 use App\Models\Restaurant;
+use App\Models\AiCampaign;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -74,9 +75,14 @@ class AiAutomationController extends Controller
             ->limit(5)
             ->get();
 
+        $campaigns = AiCampaign::where('restaurant_id', $restaurant->id)
+            ->latest()
+            ->get();
+
         return Inertia::render('Admin/AIAutomation', [
             'stats' => $stats,
-            'recentLogs' => $recentLogs
+            'recentLogs' => $recentLogs,
+            'campaigns' => $campaigns
         ]);
     }
 
@@ -96,7 +102,7 @@ class AiAutomationController extends Controller
             ->select('product_name_ar', DB::raw('SUM(quantity) as total_qty'))
             ->groupBy('product_name_ar')
             ->orderByDesc('total_qty')
-            ->limit(3)
+            ->limit(5)
             ->get();
 
         $hourlySales = Order::where('restaurant_id', $restaurant->id)
@@ -114,19 +120,19 @@ class AiAutomationController extends Controller
             'total_orders_14d' => Order::where('restaurant_id', $restaurant->id)->where('created_at', '>=', $last14Days)->count()
         ];
 
-        $suggestion = $this->generateSuggestion($inputSummary);
+        $suggestionData = $this->generateSuggestion($inputSummary);
 
-        // Log the suggestion
+        // Log the suggestion (store as JSON string in output_text for now or keep original if it was text)
         AiAutomationLog::create([
             'restaurant_id' => $restaurant->id,
-            'type' => 'offer_suggestion',
+            'type' => 'offer_suggestion_v2',
             'input_summary' => $inputSummary,
-            'output_text' => $suggestion
+            'output_text' => is_array($suggestionData) ? json_encode($suggestionData, JSON_UNESCAPED_UNICODE) : $suggestionData
         ]);
 
         return response()->json([
             'success' => true,
-            'suggestion' => $suggestion
+            'suggestion' => $suggestionData
         ]);
     }
 
@@ -145,21 +151,31 @@ class AiAutomationController extends Controller
                 - أبطأ ساعة في المبيعات: {$slowHour}
                 - عدد الطلبات في آخر 14 يوم: {$data['total_orders_14d']}
                 
-                اقترح عرضاً ترويجياً واحداً (Offer) باللغة العربية لجذب العملاء في فترات الركود. 
-                اجعل الرسالة قصيرة وجذابة وملهمة.";
+                المطلوب: اقتراح عرض ترويجي لجذب العملاء في فترات الركود.
+                يجب أن تكون الإجابة بصيغة JSON حصراً كما في المثال التالي:
+                {
+                  \"offer_title\": \"عنوان العرض\",
+                  \"offer_message\": \"رسالة العرض الجذابة للعملاء\",
+                  \"suggested_time_window\": \"الفترة الزمنية المقترحة\",
+                  \"target_reason\": \"سبب اختيار هذا العرض أو الفترة\",
+                  \"suggested_products\": [\"منتج 1\", \"منتج 2\"]
+                }
+                اللغة: العربية.";
 
                 $response = Http::withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-3.5-turbo',
                     'messages' => [
-                        ['role' => 'system', 'content' => 'أنت خبير تسويق مطاعم.'],
+                        ['role' => 'system', 'content' => 'أنت خبير تسويق مطاعم تجيب دائماً بصيغة JSON.'],
                         ['role' => 'user', 'content' => $prompt],
                     ],
                     'temperature' => 0.7,
-                    'max_tokens' => 200,
+                    'max_tokens' => 500,
+                    'response_format' => ['type' => 'json_object']
                 ]);
 
                 if ($response->successful()) {
-                    return $response->json()['choices'][0]['message']['content'];
+                    $content = $response->json()['choices'][0]['message']['content'];
+                    return json_decode($content, true);
                 }
                 
                 Log::error('OpenAI API Error: ' . $response->body());
@@ -168,12 +184,19 @@ class AiAutomationController extends Controller
             }
         }
 
-        // Fallback deterministic suggestion
+        // Fallback deterministic suggestion as structured data
         $product = !empty($data['top_products']) ? $data['top_products'][0] : 'وجباتنا المميزة';
         $hour = $data['slowest_hour'] !== null ? $data['slowest_hour'] : 4;
         $period = ($hour < 12) ? 'صباحاً' : 'مساءً';
         $displayHour = ($hour > 12) ? ($hour - 12) : ($hour == 0 ? 12 : $hour);
+        $timeWindow = "{$displayHour}:00 - " . (($displayHour % 12) + 2) . ":00 {$period}";
 
-        return "بناءً على تحليلاتنا، نقترح تقديم عرض 'كومبو السعادة' على {$product} في الفترة بين {$displayHour} و " . (($displayHour % 12) + 2) . " {$period} لزيادة المبيعات في هذا الوقت الهادئ.";
+        return [
+            'offer_title' => 'عرض السعادة الذكي',
+            'offer_message' => "استمتع بخصم خاص على {$product} اليوم في الفترة الهادئة!",
+            'suggested_time_window' => $timeWindow,
+            'target_reason' => 'بناءً على تحليل البيانات، هذه الفترة هي الأقل مبيعاً.',
+            'suggested_products' => [$product]
+        ];
     }
 }

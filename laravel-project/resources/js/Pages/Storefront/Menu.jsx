@@ -44,12 +44,13 @@ const t = {
     tableNumber: { ar: 'رقم الطاولة',                     en: 'Table Number' },
     phoneNumber: { ar: 'رقم الجوال',                      en: 'Phone Number' },
     carNumber:   { ar: 'رقم السيارة، لونها، أو نوعها',    en: 'Car Number / Color / Type' },
-    customerName:{ ar: 'الاسم (اختياري)',                 en: 'Name (Optional)' },
+    customerName:{ ar: 'الاسم',                        en: 'Name' },
     notes:       { ar: 'ملاحظات (اختياري)',               en: 'Notes (Optional)' },
     confirmOrder:{ ar: 'تأكيد الطلب',                     en: 'Confirm Order' },
     reqTable:    { ar: 'يرجى إدخال رقم الطاولة',          en: 'Please enter table number' },
     reqPhone:    { ar: 'يرجى إدخال رقم الجوال',           en: 'Please enter phone number' },
     reqCar:      { ar: 'يرجى إدخال بيانات السيارة',       en: 'Please enter car details' },
+    reqName:     { ar: 'الاسم مطلوب لإتمام الطلب',       en: 'Name is required to complete the order' },
     orderSuccess:{ ar: 'تم إنشاء الطلب بنجاح. رقم الطلب: ', en: 'Order created successfully. Order number: ' },
     submitting:  { ar: 'جاري الإرسال...',                 en: 'Submitting...' },
     trackOrder:  { ar: 'تتبع الطلب',                      en: 'Track Order' },
@@ -545,6 +546,10 @@ export default function Menu({ slug }) {
         }
 
         const normalizedPhone = `966${phone}`;
+
+        if (!customer_name.trim() || customer_name.trim().length < 2) {
+            return alert(tr('reqName'));
+        }
 
         if (type === 'dine_in' && !table_number.trim()) return alert(tr('reqTable'));
         if (type === 'car' && !car_number.trim()) return alert(tr('reqCar'));
@@ -1122,8 +1127,10 @@ export default function Menu({ slug }) {
                                 )}
 
                                 <div className="sv-form-group">
-                                    <label className="sv-form-label">{tr('customerName')}</label>
-                                    <input type="text" className="sv-form-input" value={orderForm.customer_name} onChange={e => setOrderForm(prev => ({...prev, customer_name: e.target.value}))} />
+                                    <label className="sv-form-label">
+                                        {tr('customerName')} <span style={{ color: '#E74C3C' }}>*</span>
+                                    </label>
+                                    <input type="text" className="sv-form-input" placeholder={lang === 'ar' ? 'أدخل اسمك' : 'Enter your name'} value={orderForm.customer_name} onChange={e => setOrderForm(prev => ({...prev, customer_name: e.target.value}))} />
                                 </div>
 
                                 <div className="sv-form-group">
