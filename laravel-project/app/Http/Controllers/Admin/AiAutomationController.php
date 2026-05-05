@@ -43,16 +43,9 @@ class AiAutomationController extends Controller
             ->orderByDesc('total_qty')
             ->first();
 
-        // Slowest sales period (by hour)
-        $hourlySales = Order::where('restaurant_id', $restaurant->id)
-            ->where('created_at', '>=', $now->copy()->subDays(14))
-            ->select(DB::raw("strftime('%H', created_at) as hour"), DB::raw('COUNT(*) as count'))
-            ->groupBy('hour')
-            ->orderBy('count', 'asc')
-            ->get();
-        
-        $slowestHour = $hourlySales->first();
-        $slowestPeriodText = $slowestHour ? ($slowestHour->hour . ":00 - " . ($slowestHour->hour + 1) . ":00") : 'لا يوجد بيانات كافية';
+        // Slowest sales period
+        $minSegment = $this->getSlowestSegment($restaurant->id, $now->copy()->subDays(14));
+        $slowestPeriodText = $minSegment ? "الفترة الأقل مبيعاً: {$minSegment}" : 'لا يوجد بيانات كافية';
 
         // Returning customers count (by phone)
         $returningCustomers = Order::where('restaurant_id', $restaurant->id)
@@ -105,18 +98,11 @@ class AiAutomationController extends Controller
             ->limit(5)
             ->get();
 
-        $hourlySales = Order::where('restaurant_id', $restaurant->id)
-            ->where('created_at', '>=', $last14Days)
-            ->select(DB::raw("strftime('%H', created_at) as hour"), DB::raw('COUNT(*) as count'))
-            ->groupBy('hour')
-            ->orderBy('count', 'asc')
-            ->get();
-
-        $slowestHour = $hourlySales->first();
+        $minSegment = $this->getSlowestSegment($restaurant->id, $last14Days);
         
         $inputSummary = [
             'top_products' => $topProducts->pluck('product_name_ar')->toArray(),
-            'slowest_hour' => $slowestHour ? $slowestHour->hour : null,
+            'slowest_period' => $minSegment,
             'total_orders_14d' => Order::where('restaurant_id', $restaurant->id)->where('created_at', '>=', $last14Days)->count()
         ];
 
@@ -129,6 +115,40 @@ class AiAutomationController extends Controller
             'input_summary' => $inputSummary,
             'output_text' => is_array($suggestionData) ? json_encode($suggestionData, JSON_UNESCAPED_UNICODE) : $suggestionData
         ]);
+
+        $autoTargetAudience = 'all';
+
+        $inactive30Count = \App\Models\RestaurantCustomer::where('restaurant_id', $restaurant->id)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->where('last_order_at', '<', Carbon::now()->subDays(30))
+            ->count();
+
+        if ($inactive30Count > 0) {
+            $autoTargetAudience = 'inactive_30';
+        } else {
+            $inactive7Count = \App\Models\RestaurantCustomer::where('restaurant_id', $restaurant->id)
+                ->whereNotNull('phone')
+                ->where('phone', '!=', '')
+                ->where('last_order_at', '<', Carbon::now()->subDays(7))
+                ->count();
+            if ($inactive7Count > 0) {
+                $autoTargetAudience = 'inactive_7';
+            } else {
+                $repeatCount = \App\Models\RestaurantCustomer::where('restaurant_id', $restaurant->id)
+                    ->whereNotNull('phone')
+                    ->where('phone', '!=', '')
+                    ->where('orders_count', '>', 1)
+                    ->count();
+                if ($repeatCount > 0) {
+                    $autoTargetAudience = 'repeat';
+                }
+            }
+        }
+
+        if (is_array($suggestionData)) {
+            $suggestionData['target_audience'] = $autoTargetAudience;
+        }
 
         return response()->json([
             'success' => true,
@@ -143,12 +163,12 @@ class AiAutomationController extends Controller
         if ($apiKey) {
             try {
                 $topProductsText = implode(', ', $data['top_products']);
-                $slowHour = $data['slowest_hour'] !== null ? ($data['slowest_hour'] . ":00") : "فترات الركود";
+                $slowPeriod = $data['slowest_period'] !== null ? $data['slowest_period'] : "فترات الركود";
 
                 $prompt = "أنت مساعد ذكاء اصطناعي متخصص في التسويق للمطاعم.
                 بناءً على البيانات التالية لمطعم:
                 - المنتجات الأكثر مبيعاً: {$topProductsText}
-                - أبطأ ساعة في المبيعات: {$slowHour}
+                - الفترة الأقل مبيعاً: {$slowPeriod}
                 - عدد الطلبات في آخر 14 يوم: {$data['total_orders_14d']}
                 
                 المطلوب: اقتراح عرض ترويجي لجذب العملاء في فترات الركود.
@@ -186,17 +206,60 @@ class AiAutomationController extends Controller
 
         // Fallback deterministic suggestion as structured data
         $product = !empty($data['top_products']) ? $data['top_products'][0] : 'وجباتنا المميزة';
-        $hour = $data['slowest_hour'] !== null ? $data['slowest_hour'] : 4;
-        $period = ($hour < 12) ? 'صباحاً' : 'مساءً';
-        $displayHour = ($hour > 12) ? ($hour - 12) : ($hour == 0 ? 12 : $hour);
-        $timeWindow = "{$displayHour}:00 - " . (($displayHour % 12) + 2) . ":00 {$period}";
+        $period = $data['slowest_period'] !== null ? $data['slowest_period'] : 'مساءً';
+        $timeWindow = "فترة {$period}";
 
         return [
             'offer_title' => 'عرض السعادة الذكي',
-            'offer_message' => "استمتع بخصم خاص على {$product} اليوم في الفترة الهادئة!",
+            'offer_message' => "استمتع بخصم خاص على {$product} اليوم {$period}!",
             'suggested_time_window' => $timeWindow,
             'target_reason' => 'بناءً على تحليل البيانات، هذه الفترة هي الأقل مبيعاً.',
             'suggested_products' => [$product]
         ];
+    }
+
+    private function getSlowestSegment($restaurantId, $startDate)
+    {
+        $hourlySales = Order::where('restaurant_id', $restaurantId)
+            ->where('created_at', '>=', $startDate)
+            ->select(DB::raw("strftime('%H', created_at) as hour"), DB::raw('COUNT(*) as count'))
+            ->groupBy('hour')
+            ->get();
+
+        if ($hourlySales->isEmpty()) {
+            return null;
+        }
+
+        $segments = [
+            'صباحاً' => 0,
+            'ظهراً' => 0,
+            'مساءً' => 0,
+            'ليلاً' => 0
+        ];
+
+        foreach ($hourlySales as $sale) {
+            $h = (int)$sale->hour;
+            if ($h >= 6 && $h < 12) {
+                $segments['صباحاً'] += $sale->count;
+            } elseif ($h >= 12 && $h < 16) {
+                $segments['ظهراً'] += $sale->count;
+            } elseif ($h >= 16 && $h < 20) {
+                $segments['مساءً'] += $sale->count;
+            } else {
+                $segments['ليلاً'] += $sale->count;
+            }
+        }
+
+        $minSegment = null;
+        $minCount = PHP_INT_MAX;
+
+        foreach ($segments as $name => $count) {
+            if ($count < $minCount) {
+                $minCount = $count;
+                $minSegment = $name;
+            }
+        }
+
+        return $minSegment;
     }
 }

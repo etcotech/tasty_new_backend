@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, usePage, router } from '@inertiajs/react';
 
@@ -71,11 +71,51 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [targetAudience, setTargetAudience] = useState('inactive_30');
+    const [editableTitle, setEditableTitle] = useState('');
+    const [editableMessage, setEditableMessage] = useState('');
+    const [previewData, setPreviewData] = useState(null);
+    const [isPreviewing, setIsPreviewing] = useState(false);
 
     // Modal States
     const [viewModal, setViewModal] = useState(null);
     const [scheduleModal, setScheduleModal] = useState(null);
+    const [editModal, setEditModal] = useState(null);
     const [scheduledDate, setScheduledDate] = useState('');
+
+    const fetchPreview = async () => {
+        setIsPreviewing(true);
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const res = await fetch('/admin/ai-campaigns/preview-target', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    target_audience: targetAudience,
+                    message: editableMessage
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setPreviewData(data);
+            }
+        } catch (e) {
+            console.error('Preview error', e);
+        } finally {
+            setIsPreviewing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!suggestion || !editableMessage) return;
+        const timer = setTimeout(() => {
+            fetchPreview();
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [editableMessage, targetAudience, suggestion]);
 
     const generateSuggestion = async () => {
         setIsLoading(true);
@@ -93,6 +133,8 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
             const data = await res.json();
             if (data.success) {
                 setSuggestion(data.suggestion);
+                setEditableTitle(data.suggestion?.offer_title || '');
+                setEditableMessage(data.suggestion?.offer_message || '');
                 if (data.suggestion && data.suggestion.target_audience) {
                     setTargetAudience(data.suggestion.target_audience);
                 }
@@ -124,8 +166,8 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                     'X-CSRF-TOKEN': csrfToken
                 },
                 body: JSON.stringify({
-                    title: suggestion.offer_title,
-                    message: suggestion.offer_message,
+                    title: editableTitle,
+                    message: editableMessage,
                     suggested_time_window: suggestion.suggested_time_window,
                     reason: suggestion.target_reason,
                     target_audience: targetAudience
@@ -151,7 +193,7 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
             const res = await fetch(`/admin/ai-campaigns/${id}`);
             const data = await res.json();
             if (data.success) {
-                setViewModal(data.campaign);
+                setViewModal({ ...data.campaign, analytics: data.analytics });
             }
         } catch (e) {
             alert('فشل تحميل تفاصيل الحملة');
@@ -223,7 +265,7 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert('تم إلغاء الحملة');
+                    alert('تم تجاهل/إلغاء الحملة');
                     router.reload();
                 }
             } catch (e) {
@@ -232,9 +274,40 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
         }
     };
 
+    const saveEdit = async () => {
+        if (!editModal) return;
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const res = await fetch(`/admin/ai-campaigns/${editModal.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    title: editModal.title,
+                    message: editModal.message,
+                    target_audience: editModal.target_audience
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('تم التحديث بنجاح');
+                setEditModal(null);
+                router.reload();
+            } else {
+                alert('فشل في التحديث');
+            }
+        } catch (e) {
+            alert('خطأ في الاتصال');
+        }
+    };
+
     const getStatusLabel = (status) => {
         const labels = {
             'draft': 'مسودة',
+            'suggested': 'اقتراح ذكي',
             'scheduled': 'مجدولة',
 
             'sent': 'تم الإرسال',
@@ -256,6 +329,9 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
         };
         return labels[type] || type;
     };
+
+    const suggestedCampaigns = campaigns ? campaigns.filter(c => c.status === 'suggested') : [];
+    const otherCampaigns = campaigns ? campaigns.filter(c => c.status !== 'suggested') : [];
 
     return (
         <AdminLayout title="الأتمتة والذكاء الاصطناعي">
@@ -298,8 +374,20 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                     <div className="suggestion-box">
                         {suggestion ? (
                             <>
-                                <div className="suggestion-title">{suggestion.offer_title}</div>
-                                <p className="suggestion-text">{suggestion.offer_message}</p>
+                                <input 
+                                    className="modal-input" 
+                                    style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--gold)', marginBottom: '0.5rem', background: 'transparent' }}
+                                    value={editableTitle} 
+                                    onChange={(e) => setEditableTitle(e.target.value)} 
+                                    placeholder="عنوان الحملة"
+                                />
+                                <textarea 
+                                    className="modal-input" 
+                                    style={{ fontSize: '1.1rem', lineHeight: 1.7, color: 'var(--text)', fontWeight: 600, marginBottom: '1rem', minHeight: '100px', resize: 'vertical', background: 'transparent' }}
+                                    value={editableMessage} 
+                                    onChange={(e) => setEditableMessage(e.target.value)} 
+                                    placeholder="نص رسالة الحملة"
+                                />
                                 <div className="suggestion-meta">
                                     <span className="meta-item">🕒 {suggestion.suggested_time_window}</span>
                                     <span className="meta-item">🎯 {suggestion.target_reason}</span>
@@ -310,28 +398,70 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
 
                                 <div className="save-section">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>الجمهور المستهدف:</label>
-                                        <select 
-                                            className="select-target" 
-                                            value={targetAudience} 
-                                            onChange={(e) => setTargetAudience(e.target.value)}
-                                        >
-                                            <option value="all">كل العملاء</option>
-                                            <option value="repeat">العملاء المتكررون</option>
-                                            <option value="inactive_7">العملاء غير النشطين 7 أيام</option>
-                                            <option value="inactive_30">العملاء غير النشطين 30 يوم</option>
-                                        </select>
+                                        <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>الجمهور المستهدف التلقائي:</label>
+                                        <div style={{ padding: '0.4rem 0.8rem', background: 'rgba(201, 168, 76, 0.1)', color: 'var(--gold)', borderRadius: '6px', fontWeight: 700, fontSize: '0.9rem' }}>
+                                            {getTargetLabel(targetAudience)}
+                                        </div>
                                     </div>
-                                    <button className="btn-ai" onClick={saveAsCampaign} disabled={isSaving}>
+                                    <button className="btn-ai" onClick={saveAsCampaign} disabled={isSaving || (previewData && previewData.count === 0)}>
                                         {isSaving ? 'جاري الحفظ...' : 'حفظ كحملة 💾'}
                                     </button>
                                 </div>
+                                {previewData && (
+                                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                        <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            العدد المستهدف: <span style={{ color: 'var(--gold)' }}>{previewData.count}</span> عملاء
+                                            {isPreviewing && <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>(تحديث...)</span>}
+                                        </div>
+                                        {previewData.count === 0 ? (
+                                            <div style={{ color: '#e74c3c', fontWeight: 600 }}>⚠️ لا يوجد عملاء مستهدفين</div>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '0.3rem' }}>مثال للرسالة ({previewData.customer_name}):</div>
+                                                <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '6px', fontSize: '0.95rem', whiteSpace: 'pre-wrap', border: '1px solid var(--border)' }}>
+                                                    {previewData.preview_message}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <p className="suggestion-placeholder">انقر على الزر أعلاه لتحليل بيانات مبيعاتك واقتراح أفضل عرض ترويجي لليوم.</p>
                         )}
                     </div>
                 </div>
+
+                {suggestedCampaigns.length > 0 && (
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem', color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>💡</span> اقتراحات ذكية جديدة
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {suggestedCampaigns.map(campaign => (
+                                <div key={campaign.id} style={{ background: '#fff9eb', border: '1px solid var(--gold)', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 4px 15px rgba(201, 168, 76, 0.1)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div>
+                                            <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.3rem' }}>{campaign.title}</h4>
+                                            <div style={{ color: 'var(--muted)', fontSize: '0.9rem', display: 'flex', gap: '1rem' }}>
+                                                <span>🎯 العدد المستهدف: <strong>{campaign.target_count || 0} عميل</strong> ({getTargetLabel(campaign.target_audience)})</span>
+                                                <span>🕒 أفضل وقت للإرسال: <strong>{campaign.suggested_time_window}</strong></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '1.5rem' }}>
+                                        {campaign.message}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button className="btn-ai" onClick={() => sendNow(campaign.id)}>إرسال الآن 🚀</button>
+                                        <button className="btn-outline" onClick={() => setEditModal(campaign)}>تعديل الحملة ✏️</button>
+                                        <button className="btn-outline" onClick={() => cancelCampaign(campaign.id)} style={{ borderColor: '#ef4444', color: '#ef4444' }}>تجاهل ❌</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div style={{ marginTop: '3rem' }}>
                     <h3 style={{ marginBottom: '1rem' }}>الحملات الذكية</h3>
@@ -347,8 +477,8 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {campaigns && campaigns.length > 0 ? (
-                                    campaigns.map(campaign => (
+                                {otherCampaigns.length > 0 ? (
+                                    otherCampaigns.map(campaign => (
                                         <tr key={campaign.id}>
                                             <td style={{ fontWeight: 600 }}>{campaign.title}</td>
                                             <td>{getTargetLabel(campaign.target_audience)}</td>
@@ -407,6 +537,52 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                     </div>
                 </div>
 
+                {/* Edit Modal */}
+                {editModal && (
+                    <div className="modal-overlay" onClick={() => setEditModal(null)}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <button className="modal-close" onClick={() => setEditModal(null)}>×</button>
+                            <div className="modal-header">
+                                <h2 className="modal-title">تعديل الحملة</h2>
+                            </div>
+                            <div className="modal-field">
+                                <span className="modal-label">عنوان الحملة</span>
+                                <input 
+                                    className="modal-input" 
+                                    value={editModal.title}
+                                    onChange={e => setEditModal({...editModal, title: e.target.value})}
+                                />
+                            </div>
+                            <div className="modal-field">
+                                <span className="modal-label">نص الرسالة</span>
+                                <textarea 
+                                    className="modal-input" 
+                                    style={{ minHeight: '120px', resize: 'vertical' }}
+                                    value={editModal.message}
+                                    onChange={e => setEditModal({...editModal, message: e.target.value})}
+                                />
+                            </div>
+                            <div className="modal-field">
+                                <span className="modal-label">الجمهور المستهدف</span>
+                                <select 
+                                    className="modal-input" 
+                                    value={editModal.target_audience} 
+                                    onChange={(e) => setEditModal({...editModal, target_audience: e.target.value})}
+                                >
+                                    <option value="all">كل العملاء</option>
+                                    <option value="repeat">العملاء المتكررون</option>
+                                    <option value="inactive_7">العملاء غير النشطين 7 أيام</option>
+                                    <option value="inactive_30">العملاء غير النشطين 30 يوم</option>
+                                </select>
+                            </div>
+                            <div className="modal-actions">
+                                <button className="btn-outline" onClick={() => setEditModal(null)}>إلغاء</button>
+                                <button className="btn-ai" onClick={saveEdit}>حفظ التعديلات 💾</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* View Modal */}
                 {viewModal && (
                     <div className="modal-overlay" onClick={() => setViewModal(null)}>
@@ -429,17 +605,29 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                             </div>
                             
                             {viewModal.status === 'sent' && (
-                                <div className="modal-field" style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '12px' }}>
-                                    <span className="modal-label" style={{ color: '#2e7d32' }}>إحصائيات الإرسال</span>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                                        <div>
-                                            <small style={{ color: MUTED, display: 'block' }}>العدد المستهدف</small>
-                                            <strong>{viewModal.target_count} عميل</strong>
+                                <div className="modal-field" style={{ background: '#e8f5e9', padding: '1.5rem', borderRadius: '12px', border: '1px solid #c8e6c9' }}>
+                                    <span className="modal-label" style={{ color: '#2e7d32', marginBottom: '1rem', fontSize: '1rem', fontWeight: '800' }}>إحصائيات الحملة 📈</span>
+                                    
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.7)', padding: '1rem', borderRadius: '8px' }}>
+                                            <small style={{ color: MUTED, display: 'block', marginBottom: '0.3rem' }}>العملاء المستهدفين</small>
+                                            <strong style={{ fontSize: '1.3rem', color: '#1A1714' }}>{viewModal.analytics?.customers_reached || viewModal.target_count || 0}</strong>
                                         </div>
-                                        <div>
-                                            <small style={{ color: MUTED, display: 'block' }}>تاريخ الإرسال</small>
-                                            <strong>{new Date(viewModal.sent_at).toLocaleDateString('ar-SA')}</strong>
+                                        <div style={{ background: 'rgba(255,255,255,0.7)', padding: '1rem', borderRadius: '8px' }}>
+                                            <small style={{ color: MUTED, display: 'block', marginBottom: '0.3rem' }}>الطلبات بعد الإرسال</small>
+                                            <strong style={{ fontSize: '1.3rem', color: '#1A1714' }}>{viewModal.analytics?.orders_count || 0}</strong>
                                         </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.7)', padding: '1rem', borderRadius: '8px', gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <small style={{ color: MUTED, display: 'block', marginBottom: '0.3rem' }}>العوائد المحققة</small>
+                                                <strong style={{ fontSize: '1.6rem', color: '#2e7d32' }}>{viewModal.analytics?.revenue_generated || 0} ر.س</strong>
+                                            </div>
+                                            <div style={{ fontSize: '2rem' }}>💰</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #c8e6c9', fontSize: '0.85rem', color: MUTED, textAlign: 'center' }}>
+                                        تاريخ الإرسال: {new Date(viewModal.sent_at).toLocaleString('ar-SA')}
                                     </div>
                                 </div>
                             )}

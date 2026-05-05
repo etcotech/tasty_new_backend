@@ -33,6 +33,36 @@ class AiCampaignDispatcher
                 throw new \Exception("المطعم غير موجود");
             }
 
+            // Anti-Spam: Block sending if last campaign < 48 hours
+            $lastCampaign = AiCampaign::where('restaurant_id', $restaurant->id)
+                ->where('status', 'sent')
+                ->where('id', '!=', $campaign->id)
+                ->orderBy('sent_at', 'desc')
+                ->first();
+
+            if ($lastCampaign && $lastCampaign->sent_at && $lastCampaign->sent_at->diffInHours(now()) < 48) {
+                $campaign->update([
+                    'status' => 'failed',
+                    'failure_reason' => 'تم منع الإرسال لتجنب إزعاج العملاء (يجب مرور 48 ساعة على آخر حملة)',
+                ]);
+                return ['success' => false, 'message' => 'تم منع الإرسال لتجنب إزعاج العملاء'];
+            }
+
+            // Anti-Spam: Do not send more than 2 campaigns per week
+            $campaignsThisWeek = AiCampaign::where('restaurant_id', $restaurant->id)
+                ->where('status', 'sent')
+                ->where('id', '!=', $campaign->id)
+                ->where('sent_at', '>=', now()->subDays(7))
+                ->count();
+
+            if ($campaignsThisWeek >= 2) {
+                $campaign->update([
+                    'status' => 'failed',
+                    'failure_reason' => 'تم منع الإرسال لتجنب إزعاج العملاء (تم تجاوز الحد الأقصى: حملتين أسبوعياً)',
+                ]);
+                return ['success' => false, 'message' => 'تم منع الإرسال لتجنب إزعاج العملاء'];
+            }
+
             // 2. Resolve target customers
             $customers = $this->resolveTargetCustomers($campaign);
 
@@ -78,6 +108,20 @@ class AiCampaignDispatcher
                     'failure_reason' => null,
                 ]);
                 
+                // Update customers' last_campaign_sent_at
+                $customerIds = $customers->pluck('id')->toArray();
+                RestaurantCustomer::whereIn('id', $customerIds)->update([
+                    'last_campaign_sent_at' => now()
+                ]);
+
+                // Log the send action
+                \App\Models\AiAutomationLog::create([
+                    'restaurant_id' => $restaurant->id,
+                    'type' => 'campaign_sent',
+                    'input_summary' => ['campaign_id' => $campaign->id, 'target_count' => $customers->count()],
+                    'output_text' => "تم إرسال الحملة '{$campaign->title}' بنجاح لـ {$customers->count()} عميل"
+                ]);
+                
                 Log::info("AI Campaign #{$campaign->id} sent successfully to n8n.");
                 return ['success' => true, 'message' => 'تم إرسال الحملة إلى n8n بنجاح'];
             } else {
@@ -103,7 +147,11 @@ class AiCampaignDispatcher
     {
         $query = RestaurantCustomer::where('restaurant_id', $campaign->restaurant_id)
             ->whereNotNull('phone')
-            ->where('phone', '!=', '');
+            ->where('phone', '!=', '')
+            ->where(function($q) {
+                $q->whereNull('last_campaign_sent_at')
+                  ->orWhere('last_campaign_sent_at', '<', Carbon::now()->subDays(7));
+            });
 
         switch ($campaign->target_audience) {
             case 'repeat':

@@ -148,7 +148,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         
         // AI Campaigns
         Route::get('/ai-campaigns/{id}', [AiCampaignController::class, 'show'])->name('ai-campaigns.show');
+        Route::post('/ai-campaigns/preview-target', [AiCampaignController::class, 'previewTarget'])->name('ai-campaigns.preview-target');
         Route::post('/ai-campaigns', [AiCampaignController::class, 'store'])->name('ai-campaigns.store');
+        Route::put('/ai-campaigns/{id}', [AiCampaignController::class, 'update'])->name('ai-campaigns.update');
         Route::post('/ai-campaigns/{id}/schedule', [AiCampaignController::class, 'schedule'])->name('ai-campaigns.schedule');
         Route::post('/ai-campaigns/{id}/cancel', [AiCampaignController::class, 'cancel'])->name('ai-campaigns.cancel');
         Route::post('/ai-campaigns/{id}/send-now', [AiCampaignController::class, 'sendNow'])->name('ai-campaigns.send-now');
