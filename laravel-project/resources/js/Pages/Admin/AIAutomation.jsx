@@ -37,8 +37,10 @@ const pageStyles = `
 .status-badge { padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
 .status-draft { background: #f3f4f6; color: #6b7280; }
 .status-scheduled { background: #e3f2fd; color: #1976d2; }
+.status-sending { display: none; }
 .status-sent { background: #e8f5e9; color: #2e7d32; }
-.status-cancelled { background: #ffebee; color: #c62828; }
+.status-failed { background: #ffebee; color: #c62828; }
+.status-cancelled { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
 
 .template-card { border: 1px solid ${BORDER}; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; background: white; }
 .template-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
@@ -52,7 +54,7 @@ const pageStyles = `
 
 /* Modal Styles */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-.modal-content { background: white; padding: 2rem; border-radius: 20px; width: 100%; max-width: 500px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+.modal-content { background: white; padding: 2rem; border-radius: 20px; width: 100%; max-width: 500px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
 .modal-header { margin-bottom: 1.5rem; }
 .modal-title { font-size: 1.4rem; font-weight: 800; color: ${GOLD}; }
 .modal-close { position: absolute; top: 1rem; left: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: ${MUTED}; }
@@ -91,12 +93,19 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
             const data = await res.json();
             if (data.success) {
                 setSuggestion(data.suggestion);
+                if (data.suggestion && data.suggestion.target_audience) {
+                    setTargetAudience(data.suggestion.target_audience);
+                }
+                if (data.campaign) {
+                    alert(data.message || 'تم إنشاء حملة ذكية كمسودة');
+                    router.reload();
+                }
             } else {
-                alert(data.error || 'فشل في الحصول على اقتراح');
+                alert(data.message || data.error || 'فشل في توليد الاقتراح');
             }
         } catch (e) {
             console.error(e);
-            alert('خطأ في الاتصال بالخادم');
+            alert('خطأ في الاتصال بالخادم: ' + e.message);
         } finally {
             setIsLoading(false);
         }
@@ -127,11 +136,11 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                 alert('تم حفظ الحملة كمسودة');
                 router.reload();
             } else {
-                alert('فشل في حفظ الحملة');
+                alert('فشل في حفظ الحملة: ' + (data.error || data.message || ''));
             }
         } catch (e) {
             console.error(e);
-            alert('خطأ في الاتصال بالخادم');
+            alert('خطأ في الاتصال بالخادم: ' + e.message);
         } finally {
             setIsSaving(false);
         }
@@ -175,6 +184,31 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
         }
     };
 
+    const sendNow = async (id) => {
+        if (confirm('هل أنت متأكد من إرسال هذه الحملة الآن؟')) {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const res = await fetch(`/admin/ai-campaigns/${id}/send-now`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('تم إرسال الحملة إلى n8n بنجاح');
+                } else {
+                    alert('فشل الإرسال: ' + data.message);
+                }
+                router.reload();
+            } catch (e) {
+                alert('خطأ في الاتصال بالخادم');
+            }
+        }
+    };
+
     const cancelCampaign = async (id) => {
         if (confirm('هل أنت متأكد من إلغاء هذه الحملة؟')) {
             try {
@@ -202,7 +236,9 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
         const labels = {
             'draft': 'مسودة',
             'scheduled': 'مجدولة',
+
             'sent': 'تم الإرسال',
+            'failed': 'فشلت',
             'cancelled': 'ملغاة'
         };
         return labels[status] || status;
@@ -210,12 +246,11 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
 
     const getTargetLabel = (type) => {
         const labels = {
-            'all': 'جميع العملاء',
+            'all': 'كل العملاء',
             'repeat': 'العملاء المتكررون',
-            'inactive_7': 'غير نشط (7 أيام)',
-            'inactive_30': 'غير نشط (30 يوم)',
-            // Fallback for old data
-            'all_customers': 'جميع العملاء',
+            'inactive_7': 'العملاء غير النشطين 7 أيام',
+            'inactive_30': 'العملاء غير النشطين 30 يوم',
+            'all_customers': 'كل العملاء',
             'inactive_customers': 'العملاء غير النشطين',
             'repeat_customers': 'العملاء المتكررون'
         };
@@ -281,10 +316,10 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                                             value={targetAudience} 
                                             onChange={(e) => setTargetAudience(e.target.value)}
                                         >
-                                            <option value="all">جميع العملاء</option>
+                                            <option value="all">كل العملاء</option>
                                             <option value="repeat">العملاء المتكررون</option>
-                                            <option value="inactive_7">غير نشط (7 أيام)</option>
-                                            <option value="inactive_30">غير نشط (30 يوم)</option>
+                                            <option value="inactive_7">العملاء غير النشطين 7 أيام</option>
+                                            <option value="inactive_30">العملاء غير النشطين 30 يوم</option>
                                         </select>
                                     </div>
                                     <button className="btn-ai" onClick={saveAsCampaign} disabled={isSaving}>
@@ -307,7 +342,7 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                                     <th>العنوان</th>
                                     <th>الجمهور</th>
                                     <th>الحالة</th>
-                                    <th>مجدولة في</th>
+                                    <th>مجدولة/مرسلة</th>
                                     <th>إجراءات</th>
                                 </tr>
                             </thead>
@@ -322,19 +357,37 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                                                     {getStatusLabel(campaign.status)}
                                                 </span>
                                             </td>
-                                            <td style={{ color: MUTED }}>
-                                                {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString('ar-SA') : 'غير محدد'}
-                                            </td>
-                                            <td style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button onClick={() => viewCampaign(campaign.id)} className="btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>عرض</button>
-                                                {campaign.status === 'draft' && (
-                                                    <button onClick={() => setScheduleModal(campaign)} className="btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>جدولة</button>
+                                            <td style={{ color: MUTED, fontSize: '0.85rem' }}>
+                                                {campaign.status === 'sent' ? (
+                                                    <span>تم الإرسال في: {new Date(campaign.sent_at).toLocaleString('ar-SA')}</span>
+                                                ) : campaign.scheduled_at ? (
+                                                    <span>مجدولة لـ: {new Date(campaign.scheduled_at).toLocaleString('ar-SA')}</span>
+                                                ) : (
+                                                    '—'
                                                 )}
-                                                {['draft', 'scheduled'].includes(campaign.status) && (
+                                            </td>
+                                            <td style={{ display: 'flex', gap: '0.4rem' }}>
+                                                <button onClick={() => viewCampaign(campaign.id)} className="btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>عرض</button>
+                                                
+                                                {campaign.status === 'draft' && (
+                                                    <button onClick={() => setScheduleModal(campaign)} className="btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>جدولة</button>
+                                                )}
+                                                
+                                                {['scheduled', 'failed'].includes(campaign.status) && (
+                                                    <button 
+                                                        onClick={() => sendNow(campaign.id)} 
+                                                        className="btn-outline" 
+                                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', background: 'rgba(201, 168, 76, 0.1)' }}
+                                                    >
+                                                        إرسال الآن
+                                                    </button>
+                                                )}
+                                                
+                                                {['draft', 'scheduled', 'failed'].includes(campaign.status) && (
                                                     <button 
                                                         onClick={() => cancelCampaign(campaign.id)}
                                                         className="btn-outline" 
-                                                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderColor: '#ef4444', color: '#ef4444' }}
+                                                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
                                                     >
                                                         إلغاء
                                                     </button>
@@ -374,17 +427,37 @@ export default function AIAutomation({ stats, recentLogs, campaigns }) {
                                 <span className="modal-label">الجمهور المستهدف</span>
                                 <div className="modal-value">{getTargetLabel(viewModal.target_audience)}</div>
                             </div>
+                            
+                            {viewModal.status === 'sent' && (
+                                <div className="modal-field" style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '12px' }}>
+                                    <span className="modal-label" style={{ color: '#2e7d32' }}>إحصائيات الإرسال</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                        <div>
+                                            <small style={{ color: MUTED, display: 'block' }}>العدد المستهدف</small>
+                                            <strong>{viewModal.target_count} عميل</strong>
+                                        </div>
+                                        <div>
+                                            <small style={{ color: MUTED, display: 'block' }}>تاريخ الإرسال</small>
+                                            <strong>{new Date(viewModal.sent_at).toLocaleDateString('ar-SA')}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {viewModal.status === 'failed' && (
+                                <div className="modal-field" style={{ background: '#ffebee', padding: '1rem', borderRadius: '12px' }}>
+                                    <span className="modal-label" style={{ color: '#c62828' }}>سبب الفشل</span>
+                                    <div style={{ color: '#c62828', fontWeight: 700 }}>{viewModal.failure_reason}</div>
+                                </div>
+                            )}
+
                             <div className="modal-field">
-                                <span className="modal-label">الفترة الزمنية المقترحة</span>
+                                <span className="modal-label">الفترة الزمنية المقترحة (AI)</span>
                                 <div className="modal-value">{viewModal.suggested_time_window || 'غير محدد'}</div>
                             </div>
                             <div className="modal-field">
-                                <span className="modal-label">السبب</span>
+                                <span className="modal-label">السبب (AI)</span>
                                 <div className="modal-value">{viewModal.reason || 'غير متوفر'}</div>
-                            </div>
-                            <div className="modal-field">
-                                <span className="modal-label">الحالة</span>
-                                <div className="modal-value">{getStatusLabel(viewModal.status)}</div>
                             </div>
                         </div>
                     </div>

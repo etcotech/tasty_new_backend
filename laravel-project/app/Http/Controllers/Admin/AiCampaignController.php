@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiCampaign;
+use App\Services\AiCampaignDispatcher;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -92,5 +93,25 @@ class AiCampaignController extends Controller
             'message' => 'تم إلغاء الحملة',
             'campaign' => $campaign
         ]);
+    }
+
+    public function sendNow($id, AiCampaignDispatcher $dispatcher)
+    {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) return response()->json(['error' => 'Restaurant not found'], 404);
+
+        $campaign = AiCampaign::where('restaurant_id', $restaurant->id)->findOrFail($id);
+
+        if ($campaign->status === 'draft') {
+            $campaign->update(['status' => 'scheduled']);
+        }
+
+        $result = $dispatcher->dispatch($campaign, true);
+
+        if ($result['success']) {
+            $result['message'] = 'تم إرسال الحملة الآن بنجاح';
+        }
+
+        return response()->json($result);
     }
 }

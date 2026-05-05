@@ -15,11 +15,15 @@ class AiCampaign extends Model
         'suggested_time_window',
         'reason',
         'scheduled_at',
-        'created_by'
+        'created_by',
+        'sent_at',
+        'target_count',
+        'failure_reason',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'sent_at' => 'datetime',
     ];
 
     public function restaurant()

@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
             users: '/admin/dashboard'
         );
     })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+        $schedule->command('ai-campaigns:dispatch')->everyMinute();
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

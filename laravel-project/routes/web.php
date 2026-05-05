@@ -151,6 +151,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('/ai-campaigns', [AiCampaignController::class, 'store'])->name('ai-campaigns.store');
         Route::post('/ai-campaigns/{id}/schedule', [AiCampaignController::class, 'schedule'])->name('ai-campaigns.schedule');
         Route::post('/ai-campaigns/{id}/cancel', [AiCampaignController::class, 'cancel'])->name('ai-campaigns.cancel');
+        Route::post('/ai-campaigns/{id}/send-now', [AiCampaignController::class, 'sendNow'])->name('ai-campaigns.send-now');
     });
 
     // Subscription Plans
