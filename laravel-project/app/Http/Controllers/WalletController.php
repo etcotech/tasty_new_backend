@@ -32,24 +32,48 @@ class WalletController extends Controller
             ], 404);
         }
 
+        $transactions = WalletTransaction::where('customer_phone', $phone)
+            ->where('restaurant_id', $restaurant->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
         return response()->json([
             'success' => true,
             'points' => $wallet->points,
             'cashback_balance' => (float) $wallet->cashback_balance,
-            'total_spent' => (float) $wallet->total_spent
+            'total_spent' => (float) $wallet->total_spent,
+            'transactions' => $transactions
         ]);
     }
 
     protected function normalizePhone($phone)
     {
         if (!$phone) return null;
+        
+        // Remove all non-digits
         $normalized = preg_replace('/\D/', '', $phone);
+        
+        // 1. If starts with 966, remove it temporarily to clean up
+        if (str_starts_with($normalized, '966')) {
+            $normalized = substr($normalized, 3);
+        }
+        
+        // 2. Remove leading zero if exists
         if (str_starts_with($normalized, '0')) {
             $normalized = substr($normalized, 1);
         }
-        if (str_starts_with($normalized, '5') && strlen($normalized) === 9) {
+        
+        // 3. Prepend 966 to 9-digit Saudi numbers starting with 5
+        if (strlen($normalized) === 9 && str_starts_with($normalized, '5')) {
             $normalized = '966' . $normalized;
+        } else {
+            // Fallback for non-standard numbers that originally had 966
+            if (str_starts_with($phone, '966') || str_starts_with($phone, '+966')) {
+                $normalized = '966' . $normalized;
+            }
         }
+
         return $normalized;
     }
 

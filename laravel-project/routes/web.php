@@ -141,6 +141,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
     });
 
+    // Coupons
+    Route::resource('coupons', \App\Http\Controllers\Admin\CouponController::class)->except(['create', 'show', 'edit']);
+
     // AI Automation
     Route::middleware('feature:ai_automation')->group(function () {
         Route::get('/ai-automation', [\App\Http\Controllers\Admin\AiAutomationController::class, 'index'])->name('ai-automation.index');

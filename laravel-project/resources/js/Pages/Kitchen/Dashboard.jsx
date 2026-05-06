@@ -534,8 +534,20 @@ const printOrder = (order, restaurant) => {
             ${order.notes ? `<div class="notes"><b>ملاحظات:</b> ${order.notes}</div>` : ''}
 
             <div class="totals">
-                <div class="total-row"><span>المجموع الفرعي:</span> <span>${subtotal.toFixed(2)} ر.س</span></div>
-                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${taxAmount.toFixed(2)} ر.س</span></div>
+                <div class="total-row"><span>المجموع الفرعي:</span> <span>${parseFloat(order.subtotal || subtotal).toFixed(2)} ر.س</span></div>
+                
+                ${order.discount_amount > 0 ? `
+                    <div class="total-row" style="color: #c0392b; font-weight: bold;">
+                        <span>الخصم (${order.coupon_code}):</span>
+                        <span>-${parseFloat(order.discount_amount).toFixed(2)} ر.س</span>
+                    </div>
+                    <div class="total-row" style="border-top: 1px dashed #eee; padding-top: 3px; margin-top: 3px;">
+                        <span>المبلغ بعد الخصم:</span>
+                        <span>${(parseFloat(order.subtotal || subtotal) - parseFloat(order.discount_amount)).toFixed(2)} ر.س</span>
+                    </div>
+                ` : ''}
+
+                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${parseFloat(order.tax || taxAmount).toFixed(2)} ر.س</span></div>
                 <div class="grand-total total-row"><span>الإجمالي:</span> <span>${parseFloat(order.total).toFixed(2)} ر.س</span></div>
             </div>
 

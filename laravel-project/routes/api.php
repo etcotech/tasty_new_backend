@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AutomationLogController;
 use App\Http\Controllers\WalletController;
 
 Route::get('/restaurants/{slug}/menu', [StorefrontController::class, 'menu']);
+Route::post('/storefront/{slug}/coupons/validate', [StorefrontController::class, 'validateCoupon']);
 Route::post('/{slug}/webhooks/n8n/order-review', [OrderController::class, 'handleReviewWebhook']);
 
 // Wallet

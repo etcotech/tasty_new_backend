@@ -10,7 +10,7 @@ class Order extends Model
         'restaurant_id', 'branch_id', 'order_number', 'order_type', 'status', 
         'table_number', 'car_number', 'phone', 'customer_name', 
         'notes', 'subtotal', 'tax', 'total', 'cashback_used', 'points_used',
-        'pos_external_id'
+        'pos_external_id', 'coupon_id', 'coupon_code', 'discount_amount'
     ];
     
     protected $casts = [
@@ -19,7 +19,13 @@ class Order extends Model
         'total' => 'float',
         'cashback_used' => 'float',
         'points_used' => 'integer',
+        'discount_amount' => 'float',
     ];
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
+    }
 
     public function restaurant()
     {

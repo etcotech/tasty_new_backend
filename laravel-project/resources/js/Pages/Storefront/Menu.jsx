@@ -265,10 +265,18 @@ export default function Menu({ slug }) {
     const [walletLookupError, setWalletLookupError] = useState(null);
     const [walletNotFound, setWalletNotFound] = useState(false);
 
+    // Coupon States
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    const [couponError, setCouponError] = useState(null);
+
+    const discountAmount = appliedCoupon ? parseFloat(appliedCoupon.discount_amount) : 0;
     const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
+    const taxableAmount  = Math.max(0, cartSubtotal - discountAmount);
     const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
-    const cartTax        = cartSubtotal * taxRate;
-    const cartGrandTotal = cartSubtotal + cartTax;
+    const cartTax        = taxableAmount * taxRate;
+    const cartGrandTotal = taxableAmount + cartTax;
     const cartTotal      = cartGrandTotal;  // kept for back-compat
     const cartCount      = cart.reduce((count, item) => count + item.quantity, 0);
 
@@ -536,6 +544,43 @@ export default function Menu({ slug }) {
 
 
 
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        
+        setIsValidatingCoupon(true);
+        setCouponError(null);
+        
+        try {
+            const response = await fetch(`/api/storefront/${slug}/coupons/validate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: couponCode,
+                    order_type: orderForm.type,
+                    subtotal: cartSubtotal,
+                    phone: orderForm.phone ? `966${orderForm.phone}` : null
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                setAppliedCoupon(data);
+                setCouponCode('');
+            } else {
+                setCouponError(data.message);
+            }
+        } catch (error) {
+            setCouponError(lang === 'ar' ? 'خطأ في التحقق من الكوبون' : 'Error validating coupon');
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponError(null);
+    };
+
     const handleCheckoutSubmit = async () => {
         const { type, table_number, phone, car_number, customer_name, notes } = orderForm;
         
@@ -572,7 +617,8 @@ export default function Menu({ slug }) {
                     customer_name,
                     notes,
                     cart,
-                    branch_id: selectedBranch?.id
+                    branch_id: selectedBranch?.id,
+                    coupon_code: appliedCoupon?.code
                 })
             });
             
@@ -584,6 +630,7 @@ export default function Menu({ slug }) {
                 setSuccessPoints(data.earned_points ?? 0);
                 setSuccessCashback(data.earned_cashback ?? 0);
                 setCart([]);
+                setAppliedCoupon(null);
                 setIsCheckoutOpen(false);
                 setIsCartOpen(false);
                 setOrderForm({
@@ -614,6 +661,7 @@ export default function Menu({ slug }) {
         setWalletData(null);
 
         let normalized = walletPhone.replace(/\D/g, '');
+        if (normalized.startsWith('966')) normalized = normalized.substring(3);
         if (normalized.startsWith('0')) normalized = normalized.substring(1);
         
         // Validation: must be exactly 9 digits starting with 5
@@ -639,14 +687,11 @@ export default function Menu({ slug }) {
 
             if (data.success) {
                 setWalletData(data);
-                
-                const resT = await fetch(`/api/${restaurant.slug}/wallet/transactions?phone=${normalized}`);
-                const dataT = await resT.json();
-                if (dataT.success) {
-                    setWalletTransactions(dataT.transactions);
+                if (data.transactions) {
+                    setWalletTransactions(data.transactions);
                 }
             } else {
-                setWalletLookupError(data.message || 'Error fetching wallet.');
+                setWalletLookupError(data.message || (lang === 'ar' ? 'فشل في جلب بيانات المحفظة.' : 'Error fetching wallet.'));
             }
         } catch (error) {
             console.error('Wallet fetch error:', error);
@@ -1025,6 +1070,12 @@ export default function Menu({ slug }) {
                                     <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
                                     <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
                                 </div>
+                                {appliedCoupon && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 700 }}>
+                                        <span>{lang === 'ar' ? `الخصم (${appliedCoupon.code})` : `Discount (${appliedCoupon.code})`}</span>
+                                        <span>-{discountAmount.toFixed(2)} {tr('sar')}</span>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B6460' }}>
                                     <span>{lang === 'ar' ? `ضريبة القيمة المضافة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
                                     <span>{cartTax.toFixed(2)} {tr('sar')}</span>
@@ -1144,6 +1195,51 @@ export default function Menu({ slug }) {
                                         <span>{lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
                                         <span>{cartSubtotal.toFixed(2)} {tr('sar')}</span>
                                     </div>
+                                    
+                                    {/* Coupon Section */}
+                                    <div style={{ marginBottom: '0.8rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                                        {!appliedCoupon ? (
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={lang === 'ar' ? 'كود الخصم' : 'Coupon Code'} 
+                                                    className="sv-form-input" 
+                                                    style={{ padding: '0.5rem', fontSize: '0.85rem' }}
+                                                    value={couponCode}
+                                                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                />
+                                                <button 
+                                                    className="sv-btn-primary" 
+                                                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={isValidatingCoupon}
+                                                >
+                                                    {isValidatingCoupon ? '...' : (lang === 'ar' ? 'تطبيق' : 'Apply')}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ecfdf5', padding: '0.5rem', borderRadius: '6px', border: '1px solid #10b981' }}>
+                                                <div style={{ fontSize: '0.85rem', color: '#065f46', fontWeight: 700 }}>
+                                                    ✅ {appliedCoupon.code} (-{discountAmount.toFixed(2)} {tr('sar')})
+                                                </div>
+                                                <button 
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 800, fontSize: '1rem' }}
+                                                    onClick={removeCoupon}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        )}
+                                        {couponError && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{couponError}</div>}
+                                    </div>
+
+                                    {appliedCoupon && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.9rem', color: '#16a34a', fontWeight: 700 }}>
+                                            <span>{lang === 'ar' ? 'الخصم' : 'Discount'}</span>
+                                            <span>-{discountAmount.toFixed(2)} {tr('sar')}</span>
+                                        </div>
+                                    )}
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', fontSize: '0.9rem', color: '#6B6460' }}>
                                         <span>{lang === 'ar' ? `الضريبة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
                                         <span>{cartTax.toFixed(2)} {tr('sar')}</span>
@@ -1285,7 +1381,10 @@ export default function Menu({ slug }) {
                                                             <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{new Date(tx.created_at).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</div>
                                                         </div>
                                                         <div style={{ fontWeight: 700, color: tx.type.includes('earned') ? '#16A34A' : '#EF4444' }}>
-                                                            {tx.type.includes('earned') ? '+' : '-'}{parseFloat(tx.amount).toFixed(2)}
+                                                            {tx.type.includes('earned') ? '+' : '-'}
+                                                            {tx.type.includes('points') 
+                                                                ? `${Math.floor(tx.amount)} ${lang === 'ar' ? 'نقطة' : 'pts'}` 
+                                                                : `${parseFloat(tx.amount).toFixed(2)} ${tr('sar')}`}
                                                         </div>
                                                     </div>
                                                 ))}

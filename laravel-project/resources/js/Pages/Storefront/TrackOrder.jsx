@@ -99,6 +99,8 @@ export default function TrackOrder({ initialOrderNumber }) {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [earnedPoints, setEarnedPoints] = useState(0);
+    const [earnedCashback, setEarnedCashback] = useState(0);
 
     const fetchOrder = async (num) => {
         const cleanNum = num?.trim().toUpperCase();
@@ -114,8 +116,12 @@ export default function TrackOrder({ initialOrderNumber }) {
             const data = await res.json();
             if (data.success) {
                 setOrder(data.order);
+                setEarnedPoints(data.earned_points || 0);
+                setEarnedCashback(data.earned_cashback || 0);
             } else {
                 setOrder(null);
+                setEarnedPoints(0);
+                setEarnedCashback(0);
                 setError('لم يتم العثور على الطلب. يرجى التأكد من الرقم.');
             }
         } catch (e) {
@@ -296,6 +302,24 @@ export default function TrackOrder({ initialOrderNumber }) {
                                 <span>الإجمالي</span>
                                 <span className="tr-total-price">{parseFloat(order.total).toFixed(2)} ر.س</span>
                             </div>
+
+                            {(earnedPoints > 0 || earnedCashback > 0) && (
+                                <div style={{ background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '1rem 1.25rem' }}>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', marginBottom: '0.5rem' }}>✨ مكافآت هذا الطلب</div>
+                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                                        {earnedPoints > 0 && (
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#15803d' }}>
+                                                ⭐ النقاط المكتسبة: {earnedPoints} نقطة
+                                            </div>
+                                        )}
+                                        {earnedCashback > 0 && (
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#15803d' }}>
+                                                💰 الكاش باك المكتسب: {earnedCashback.toFixed(2)} ر.س
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

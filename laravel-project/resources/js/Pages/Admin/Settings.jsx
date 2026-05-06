@@ -161,12 +161,12 @@ export default function Settings({ restaurant }) {
         subtitle_ar: restaurant?.subtitle_ar ?? '',
         subtitle_en: restaurant?.subtitle_en ?? '',
         is_open: restaurant?.is_open ?? true,
-        enable_loyalty: restaurant?.enable_loyalty ?? false,
-        enable_cashback: restaurant?.enable_cashback ?? false,
-        loyalty_points_rate: restaurant?.loyalty_points_rate ?? 10,
+        points_enabled: restaurant?.points_enabled ?? false,
+        cashback_enabled: restaurant?.cashback_enabled ?? false,
+        points_rate: restaurant?.points_rate ?? 10,
         cashback_percentage: restaurant?.cashback_percentage ?? 5,
-        min_order_for_rewards: restaurant?.min_order_for_rewards ?? 0,
-        points_value: restaurant?.points_value ?? 10,
+        min_order_amount: restaurant?.min_order_amount ?? 0,
+        point_value: restaurant?.point_value ?? 10,
         google_review_url: restaurant?.google_review_url ?? '',
     });
 
@@ -412,14 +412,14 @@ export default function Settings({ restaurant }) {
                 <Card>
                     <SectionTitle>🎁 إعدادات الولاء والكاش باك</SectionTitle>
                     <div style={GRID2}>
-                        <Field label="تفعيل نظام النقاط" error={errors.enable_loyalty}>
-                            <select style={inputStyle} value={data.enable_loyalty} onChange={e => setData('enable_loyalty', e.target.value === 'true')}>
+                        <Field label="تفعيل نظام النقاط" error={errors.points_enabled}>
+                            <select style={inputStyle} value={data.points_enabled} onChange={e => setData('points_enabled', e.target.value === 'true')}>
                                 <option value="false">معطل</option>
                                 <option value="true">مفعل</option>
                             </select>
                         </Field>
-                        <Field label="تفعيل الكاش باك" error={errors.enable_cashback}>
-                            <select style={inputStyle} value={data.enable_cashback} onChange={e => setData('enable_cashback', e.target.value === 'true')}>
+                        <Field label="تفعيل الكاش باك" error={errors.cashback_enabled}>
+                            <select style={inputStyle} value={data.cashback_enabled} onChange={e => setData('cashback_enabled', e.target.value === 'true')}>
                                 <option value="false">معطل</option>
                                 <option value="true">مفعل</option>
                             </select>
@@ -427,8 +427,8 @@ export default function Settings({ restaurant }) {
                     </div>
 
                     <div style={{ ...GRID2, marginTop: '1.25rem' }}>
-                        <Field label="معدل اكتساب النقاط" hint="مثال: 10 يعني نقطة لكل 10 ريال" error={errors.loyalty_points_rate}>
-                            <TextInput type="number" step="1" value={data.loyalty_points_rate} onChange={e => setData('loyalty_points_rate', e.target.value)} />
+                        <Field label="معدل اكتساب النقاط" hint="مثال: 10 يعني نقطة لكل 10 ريال" error={errors.points_rate}>
+                            <TextInput type="number" step="1" value={data.points_rate} onChange={e => setData('points_rate', e.target.value)} />
                         </Field>
                         <Field label="نسبة الكاش باك (%)" hint="مثال: 5 يعني 5% من قيمة الطلب" error={errors.cashback_percentage}>
                             <TextInput type="number" step="0.1" value={data.cashback_percentage} onChange={e => setData('cashback_percentage', e.target.value)} />
@@ -436,11 +436,11 @@ export default function Settings({ restaurant }) {
                     </div>
 
                     <div style={{ ...GRID2, marginTop: '1.25rem' }}>
-                        <Field label="الحد الأدنى للطلب (للمكافآت)" hint="لن يتم احتساب النقاط للطلبات أقل من هذا المبلغ" error={errors.min_order_for_rewards}>
-                            <TextInput type="number" step="0.5" value={data.min_order_for_rewards} onChange={e => setData('min_order_for_rewards', e.target.value)} />
+                        <Field label="الحد الأدنى للطلب (للمكافآت)" hint="لن يتم احتساب النقاط للطلبات أقل من هذا المبلغ" error={errors.min_order_amount}>
+                            <TextInput type="number" step="0.5" value={data.min_order_amount} onChange={e => setData('min_order_amount', e.target.value)} />
                         </Field>
-                        <Field label="قيمة النقاط (الاسترداد)" hint="مثال: 10 يعني 100 نقطة = 10 ريال (استرداد لاحقاً)" error={errors.points_value}>
-                            <TextInput type="number" step="0.5" value={data.points_value} onChange={e => setData('points_value', e.target.value)} />
+                        <Field label="قيمة النقاط (الاسترداد)" hint="مثال: 10 يعني 100 نقطة = 10 ريال (استرداد لاحقاً)" error={errors.point_value}>
+                            <TextInput type="number" step="0.5" value={data.point_value} onChange={e => setData('point_value', e.target.value)} />
                         </Field>
                     </div>
                 </Card>

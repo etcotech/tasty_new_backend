@@ -130,9 +130,30 @@ class OrderController extends Controller
                 ];
             }
 
-            $taxRate = ($restaurant->tax_percentage ?? 8) / 100;
-            $tax = $subtotal * $taxRate;
-            $total = $subtotal + $tax;
+            // Coupon Validation and Discount Calculation
+            $discountAmount = 0;
+            $couponId = null;
+            $couponCode = null;
+
+            if ($request->coupon_code) {
+                $coupon = \App\Models\Coupon::where('restaurant_id', $restaurant->id)
+                    ->where('code', $request->coupon_code)
+                    ->first();
+
+                if ($coupon) {
+                    list($isValid, $message) = $coupon->isValidFor($subtotal, $request->order_type, $request->phone);
+                    if ($isValid) {
+                        $discountAmount = $coupon->calculateDiscount($subtotal);
+                        $couponId = $coupon->id;
+                        $couponCode = $coupon->code;
+                    }
+                }
+            }
+
+            $taxableAmount = max(0, $subtotal - $discountAmount);
+            $taxRate = ($restaurant->tax_percentage ?? 15) / 100;
+            $tax = $taxableAmount * $taxRate;
+            $total = $taxableAmount + $tax;
 
             // Generate unique order number
             $orderNumber = 'ORD' . rand(1000, 9999) . strtoupper(Str::random(2));
@@ -149,9 +170,17 @@ class OrderController extends Controller
                 'customer_name' => $request->customer_name,
                 'notes' => $request->notes,
                 'subtotal' => $subtotal,
+                'discount_amount' => $discountAmount,
+                'coupon_id' => $couponId,
+                'coupon_code' => $couponCode,
                 'tax' => $tax,
                 'total' => $total,
             ]);
+
+            // Increment coupon usage
+            if ($couponId) {
+                \App\Models\Coupon::where('id', $couponId)->increment('usage_count');
+            }
 
             foreach ($itemsData as $data) {
                 $cartItem = $data['cartItem'];
@@ -202,6 +231,10 @@ class OrderController extends Controller
                     'customer_phone' => $order->phone, // Mapping phone to customer_phone as requested
                     'table_number' => $order->table_number,
                     'fulfillment_label' => $fulfillmentLabel,
+                    'subtotal' => (float)$order->subtotal,
+                    'discount_amount' => (float)$order->discount_amount,
+                    'coupon_code' => $order->coupon_code,
+                    'tax' => (float)$order->tax,
                     'total' => (float)$order->total,
                     'restaurant_id' => $order->restaurant_id,
                     'tenant_id' => $order->restaurant_id,
@@ -318,7 +351,20 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        return response()->json(['success' => true, 'order' => $order]);
+        $earned_points = \App\Models\WalletTransaction::where('order_id', $order->id)
+            ->where('type', 'points_earned')
+            ->sum('amount');
+
+        $earned_cashback = \App\Models\WalletTransaction::where('order_id', $order->id)
+            ->where('type', 'cashback_earned')
+            ->sum('amount');
+
+        return response()->json([
+            'success' => true, 
+            'order' => $order,
+            'earned_points' => (int)$earned_points,
+            'earned_cashback' => (float)$earned_cashback
+        ]);
     }
     public function recalculateRewards($id)
     {

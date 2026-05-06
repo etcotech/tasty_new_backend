@@ -124,8 +124,20 @@ const printOrder = (order, restaurant) => {
             ${order.notes ? `<div class="notes"><b>ملاحظات:</b> ${order.notes}</div>` : ''}
 
             <div class="totals">
-                <div class="total-row"><span>المجموع الفرعي:</span> <span>${subtotal.toFixed(2)} ر.س</span></div>
-                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${taxAmount.toFixed(2)} ر.س</span></div>
+                <div class="total-row"><span>المجموع الفرعي:</span> <span>${parseFloat(order.subtotal || subtotal).toFixed(2)} ر.س</span></div>
+                
+                ${order.discount_amount > 0 ? `
+                    <div class="total-row" style="color: #c0392b; font-weight: bold;">
+                        <span>الخصم (${order.coupon_code}):</span>
+                        <span>-${parseFloat(order.discount_amount).toFixed(2)} ر.س</span>
+                    </div>
+                    <div class="total-row" style="border-top: 1px dashed #eee; padding-top: 3px; margin-top: 3px;">
+                        <span>المبلغ بعد الخصم:</span>
+                        <span>${(parseFloat(order.subtotal || subtotal) - parseFloat(order.discount_amount)).toFixed(2)} ر.س</span>
+                    </div>
+                ` : ''}
+
+                <div class="total-row"><span>الضريبة (${taxPercentage}%):</span> <span>${parseFloat(order.tax || taxAmount).toFixed(2)} ر.س</span></div>
                 <div class="grand-total total-row"><span>الإجمالي:</span> <span>${parseFloat(order.total).toFixed(2)} ر.س</span></div>
             </div>
 
@@ -247,7 +259,14 @@ export default function Orders({ orders: initialOrders }) {
                                     {order.order_type === 'dine_in' ? 'داخل المطعم' : 
                                      order.order_type === 'takeaway' ? 'استلام' : 'في السيارة'}
                                 </td>
-                                <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(order.total).toFixed(2)} ر.س</td>
+                                <td style={{ color: GOLD, fontWeight: 700 }}>
+                                    {parseFloat(order.total).toFixed(2)} ر.س
+                                    {order.discount_amount > 0 && (
+                                        <div style={{ fontSize: '0.7rem', color: '#c0392b', fontWeight: 600 }}>
+                                            🎫 {order.coupon_code} (-{parseFloat(order.discount_amount).toFixed(2)})
+                                        </div>
+                                    )}
+                                </td>
                                 <td>
                                     <span className={`status-badge status-${order.status}`}>
                                         {statusOptions[order.status]}
@@ -346,6 +365,35 @@ export default function Orders({ orders: initialOrders }) {
                                     )}
                                 </div>
                             ))}
+
+                            <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#faf9f6', borderRadius: '12px', border: '1px solid #eee' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', color: MUTED }}>
+                                    <span>المجموع الفرعي</span>
+                                    <span>{parseFloat(selectedOrder.subtotal).toFixed(2)} ر.س</span>
+                                </div>
+
+                                {selectedOrder.discount_amount > 0 && (
+                                    <>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', color: '#c0392b', fontWeight: 700 }}>
+                                            <span>الخصم ({selectedOrder.coupon_code})</span>
+                                            <span>-{parseFloat(selectedOrder.discount_amount).toFixed(2)} ر.س</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem', paddingBottom: '0.6rem', borderBottom: '1px dashed #ddd', color: MUTED, fontSize: '0.9rem' }}>
+                                            <span>المبلغ بعد الخصم</span>
+                                            <span>{(parseFloat(selectedOrder.subtotal) - parseFloat(selectedOrder.discount_amount)).toFixed(2)} ر.س</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem', color: MUTED }}>
+                                    <span>الضريبة</span>
+                                    <span>{parseFloat(selectedOrder.tax).toFixed(2)} ر.س</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.3rem', color: TEXT, paddingTop: '0.8rem', borderTop: '2px solid #ddd' }}>
+                                    <span>الإجمالي</span>
+                                    <span>{parseFloat(selectedOrder.total).toFixed(2)} ر.س</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

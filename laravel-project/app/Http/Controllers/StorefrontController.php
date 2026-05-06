@@ -91,4 +91,50 @@ class StorefrontController extends Controller
             'products' => $products
         ]);
     }
+
+    public function validateCoupon(Request $request, $slug)
+    {
+        $restaurant = Restaurant::where('slug', $slug)->firstOrFail();
+
+        $validated = $request->validate([
+            'code' => 'required|string',
+            'order_type' => 'required|string',
+            'subtotal' => 'required|numeric',
+            'phone' => 'nullable|string',
+        ]);
+
+        $coupon = \App\Models\Coupon::where('restaurant_id', $restaurant->id)
+            ->where('code', $validated['code'])
+            ->first();
+
+        if (!$coupon) {
+            return response()->json([
+                'success' => false,
+                'message' => 'كود الخصم غير صحيح'
+            ]);
+        }
+
+        list($isValid, $message) = $coupon->isValidFor(
+            $validated['subtotal'], 
+            $validated['order_type'], 
+            $validated['phone']
+        );
+
+        if (!$isValid) {
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ]);
+        }
+
+        $discount = $coupon->calculateDiscount($validated['subtotal']);
+
+        return response()->json([
+            'success' => true,
+            'coupon_id' => $coupon->id,
+            'code' => $coupon->code,
+            'discount_amount' => $discount,
+            'message' => 'تم تطبيق الكوبون بنجاح'
+        ]);
+    }
 }
