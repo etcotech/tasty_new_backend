@@ -54,6 +54,7 @@ class BranchController extends Controller
         $validator = Validator::make($request->all(), [
             'name_ar' => 'required|string|max:255',
             'name_en' => 'nullable|string|max:255',
+            'slug' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'is_active' => 'boolean',
@@ -67,6 +68,7 @@ class BranchController extends Controller
             'restaurant_id' => $restaurant->id,
             'name_ar' => $request->name_ar,
             'name_en' => $request->name_en,
+            'slug' => $request->slug,
             'phone' => $request->phone,
             'address' => $request->address,
             'is_active' => $request->is_active ?? true,
@@ -87,6 +89,7 @@ class BranchController extends Controller
         $validator = Validator::make($request->all(), [
             'name_ar' => 'required|string|max:255',
             'name_en' => 'nullable|string|max:255',
+            'slug' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'is_active' => 'boolean',

@@ -38,6 +38,16 @@ class StorefrontController extends Controller
             ->get(['id', 'name_ar', 'name_en', 'sort_order']);
 
         $branchId = $request->query('branch_id');
+        $branchSlug = $request->query('branch');
+
+        if (!$branchId && $branchSlug) {
+            $branch = \App\Models\Branch::where('restaurant_id', $restaurant->id)
+                ->where('slug', $branchSlug)
+                ->first();
+            if ($branch) {
+                $branchId = $branch->id;
+            }
+        }
         
         $productsQuery = Product::where('restaurant_id', $restaurant->id)
             ->where('is_available', true)
@@ -85,6 +95,11 @@ class StorefrontController extends Controller
                 'points_rate'    => (int)$restaurant->points_rate,
                 'cashback_percentage' => (float)$restaurant->cashback_percentage,
                 'min_order_amount' => (float)$restaurant->min_order_amount,
+                'min_points_to_redeem' => (int)($restaurant->min_points_to_redeem ?? 100),
+                'points_redeem_value' => (float)($restaurant->points_redeem_value ?? 10),
+                'min_cashback_to_redeem' => (float)($restaurant->min_cashback_to_redeem ?? 10),
+                'max_wallet_discount_percentage' => (float)($restaurant->max_wallet_discount_percentage ?? 30),
+                'min_order_amount_for_wallet_redeem' => (float)($restaurant->min_order_amount_for_wallet_redeem ?? 50),
             ],
             'branches' => $branches,
             'categories' => $categories,

@@ -150,7 +150,53 @@ class OrderController extends Controller
                 }
             }
 
-            $taxableAmount = max(0, $subtotal - $discountAmount);
+            // Wallet Redemption Calculation
+            $walletDiscountAmount = 0;
+            $pointsToRedeem = (int)($request->points_to_redeem ?? 0);
+            $cashbackToRedeem = (float)($request->cashback_to_redeem ?? 0);
+
+            if ($pointsToRedeem > 0 || $cashbackToRedeem > 0) {
+                $normalizedPhone = $this->normalizePhoneNumber($request->phone);
+                $wallet = \App\Models\CustomerWallet::where('phone', $normalizedPhone)
+                    ->where('restaurant_id', $restaurant->id)
+                    ->first();
+
+                if (!$wallet) {
+                    return response()->json(['success' => false, 'message' => 'Wallet not found'], 422);
+                }
+
+                if ($subtotal < $restaurant->min_order_amount_for_wallet_redeem) {
+                    return response()->json(['success' => false, 'message' => 'Order total below minimum for wallet redemption'], 422);
+                }
+
+                if ($pointsToRedeem > 0) {
+                    if ($pointsToRedeem < $restaurant->min_points_to_redeem) {
+                        return response()->json(['success' => false, 'message' => 'Minimum points to redeem not reached'], 422);
+                    }
+                    if ($wallet->points < $pointsToRedeem) {
+                        return response()->json(['success' => false, 'message' => 'Insufficient points balance'], 422);
+                    }
+                    $pointsDiscount = ($pointsToRedeem / $restaurant->min_points_to_redeem) * $restaurant->points_redeem_value;
+                    $walletDiscountAmount += $pointsDiscount;
+                }
+
+                if ($cashbackToRedeem > 0) {
+                    if ($cashbackToRedeem < $restaurant->min_cashback_to_redeem) {
+                        return response()->json(['success' => false, 'message' => 'Minimum cashback to redeem not reached'], 422);
+                    }
+                    if ($wallet->cashback_balance < $cashbackToRedeem) {
+                        return response()->json(['success' => false, 'message' => 'Insufficient cashback balance'], 422);
+                    }
+                    $walletDiscountAmount += $cashbackToRedeem;
+                }
+
+                $maxAllowedDiscount = $subtotal * ($restaurant->max_wallet_discount_percentage / 100);
+                if ($walletDiscountAmount > $maxAllowedDiscount + 0.01) { // 0.01 for float precision
+                    return response()->json(['success' => false, 'message' => 'Wallet discount exceeds maximum allowed percentage'], 422);
+                }
+            }
+
+            $taxableAmount = max(0, $subtotal - $discountAmount - $walletDiscountAmount);
             $taxRate = ($restaurant->tax_percentage ?? 15) / 100;
             $tax = $taxableAmount * $taxRate;
             $total = $taxableAmount + $tax;
@@ -175,6 +221,9 @@ class OrderController extends Controller
                 'coupon_code' => $couponCode,
                 'tax' => $tax,
                 'total' => $total,
+                'points_used' => $pointsToRedeem,
+                'cashback_used' => $cashbackToRedeem,
+                'wallet_discount_amount' => $walletDiscountAmount,
             ]);
 
             // Increment coupon usage
@@ -209,6 +258,9 @@ class OrderController extends Controller
             }
 
             DB::commit();
+
+            // Apply wallet deduction
+            $this->applyWalletRedemption($order);
 
             // Sync customer record (restaurant_customers table)
             $this->syncRestaurantCustomer($order);

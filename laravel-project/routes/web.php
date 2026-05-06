@@ -109,6 +109,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/site-settings', [SettingsController::class, 'systemIndex'])->name('site-settings');
     Route::post('/site-settings', [SettingsController::class, 'updateSite'])->name('site-settings.update');
     
+    Route::get('/loyalty-settings', [SettingsController::class, 'loyaltyIndex'])->name('loyalty-settings');
+    Route::post('/loyalty-settings', [SettingsController::class, 'loyaltyUpdate'])->name('loyalty-settings.update');
+    
     // Payment Gateways
     Route::get('/payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways');
     Route::post('/payment-gateways', [PaymentGatewayController::class, 'update'])->name('payment-gateways.update');

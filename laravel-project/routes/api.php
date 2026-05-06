@@ -21,6 +21,7 @@ Route::get('/{slug}/wallet', [WalletController::class, 'getBalance']);
 Route::get('/{slug}/wallet/transactions', [WalletController::class, 'getTransactions']);
 Route::get('/debug/wallet/{phone}', [WalletController::class, 'debugWallet']);
 Route::post('/debug/apply-rewards/{order}', [WalletController::class, 'repairRewards']);
+Route::post('/admin/wallets/recalculate/{phone}', [WalletController::class, 'recalculate']);
 
 Route::post('/orders', [OrderController::class, 'store']);
 Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);

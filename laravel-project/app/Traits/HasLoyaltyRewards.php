@@ -23,28 +23,7 @@ trait HasLoyaltyRewards
         ]);
 
         // Normalize phone to 9665XXXXXXXX
-        $phone = $order->phone;
-        $normalizedPhone = preg_replace('/\D/', '', $phone);
-        
-        // Remove leading 966 if it exists to clean up
-        if (str_starts_with($normalizedPhone, '966')) {
-            $normalizedPhone = substr($normalizedPhone, 3);
-        }
-        
-        // Remove leading zero
-        if (str_starts_with($normalizedPhone, '0')) {
-            $normalizedPhone = substr($normalizedPhone, 1);
-        }
-        
-        // Prepend 966 to 9-digit Saudi numbers
-        if (strlen($normalizedPhone) === 9 && str_starts_with($normalizedPhone, '5')) {
-            $normalizedPhone = '966' . $normalizedPhone;
-        } else {
-            // If not a standard 9-digit Saudi number, re-attach original prefix if it was 966
-            if (str_starts_with($phone, '966') || str_starts_with($phone, '+966')) {
-                $normalizedPhone = '966' . $normalizedPhone;
-            }
-        }
+        $normalizedPhone = $this->normalizePhoneNumber($order->phone);
 
         // Force refresh restaurant settings
         $restaurant = $order->restaurant()->first();
@@ -203,5 +182,158 @@ trait HasLoyaltyRewards
             'points' => $expectedPoints,
             'cashback' => $expectedCashback
         ];
+    }
+
+    /**
+     * Recalculate wallet balance from scratch based on completed orders.
+     */
+    public function recalculateWallet($phone, $restaurantId)
+    {
+        $restaurant = \App\Models\Restaurant::find($restaurantId);
+        if (!$restaurant) return null;
+
+        $normalizedPhone = preg_replace('/\D/', '', $phone);
+        if (str_starts_with($normalizedPhone, '966')) {
+            $normalizedPhone = substr($normalizedPhone, 3);
+        }
+        if (str_starts_with($normalizedPhone, '0')) {
+            $normalizedPhone = substr($normalizedPhone, 1);
+        }
+        if (strlen($normalizedPhone) === 9 && str_starts_with($normalizedPhone, '5')) {
+            $normalizedPhone = '966' . $normalizedPhone;
+        }
+
+        $orders = \App\Models\Order::where('restaurant_id', $restaurantId)
+            ->where('phone', $normalizedPhone)
+            ->where('status', 'completed')
+            ->get();
+
+        return DB::transaction(function () use ($orders, $restaurant, $normalizedPhone) {
+            // 1. Clear existing transactions for this customer in this restaurant
+            WalletTransaction::where('restaurant_id', $restaurant->id)
+                ->where('customer_phone', $normalizedPhone)
+                ->delete();
+
+            // 2. Reset wallet
+            $wallet = CustomerWallet::updateOrCreate(
+                ['phone' => $normalizedPhone, 'restaurant_id' => $restaurant->id],
+                ['points' => 0, 'cashback_balance' => 0, 'total_spent' => 0]
+            );
+
+            $totalPoints = 0;
+            $totalCashback = 0;
+            $totalSpent = 0;
+
+            foreach ($orders as $order) {
+                $totalSpent += (float)$order->total;
+                $rewards = $this->calculateExpectedRewards($order, $restaurant);
+
+                if ($rewards['points'] > 0) {
+                    $totalPoints += $rewards['points'];
+                    WalletTransaction::create([
+                        'customer_phone' => $normalizedPhone,
+                        'restaurant_id' => $restaurant->id,
+                        'type' => 'points_earned',
+                        'amount' => $rewards['points'],
+                        'order_id' => $order->id,
+                        'description' => "إعادة احتساب: نقاط من الطلب {$order->order_number}"
+                    ]);
+                }
+
+                if ($rewards['cashback'] > 0) {
+                    $totalCashback += $rewards['cashback'];
+                    WalletTransaction::create([
+                        'customer_phone' => $normalizedPhone,
+                        'restaurant_id' => $restaurant->id,
+                        'type' => 'cashback_earned',
+                        'amount' => $rewards['cashback'],
+                        'order_id' => $order->id,
+                        'description' => "إعادة احتساب: كاش باك من الطلب {$order->order_number}"
+                    ]);
+                }
+            }
+
+            $wallet->points = $totalPoints;
+            $wallet->cashback_balance = $totalCashback;
+            $wallet->total_spent = $totalSpent;
+            $wallet->save();
+
+            return $wallet;
+        });
+    }
+    /**
+     * Normalize phone number to 9665XXXXXXXX format.
+     */
+    protected function normalizePhoneNumber($phone)
+    {
+        $normalizedPhone = preg_replace('/\D/', '', $phone);
+        
+        // Remove leading 966 if it exists to clean up
+        if (str_starts_with($normalizedPhone, '966')) {
+            $normalizedPhone = substr($normalizedPhone, 3);
+        }
+        
+        // Remove leading zero
+        if (str_starts_with($normalizedPhone, '0')) {
+            $normalizedPhone = substr($normalizedPhone, 1);
+        }
+        
+        // Prepend 966 to 9-digit Saudi numbers
+        if (strlen($normalizedPhone) === 9 && str_starts_with($normalizedPhone, '5')) {
+            $normalizedPhone = '966' . $normalizedPhone;
+        } else {
+            // If not a standard 9-digit Saudi number, re-attach original prefix if it was 966
+            if (str_starts_with($phone, '966') || str_starts_with($phone, '+966')) {
+                $normalizedPhone = '966' . $normalizedPhone;
+            }
+        }
+
+        return $normalizedPhone;
+    }
+
+    /**
+     * Apply wallet redemption (deduct points/cashback and create transactions).
+     */
+    protected function applyWalletRedemption(Order $order)
+    {
+        if ($order->points_used <= 0 && $order->cashback_used <= 0) {
+            return;
+        }
+
+        $normalizedPhone = $this->normalizePhoneNumber($order->phone);
+        
+        DB::transaction(function () use ($order, $normalizedPhone) {
+            $wallet = CustomerWallet::where('phone', $normalizedPhone)
+                ->where('restaurant_id', $order->restaurant_id)
+                ->first();
+
+            if (!$wallet) return;
+
+            if ($order->points_used > 0) {
+                $wallet->points -= (int)$order->points_used;
+                WalletTransaction::create([
+                    'customer_phone' => $normalizedPhone,
+                    'restaurant_id' => $order->restaurant_id,
+                    'type' => 'points_used',
+                    'amount' => (int)$order->points_used,
+                    'order_id' => $order->id,
+                    'description' => "استخدام نقاط في الطلب {$order->order_number}"
+                ]);
+            }
+
+            if ($order->cashback_used > 0) {
+                $wallet->cashback_balance -= (float)$order->cashback_used;
+                WalletTransaction::create([
+                    'customer_phone' => $normalizedPhone,
+                    'restaurant_id' => $order->restaurant_id,
+                    'type' => 'cashback_used',
+                    'amount' => (float)$order->cashback_used,
+                    'order_id' => $order->id,
+                    'description' => "استخدام كاش باك في الطلب {$order->order_number}"
+                ]);
+            }
+
+            $wallet->save();
+        });
     }
 }

@@ -7,13 +7,80 @@ use App\Models\CustomerWallet;
 use App\Models\WalletTransaction;
 use App\Models\Restaurant;
 
+use App\Traits\HasLoyaltyRewards;
+
 class WalletController extends Controller
 {
+    use HasLoyaltyRewards;
     public function getBalance(Request $request, $slug)
     {
-        $phone = $this->normalizePhone($request->query('phone'));
+        $phoneRaw = $request->query('phone');
+        $phone = $this->normalizePhoneNumber($phoneRaw);
+        
         if (!$phone) {
             return response()->json(['success' => false, 'message' => 'Phone required'], 400);
+        }
+
+        $restaurant = Restaurant::where('slug', $slug)->first();
+        if (!$restaurant) {
+            \Illuminate\Support\Facades\Log::warning('Wallet API - Restaurant not found', ['slug' => $slug]);
+            return response()->json(['success' => false, 'message' => 'Restaurant not found'], 404);
+        }
+
+        $wallet = CustomerWallet::where('phone', $phone)
+            ->where('restaurant_id', $restaurant->id)
+            ->first();
+
+        if (!$wallet) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا توجد محفظة مرتبطة بهذا الرقم'
+            ], 404);
+        }
+
+        $transactions = WalletTransaction::where('customer_phone', $phone)
+            ->where('restaurant_id', $restaurant->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'points' => $wallet->points,
+            'cashback_balance' => (float) $wallet->cashback_balance,
+            'total_spent' => (float) $wallet->total_spent,
+            'transactions' => $transactions,
+            'normalized_phone' => $phone,
+            'settings' => [
+                'min_points_to_redeem' => $restaurant->min_points_to_redeem,
+                'points_redeem_value' => $restaurant->points_redeem_value,
+                'min_cashback_to_redeem' => $restaurant->min_cashback_to_redeem,
+                'max_wallet_discount_percentage' => $restaurant->max_wallet_discount_percentage,
+                'min_order_amount_for_wallet_redeem' => $restaurant->min_order_amount_for_wallet_redeem,
+            ]
+        ]);
+    }
+
+    /**
+     * Local wrapper for backward compatibility within this controller if needed, 
+     * but now pointing to the trait's unified logic.
+     */
+    protected function normalizePhone($phone)
+    {
+        return $this->normalizePhoneNumber($phone);
+    }
+
+    public function getWalletByPhone(Request $request, $phoneRaw)
+    {
+        $phone = $this->normalizePhone($phoneRaw);
+        
+        if (!$phone) {
+            return response()->json(['success' => false, 'message' => 'Phone required'], 400);
+        }
+        
+        $slug = $request->query('slug');
+        if (!$slug) {
+            return response()->json(['success' => false, 'message' => 'Restaurant slug required'], 400);
         }
 
         $restaurant = Restaurant::where('slug', $slug)->first();
@@ -43,73 +110,8 @@ class WalletController extends Controller
             'points' => $wallet->points,
             'cashback_balance' => (float) $wallet->cashback_balance,
             'total_spent' => (float) $wallet->total_spent,
-            'transactions' => $transactions
-        ]);
-    }
-
-    protected function normalizePhone($phone)
-    {
-        if (!$phone) return null;
-        
-        // Remove all non-digits
-        $normalized = preg_replace('/\D/', '', $phone);
-        
-        // 1. If starts with 966, remove it temporarily to clean up
-        if (str_starts_with($normalized, '966')) {
-            $normalized = substr($normalized, 3);
-        }
-        
-        // 2. Remove leading zero if exists
-        if (str_starts_with($normalized, '0')) {
-            $normalized = substr($normalized, 1);
-        }
-        
-        // 3. Prepend 966 to 9-digit Saudi numbers starting with 5
-        if (strlen($normalized) === 9 && str_starts_with($normalized, '5')) {
-            $normalized = '966' . $normalized;
-        } else {
-            // Fallback for non-standard numbers that originally had 966
-            if (str_starts_with($phone, '966') || str_starts_with($phone, '+966')) {
-                $normalized = '966' . $normalized;
-            }
-        }
-
-        return $normalized;
-    }
-
-    public function getWalletByPhone(Request $request, $phone)
-    {
-        $phone = $this->normalizePhone($phone);
-        if (!$phone) {
-            return response()->json(['success' => false, 'message' => 'Phone required'], 400);
-        }
-        
-        $slug = $request->query('slug');
-        if (!$slug) {
-            return response()->json(['success' => false, 'message' => 'Restaurant slug required'], 400);
-        }
-
-        $restaurant = Restaurant::where('slug', $slug)->first();
-        if (!$restaurant) {
-            return response()->json(['success' => false, 'message' => 'Restaurant not found'], 404);
-        }
-
-        $wallet = CustomerWallet::where('phone', $phone)
-            ->where('restaurant_id', $restaurant->id)
-            ->first();
-
-        if (!$wallet) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لا توجد محفظة مرتبطة بهذا الرقم'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'points' => $wallet->points,
-            'cashback_balance' => (float) $wallet->cashback_balance,
-            'total_spent' => (float) $wallet->total_spent
+            'transactions' => $transactions,
+            'normalized_phone' => $phone
         ]);
     }
 
@@ -184,6 +186,34 @@ class WalletController extends Controller
             'wallet_before' => $walletBefore,
             'wallet_after' => $walletAfter,
             'transactions_created' => $transactions
+        ]);
+    }
+
+    public function recalculate(Request $request, $phone)
+    {
+        $restaurant = Restaurant::where('slug', $request->query('slug'))->first();
+        if (!$restaurant) {
+            return response()->json(['success' => false, 'message' => 'Restaurant not found'], 404);
+        }
+
+        $wallet = $this->recalculateWallet($phone, $restaurant->id);
+
+        if (!$wallet) {
+            return response()->json(['success' => false, 'message' => 'Recalculation failed'], 500);
+        }
+
+        $transactions = WalletTransaction::where('customer_phone', $wallet->phone)
+            ->where('restaurant_id', $restaurant->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Wallet recalculated successfully',
+            'points' => $wallet->points,
+            'cashback_balance' => (float)$wallet->cashback_balance,
+            'transactions_count' => $transactions->count(),
+            'wallet' => $wallet
         ]);
     }
 }

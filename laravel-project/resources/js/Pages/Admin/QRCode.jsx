@@ -45,7 +45,7 @@ const css = `
   background:${SURF}; border-radius:16px; border:1px solid ${BORDER};
   box-shadow:0 4px 16px rgba(0,0,0,0.04); overflow:hidden; display:flex;
   flex-direction:column; align-items:center; padding:1.5rem; gap:.8rem;
-  transition:box-shadow .2s;
+  transition:box-shadow .2s; position:relative;
 }
 .qr-card:hover { box-shadow:0 8px 28px rgba(0,0,0,0.09); }
 .qr-card img { border-radius:10px; border:1px solid ${BORDER}; }
@@ -110,7 +110,7 @@ function PrintOverlay({ qr, restaurant, onClose }) {
     );
 }
 
-export default function QRCode({ qrCodes, branches, restaurant }) {
+export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }) {
     const { flash } = usePage().props;
 
     const { data, setData, post, processing, reset, errors } = useForm({
@@ -217,6 +217,35 @@ export default function QRCode({ qrCodes, branches, restaurant }) {
 
                     {/* ── QR LIST ── */}
                     <div>
+                        {systemQrs.length > 0 && (
+                            <div style={{ marginBottom: '3rem' }}>
+                                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem', color: GOLD }}>رموز النظام الأساسية</h2>
+                                <div className="cards-grid">
+                                    {systemQrs.map(qr => (
+                                        <div key={qr.id} className="qr-card" style={{ borderColor: 'rgba(201,168,76,0.3)', background: '#FFFCF5' }}>
+                                            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: GOLD, color: '#fff', fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>نظامي</div>
+                                            <img
+                                                src={qrUrl(qr.url)}
+                                                alt={`QR ${qr.id}`}
+                                                width={QR_SIZE}
+                                                height={QR_SIZE}
+                                            />
+                                            <div className="qr-card-info">
+                                                <div className="qr-card-name">{qr.name}</div>
+                                                <div className="qr-card-sub">{qr.branch ? qr.branch.name_ar : 'المطعم الرئيسي'}</div>
+                                            </div>
+                                            <div className="qr-actions">
+                                                <button className="btn-action" onClick={() => handleDownload(qr)}>⬇️ تحميل</button>
+                                                <button className="btn-action" onClick={() => setPrintQr(qr)}>🖨️ طباعة</button>
+                                            </div>
+                                            <div style={{ fontSize:'.7rem', color:MUTED, wordBreak:'break-all', textAlign:'center', direction:'ltr', padding:'0 .5rem' }}>{qr.url}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '1.2rem' }}>رموز مخصصة</h2>
                         {qrCodes.length === 0 ? (
                             <div className="empty-state">
                                 <div style={{ marginBottom: '1.5rem', opacity: 0.5 }}>

@@ -264,6 +264,9 @@ export default function Menu({ slug }) {
     const [isFetchingWallet, setIsFetchingWallet] = useState(false);
     const [walletLookupError, setWalletLookupError] = useState(null);
     const [walletNotFound, setWalletNotFound] = useState(false);
+    const [redeemPoints, setRedeemPoints] = useState(0);
+    const [redeemCashback, setRedeemCashback] = useState(0);
+    const [walletInfo, setWalletInfo] = useState(null);
 
     // Coupon States
     const [couponCode, setCouponCode] = useState('');
@@ -271,9 +274,15 @@ export default function Menu({ slug }) {
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     const [couponError, setCouponError] = useState(null);
 
+    const walletPointsDiscount = (redeemPoints > 0 && restaurant?.min_points_to_redeem > 0) 
+        ? (redeemPoints / restaurant.min_points_to_redeem) * restaurant.points_redeem_value 
+        : 0;
+    const walletCashbackDiscount = redeemCashback;
+    const totalWalletDiscount = walletPointsDiscount + walletCashbackDiscount;
+
     const discountAmount = appliedCoupon ? parseFloat(appliedCoupon.discount_amount) : 0;
     const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
-    const taxableAmount  = Math.max(0, cartSubtotal - discountAmount);
+    const taxableAmount  = Math.max(0, cartSubtotal - discountAmount - totalWalletDiscount);
     const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
     const cartTax        = taxableAmount * taxRate;
     const cartGrandTotal = taxableAmount + cartTax;
@@ -319,6 +328,27 @@ export default function Menu({ slug }) {
     });
 
     const tr = (key) => t[key]?.[lang] ?? t[key]?.ar ?? '';
+
+    /* ── Auto-fetch wallet info during checkout ── */
+    useEffect(() => {
+        if (isCheckoutOpen && orderForm.phone.length === 9 && orderForm.phone.startsWith('5')) {
+            const p = `966${orderForm.phone}`;
+            fetch(`/api/${restaurant.slug}/wallet?phone=${p}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setWalletInfo(data);
+                    } else {
+                        setWalletInfo(null);
+                    }
+                })
+                .catch(() => setWalletInfo(null));
+        } else if (!isCheckoutOpen) {
+            setWalletInfo(null);
+            setRedeemPoints(0);
+            setRedeemCashback(0);
+        }
+    }, [orderForm.phone, isCheckoutOpen, restaurant?.slug]);
 
     /* ── Read QR params from URL and auto-apply ── */
     useEffect(() => {
@@ -393,7 +423,10 @@ export default function Menu({ slug }) {
                     // 1. QR param: auto-select branch
                     const qrBranchId = sessionStorage.getItem(`sv_qr_branch_${slug}`);
                     if (qrBranchId) {
-                        const qrBranch = branchList.find(b => String(b.id) === String(qrBranchId));
+                        const qrBranch = branchList.find(b => 
+                            String(b.id) === String(qrBranchId) || 
+                            (b.slug && String(b.slug) === String(qrBranchId))
+                        );
                         if (qrBranch) {
                             setSelectedBranch(qrBranch);
                             localStorage.setItem(`sv_branch_${slug}`, JSON.stringify(qrBranch));
@@ -618,7 +651,9 @@ export default function Menu({ slug }) {
                     notes,
                     cart,
                     branch_id: selectedBranch?.id,
-                    coupon_code: appliedCoupon?.code
+                    coupon_code: appliedCoupon?.code,
+                    points_to_redeem: redeemPoints,
+                    cashback_to_redeem: redeemCashback
                 })
             });
             
@@ -1233,6 +1268,110 @@ export default function Menu({ slug }) {
                                         {couponError && <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.3rem' }}>{couponError}</div>}
                                     </div>
 
+                                    {/* Wallet Redemption Section */}
+                                    {walletInfo && (walletInfo.points > 0 || walletInfo.cashback_balance > 0) && (
+                                        <div style={{ marginBottom: '1rem', padding: '1rem', background: '#fff', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', color: '#1A1714' }}>
+                                                {lang === 'ar' ? 'استخدام المحفظة والمكافآت' : 'Use Wallet & Rewards'}
+                                            </div>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {/* Points Redemption */}
+                                                {restaurant.points_enabled && walletInfo.points > 0 && (
+                                                    <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                            <span style={{ fontSize: '0.8rem', color: '#6B6460' }}>
+                                                                ⭐ {lang === 'ar' ? `رصيدك: ${walletInfo.points} نقطة` : `Balance: ${walletInfo.points} pts`}
+                                                            </span>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>
+                                                                {redeemPoints > 0 ? `-${walletPointsDiscount.toFixed(2)} ${tr('sar')}` : ''}
+                                                            </span>
+                                                        </div>
+                                                        {walletInfo.points < restaurant.min_points_to_redeem ? (
+                                                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                                                                {lang === 'ar' ? `لا يمكنك استخدام النقاط قبل الوصول إلى ${restaurant.min_points_to_redeem} نقطة` : `Min ${restaurant.min_points_to_redeem} points required`}
+                                                            </div>
+                                                        ) : cartSubtotal < restaurant.min_order_amount_for_wallet_redeem ? (
+                                                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                                                                {lang === 'ar' ? `الحد الأدنى للطلب لاستخدام المحفظة هو ${restaurant.min_order_amount_for_wallet_redeem} ر.س` : `Min order for wallet use is ${restaurant.min_order_amount_for_wallet_redeem} SAR`}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                                <select 
+                                                                    className="sv-form-input" 
+                                                                    style={{ padding: '0.3rem', fontSize: '0.8rem', width: 'auto' }}
+                                                                    value={redeemPoints}
+                                                                    onChange={e => {
+                                                                        const val = parseInt(e.target.value);
+                                                                        // Check max discount percentage
+                                                                        const potentialDiscount = (val / restaurant.min_points_to_redeem) * restaurant.points_redeem_value + walletCashbackDiscount;
+                                                                        const maxDiscount = cartSubtotal * (restaurant.max_wallet_discount_percentage / 100);
+                                                                        if (potentialDiscount > maxDiscount) {
+                                                                            alert(lang === 'ar' ? `لا يمكن أن يتجاوز خصم المحفظة ${restaurant.max_wallet_discount_percentage}% من الطلب` : `Wallet discount cannot exceed ${restaurant.max_wallet_discount_percentage}%`);
+                                                                            return;
+                                                                        }
+                                                                        setRedeemPoints(val);
+                                                                    }}
+                                                                >
+                                                                    <option value="0">{lang === 'ar' ? 'عدم استخدام نقاط' : 'Don\'t use points'}</option>
+                                                                    {Array.from({ length: Math.floor(walletInfo.points / restaurant.min_points_to_redeem) }, (_, i) => (i + 1) * restaurant.min_points_to_redeem).map(p => (
+                                                                        <option key={p} value={p}>{p} {lang === 'ar' ? 'نقطة' : 'pts'}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Cashback Redemption */}
+                                                {restaurant.cashback_enabled && walletInfo.cashback_balance > 0 && (
+                                                    <div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                            <span style={{ fontSize: '0.8rem', color: '#6B6460' }}>
+                                                                💰 {lang === 'ar' ? `رصيدك: ${parseFloat(walletInfo.cashback_balance).toFixed(2)} ر.س` : `Balance: ${parseFloat(walletInfo.cashback_balance).toFixed(2)} SAR`}
+                                                            </span>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#166534' }}>
+                                                                {redeemCashback > 0 ? `-${redeemCashback.toFixed(2)} ${tr('sar')}` : ''}
+                                                            </span>
+                                                        </div>
+                                                        {walletInfo.cashback_balance < restaurant.min_cashback_to_redeem ? (
+                                                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                                                                {lang === 'ar' ? `لا يمكنك استخدام الكاش باك قبل الوصول إلى ${restaurant.min_cashback_to_redeem} ر.س` : `Min ${restaurant.min_cashback_to_redeem} SAR required`}
+                                                            </div>
+                                                        ) : cartSubtotal < restaurant.min_order_amount_for_wallet_redeem ? (
+                                                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                                                                {/* Already shown in points section if points are enabled, but good to have here too */}
+                                                                {lang === 'ar' ? `الحد الأدنى للطلب لاستخدام المحفظة هو ${restaurant.min_order_amount_for_wallet_redeem} ر.س` : `Min order for wallet use is ${restaurant.min_order_amount_for_wallet_redeem} SAR`}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                                <input 
+                                                                    type="range" 
+                                                                    min="0" 
+                                                                    max={Math.min(walletInfo.cashback_balance, cartSubtotal * (restaurant.max_wallet_discount_percentage / 100) - walletPointsDiscount)} 
+                                                                    step="1"
+                                                                    value={redeemCashback}
+                                                                    onChange={e => setRedeemCashback(parseFloat(e.target.value))}
+                                                                    style={{ flex: 1, accentColor: GOLD }}
+                                                                />
+                                                                <span style={{ fontSize: '0.85rem', fontWeight: 700, minWidth: '40px' }}>{redeemCashback}</span>
+                                                                <button 
+                                                                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                                                                    onClick={() => {
+                                                                        const maxAvailable = Math.min(walletInfo.cashback_balance, cartSubtotal * (restaurant.max_wallet_discount_percentage / 100) - walletPointsDiscount);
+                                                                        setRedeemCashback(maxAvailable);
+                                                                    }}
+                                                                >
+                                                                    {lang === 'ar' ? 'الأقصى' : 'Max'}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {appliedCoupon && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.9rem', color: '#16a34a', fontWeight: 700 }}>
                                             <span>{lang === 'ar' ? 'الخصم' : 'Discount'}</span>
@@ -1244,6 +1383,13 @@ export default function Menu({ slug }) {
                                         <span>{lang === 'ar' ? `الضريبة (${restaurant.tax_percentage ?? 8}%)` : `VAT (${restaurant.tax_percentage ?? 8}%)`}</span>
                                         <span>{cartTax.toFixed(2)} {tr('sar')}</span>
                                     </div>
+
+                                    {totalWalletDiscount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.9rem', color: '#16a34a', fontWeight: 700 }}>
+                                            <span>{lang === 'ar' ? 'خصم المحفظة' : 'Wallet Discount'}</span>
+                                            <span>-{totalWalletDiscount.toFixed(2)} {tr('sar')}</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem', color: '#1A1714', paddingTop: '0.6rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                                         <span>{tr('total')}</span>
                                         <span>{cartGrandTotal.toFixed(2)} {tr('sar')}</span>
@@ -1396,6 +1542,7 @@ export default function Menu({ slug }) {
                                         >
                                             {lang === 'ar' ? 'بحث برقم آخر' : 'Search Another Number'}
                                         </button>
+
                                     </div>
                                 )}
                             </div>

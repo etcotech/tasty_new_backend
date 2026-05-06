@@ -37,8 +37,32 @@ class QrCodeController extends Controller
             ->where('is_active', true)
             ->get();
 
+        // System QRs
+        $systemQrs = [];
+        
+        // 1. General Restaurant QR
+        $systemQrs[] = [
+            'id' => 'system-main',
+            'name' => 'المنيو العام للمطعم',
+            'url' => url('/' . $restaurant->slug),
+            'is_system' => true,
+            'branch' => null
+        ];
+
+        // 2. Branch QRs
+        foreach ($branches as $branch) {
+            $systemQrs[] = [
+                'id' => 'system-branch-' . $branch->id,
+                'name' => 'منيو فرع: ' . $branch->name_ar,
+                'url' => url('/' . $restaurant->slug . '?branch=' . ($branch->slug ?: $branch->id)),
+                'is_system' => true,
+                'branch' => $branch
+            ];
+        }
+
         return Inertia::render('Admin/QRCode', [
             'qrCodes'    => $qrCodes,
+            'systemQrs'  => $systemQrs,
             'branches'   => $branches,
             'restaurant' => $restaurant,
         ]);
@@ -65,7 +89,7 @@ class QrCodeController extends Controller
                 ->where('restaurant_id', $restaurant->id)
                 ->firstOrFail();
             
-            $url .= '?branch=' . $branch->id;
+            $url .= '?branch=' . $branch->slug;
             $branchId = $branch->id;
         }
 

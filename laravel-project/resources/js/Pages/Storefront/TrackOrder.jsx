@@ -278,6 +278,13 @@ export default function TrackOrder({ initialOrderNumber }) {
                                     </span>
                                 </div>
 
+                                {order.wallet_discount_amount > 0 && (
+                                    <div className="tr-detail-item" style={{ color: '#16a34a', fontWeight: 700 }}>
+                                        <span className="tr-detail-label" style={{ color: '#16a34a' }}>خصم المحفظة</span>
+                                        <span className="tr-val">-{parseFloat(order.wallet_discount_amount).toFixed(2)} ر.س</span>
+                                    </div>
+                                )}
+
                                 <div className="tr-items-list">
                                     {order.items.map(item => (
                                         <div key={item.id}>

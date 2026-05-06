@@ -14,6 +14,7 @@ class Restaurant extends Model
         'address_ar', 'address_en', 'is_open',
         'subtitle_ar', 'subtitle_en', 'google_review_url',
         'points_enabled', 'cashback_enabled', 'points_rate', 'cashback_percentage', 'min_order_amount', 'point_value',
+        'min_points_to_redeem', 'points_redeem_value', 'min_cashback_to_redeem', 'max_wallet_discount_percentage', 'min_order_amount_for_wallet_redeem',
     ];
 
     protected $casts = [
@@ -26,6 +27,11 @@ class Restaurant extends Model
         'cashback_percentage' => 'float',
         'min_order_amount' => 'float',
         'point_value' => 'float',
+        'min_points_to_redeem' => 'integer',
+        'points_redeem_value' => 'float',
+        'min_cashback_to_redeem' => 'float',
+        'max_wallet_discount_percentage' => 'float',
+        'min_order_amount_for_wallet_redeem' => 'float',
     ];
 
     public function categories()

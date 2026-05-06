@@ -43,12 +43,6 @@ class SettingsController extends Controller
             'subtitle_ar' => 'nullable|string|max:255',
             'subtitle_en' => 'nullable|string|max:255',
             'is_open' => 'boolean',
-            'points_enabled' => 'boolean',
-            'cashback_enabled' => 'boolean',
-            'points_rate' => 'required|integer|min:1',
-            'cashback_percentage' => 'required|numeric|min:0|max:100',
-            'min_order_amount' => 'required|numeric|min:0',
-            'point_value' => 'required|numeric|min:0',
             'logo_file' => 'nullable|image|max:2048',
             'google_review_url' => [
                 'nullable',
@@ -81,8 +75,6 @@ class SettingsController extends Controller
         unset($validated['logo_file']);
 
         // Ensure boolean values are correctly cast
-        $validated['points_enabled'] = $request->boolean('points_enabled');
-        $validated['cashback_enabled'] = $request->boolean('cashback_enabled');
         $validated['is_open'] = $request->boolean('is_open');
 
         $restaurant->update($validated);
@@ -159,6 +151,43 @@ class SettingsController extends Controller
 
         return redirect()->back()->with('success', 'تم حفظ إعدادات الموقع بنجاح');
     }
+    public function loyaltyIndex()
+    {
+        $restaurant = $this->getCurrentRestaurant();
 
+        if (!$restaurant) {
+            return redirect()->route('admin.restaurants.index');
+        }
+
+        return Inertia::render('Admin/LoyaltySettings', [
+            'restaurant' => $restaurant,
+        ]);
+    }
+
+    public function loyaltyUpdate(Request $request)
+    {
+        $restaurant = $this->getCurrentRestaurant();
+
+        $validated = $request->validate([
+            'points_enabled' => 'boolean',
+            'cashback_enabled' => 'boolean',
+            'points_rate' => 'required|integer|min:1',
+            'cashback_percentage' => 'required|numeric|min:0|max:100',
+            'min_order_amount' => 'required|numeric|min:0',
+            'point_value' => 'required|numeric|min:0',
+            'min_points_to_redeem' => 'required|integer|min:1',
+            'points_redeem_value' => 'required|numeric|min:0',
+            'min_cashback_to_redeem' => 'required|numeric|min:0',
+            'max_wallet_discount_percentage' => 'required|numeric|min:1|max:100',
+            'min_order_amount_for_wallet_redeem' => 'required|numeric|min:0',
+        ]);
+
+        $validated['points_enabled'] = $request->boolean('points_enabled');
+        $validated['cashback_enabled'] = $request->boolean('cashback_enabled');
+
+        $restaurant->update($validated);
+
+        return redirect()->back()->with('success', 'تم حفظ إعدادات الولاء بنجاح');
+    }
 }
 
