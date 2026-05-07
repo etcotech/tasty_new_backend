@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
 
-export default function Landing({ settings = {}, stats = {} }) {
+export default function Landing({ settings = {}, stats = {}, plans = [] }) {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     const slides = [
@@ -133,6 +133,27 @@ export default function Landing({ settings = {}, stats = {} }) {
                 .contact { padding: 80px 0; background: var(--primary); text-align: center; color: var(--white); }
                 .contact-title { font-size: 32px; margin-bottom: 32px; font-weight: 700; }
 
+                /* Pricing */
+                .pricing-section { padding: 80px 0; background: var(--secondary); }
+                .pricing-subtitle { text-align: center; font-size: 18px; color: var(--text); margin-bottom: 48px; font-weight: 600; opacity: 0.85; }
+                .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+                .pricing-card { background: var(--white); border-radius: 20px; padding: 36px 28px 32px; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s; position: relative; border: 2px solid transparent; }
+                .pricing-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(93,68,50,0.12); border-color: var(--accent); }
+                .pricing-card.popular { border-color: var(--accent); }
+                .popular-badge { position: absolute; top: -14px; right: 24px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 20px; }
+                .plan-name { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+                .plan-price { font-size: 42px; font-weight: 700; color: var(--accent); line-height: 1; }
+                .plan-price span { font-size: 18px; color: var(--text); font-weight: 600; opacity: 0.7; margin-right: 4px; }
+                .plan-cycle { font-size: 14px; color: var(--text); opacity: 0.6; margin-bottom: 24px; margin-top: 6px; }
+                .plan-divider { border: none; border-top: 1px solid var(--secondary); margin: 0 0 20px; }
+                .plan-features { list-style: none; padding: 0; margin: 0 0 28px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+                .plan-features li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); font-weight: 600; }
+                .plan-features li .check { color: var(--green); font-size: 16px; flex-shrink: 0; }
+                .plan-features li .cross { color: #ccc; font-size: 16px; flex-shrink: 0; }
+                .btn-plan { width: 100%; padding: 14px; background: var(--primary); color: var(--white); border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; text-align: center; display: block; text-decoration: none; font-family: inherit; }
+                .btn-plan:hover { background: var(--accent); }
+                .pricing-empty { text-align: center; padding: 40px; color: var(--text); opacity: 0.6; font-size: 18px; }
+
                 /* Footer */
                 .footer { background: var(--bg); padding: 48px 0 24px; border-top: 1px solid var(--secondary); }
                 .footer-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px; }
@@ -164,6 +185,7 @@ export default function Landing({ settings = {}, stats = {} }) {
                     <nav className="nav-links">
                         <a href="#about">نبذة عن النظام</a>
                         <a href="#features">المميزات</a>
+                        <a href="#pricing">الباقات</a>
                         <a href="#stats">الأرقام</a>
                         <a href="#contact">اتصل بنا</a>
                     </nav>
@@ -233,6 +255,56 @@ export default function Landing({ settings = {}, stats = {} }) {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </section>
+
+                {/* Pricing Plans */}
+                <section className="pricing-section" id="pricing">
+                    <div className="container">
+                        <h2 className="section-title">الباقات المناسبة لمطعمك</h2>
+                        <p className="pricing-subtitle">اختر الباقة التي تناسب حجم مطعمك وابدأ التجربة</p>
+                        {plans.length === 0 ? (
+                            <div className="pricing-empty">لا توجد باقات متاحة حالياً. تواصل معنا للمزيد.</div>
+                        ) : (
+                            <div className="pricing-grid">
+                                {plans.map((plan, idx) => {
+                                    const isPopular = idx === Math.floor(plans.length / 2) && plans.length > 1;
+                                    const billingLabel = plan.billing_cycle === 'yearly' ? '/ سنة' : '/ شهر';
+                                    const featureItems = [
+                                        plan.branches_limit ? `${plan.branches_limit} فرع` : 'فروع غير محدودة',
+                                        plan.monthly_orders_limit ? `${plan.monthly_orders_limit} طلب شهرياً` : 'طلبات غير محدودة',
+                                        plan.has_kds && 'شاشة المطبخ KDS',
+                                        plan.has_qr && 'طلبات QR',
+                                        plan.has_ai_automation && 'أتمتة ذكاء اصطناعي',
+                                        plan.has_automation && 'أتمتة الطلبات',
+                                        plan.has_smart_orders && 'الطلبات الذكية',
+                                        plan.reports_level === 'pro' ? 'تقارير احترافية' : plan.reports_level === 'advanced' ? 'تقارير متقدمة' : 'تقارير أساسية',
+                                    ].filter(Boolean);
+                                    return (
+                                        <div key={plan.id} className={`pricing-card ${isPopular ? 'popular' : ''}`}>
+                                            {isPopular && <div className="popular-badge">الأكثر شيوعاً</div>}
+                                            <div className="plan-name">{plan.name_ar || plan.name_en}</div>
+                                            <div className="plan-price">
+                                                {Number(plan.price) === 0 ? 'مجاني' : <>{plan.price}<span>ر.س</span></>}
+                                            </div>
+                                            <div className="plan-cycle">{Number(plan.price) === 0 ? 'للأبد' : billingLabel}</div>
+                                            <hr className="plan-divider" />
+                                            <ul className="plan-features">
+                                                {featureItems.map((f, i) => (
+                                                    <li key={i}><span className="check">✓</span>{f}</li>
+                                                ))}
+                                            </ul>
+                                            <a
+                                                href={`/restaurant-signup?plan=${plan.id}`}
+                                                className="btn-plan"
+                                            >
+                                                {Number(plan.price) === 0 ? 'ابدأ مجاناً' : 'اختر هذه الباقة'}
+                                            </a>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -329,6 +401,7 @@ export default function Landing({ settings = {}, stats = {} }) {
                     <div className="footer-links">
                         <a href="#about">نبذة عن النظام</a>
                         <a href="#features">المميزات</a>
+                        <a href="#pricing">الباقات</a>
                         <a href="#stats">الأرقام</a>
                         <Link href="/restaurant-signup">سجل مطعمك</Link>
                         <Link href="/login">تسجيل الدخول</Link>

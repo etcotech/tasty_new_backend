@@ -55,12 +55,31 @@ Route::get('/', function () {
         // Fallback to 0
     }
 
+    // Load active plans for the public pricing section
+    $plans = [];
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('plans')) {
+            $plans = \App\Models\Plan::where('is_active', true)
+                ->orderBy('price', 'asc')
+                ->get([
+                    'id', 'name_ar', 'name_en', 'price', 'billing_cycle',
+                    'branches_limit', 'monthly_orders_limit', 'users_limit',
+                    'has_kds', 'has_qr', 'has_automation', 'has_smart_orders',
+                    'has_ai_automation', 'reports_level', 'allowed_order_types',
+                ])
+                ->toArray();
+        }
+    } catch (\Exception $e) {
+        // Fallback to empty
+    }
+
     return Inertia::render('SaaS/Landing', [
         'settings' => array_merge($config, [
             'site_logo' => $setting?->site_logo ? asset('storage/' . $setting->site_logo) : null,
             'landing_logo' => isset($config['landing_logo']) ? asset('storage/' . $config['landing_logo']) : null,
         ]),
-        'stats' => $stats
+        'stats' => $stats,
+        'plans' => $plans,
     ]);
 });
 
@@ -141,7 +160,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::middleware('feature:qr')->group(function () {
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr-codes.index');
         Route::post('/qr-codes', [QrCodeController::class, 'store'])->name('qr-codes.store');
-        Route::delete('/qr-codes/{qrCode}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
+        Route::post('/qr-codes/{id}/regenerate', [QrCodeController::class, 'regenerate'])->name('qr-codes.regenerate');
+        Route::post('/qr-codes/regenerate-all', [QrCodeController::class, 'regenerateAll'])->name('qr-codes.regenerate-all');
+        Route::delete('/qr-codes/{id}', [QrCodeController::class, 'destroy'])->name('qr-codes.destroy');
     });
 
     // Coupons

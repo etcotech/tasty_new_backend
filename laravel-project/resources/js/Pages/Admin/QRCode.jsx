@@ -40,7 +40,7 @@ const css = `
 .btn-create:disabled { opacity:.65; cursor:not-allowed; transform:none; }
 
 /* Cards grid */
-.cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1.5rem; }
+.cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.5rem; }
 .qr-card {
   background:${SURF}; border-radius:16px; border:1px solid ${BORDER};
   box-shadow:0 4px 16px rgba(0,0,0,0.04); overflow:hidden; display:flex;
@@ -49,12 +49,12 @@ const css = `
 }
 .qr-card:hover { box-shadow:0 8px 28px rgba(0,0,0,0.09); }
 .qr-card img { border-radius:10px; border:1px solid ${BORDER}; }
-.qr-card-info { text-align:center; }
-.qr-card-name { font-weight:700; font-size:1rem; }
-.qr-card-sub { font-size:.82rem; color:${MUTED}; margin-top:.2rem; }
-.qr-actions { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; }
-.btn-action { height:36px; padding:0 14px; border-radius:8px; border:1.5px solid ${BORDER};
-  font-size:.82rem; font-weight:700; cursor:pointer; background:${SURF};
+.qr-card-info { text-align:center; width:100%; }
+.qr-card-name { font-weight:700; font-size:1rem; margin-bottom:0.2rem; }
+.qr-card-sub { font-size:.82rem; color:${MUTED}; }
+.qr-actions { display:flex; gap:.4rem; flex-wrap:wrap; justify-content:center; width:100%; margin-top:0.5rem; }
+.btn-action { height:36px; padding:0 10px; border-radius:8px; border:1.5px solid ${BORDER};
+  font-size:.75rem; font-weight:700; cursor:pointer; background:${SURF};
   font-family:inherit; transition:all .2s; display:flex; align-items:center; gap:.4rem; }
 .btn-action:hover { border-color:${GOLD}; color:${GOLD}; }
 .btn-action.danger:hover { border-color:#e74c3c; color:#e74c3c; }
@@ -75,6 +75,15 @@ const css = `
   .print-area { position:fixed; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; background:#fff; }
 }
+
+.status-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 800; display: inline-block; vertical-align: middle; }
+.status-badge.active { background: #DEF7EC; color: #03543F; }
+.status-badge.old { background: #FEF3C7; color: #92400E; }
+.status-badge.deleted { background: #FDE2E2; color: #9B1C1C; }
+
+.meta-row { width:100%; font-size:0.75rem; color:${MUTED}; display:flex; flex-direction:column; gap:0.25rem; border-top:1px solid ${BORDER}; padding-top:0.75rem; margin-top:0.25rem; }
+.meta-item { display:flex; justify-content:space-between; gap:1rem; }
+.meta-val { color:${GOLD}; font-weight:700; direction:ltr; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 `;
 
 /* ─── Print overlay ─── */
@@ -110,6 +119,13 @@ function PrintOverlay({ qr, restaurant, onClose }) {
     );
 }
 
+const StatusBadge = ({ status }) => {
+    let cls = 'active';
+    if (status === 'قديم') cls = 'old';
+    if (status === 'محذوف') cls = 'deleted';
+    return <span className={`status-badge ${cls}`}>{status}</span>;
+};
+
 export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }) {
     const { flash } = usePage().props;
 
@@ -136,9 +152,26 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
         });
     };
 
-    const handleDelete = (id) => {
-        if (!confirm('هل تريد حذف هذا الرمز؟')) return;
+    const handleDelete = (id, trashed) => {
+        const msg = trashed ? 'هل تريد حذف هذا الرمز نهائياً؟' : 'هل تريد نقل هذا الرمز إلى المحذوفات؟';
+        if (!confirm(msg)) return;
         router.delete(route('admin.qr-codes.destroy', id));
+    };
+
+    const handleRegenerate = (id) => {
+        if (!confirm('سيتم تحديث الرابط ليتوافق مع النطاق الحالي والفرع المختار. هل تريد الاستمرار؟')) return;
+        router.post(route('admin.qr-codes.regenerate', id));
+    };
+
+    const handleRegenerateAll = () => {
+        if (!confirm('سيتم تحديث جميع الروابط لتتوافق مع النطاق الحالي. مفيد بعد تغيير الدومين. هل تريد الاستمرار؟')) return;
+        router.post(route('admin.qr-codes.regenerate-all'));
+    };
+
+    const handleCopy = (url) => {
+        navigator.clipboard.writeText(url);
+        setToast('تم نسخ الرابط بنجاح 📋');
+        setTimeout(() => setToast(null), 3000);
     };
 
     const handleDownload = (qr) => {
@@ -164,12 +197,24 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
             )}
 
             <div className="qr-page" dir="rtl">
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.8rem' }}>
-                    <h1 style={{ fontSize:'1.8rem', fontWeight:800 }}>رموز QR</h1>
-                    <span style={{ fontSize:'.9rem', color:MUTED, background:'rgba(201,168,76,.1)',
-                        padding:'.4rem 1rem', borderRadius:100, fontWeight:700 }}>
-                        {qrCodes.length} رمز
-                    </span>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1.8rem' }}>
+                    <div>
+                        <h1 style={{ fontSize:'1.8rem', fontWeight:800 }}>رموز QR</h1>
+                        <p style={{ color:MUTED, fontSize:'0.9rem', marginTop:'0.2rem' }}>إدارة دورة حياة رموز المنيو وتحديث الروابط</p>
+                    </div>
+                    <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+                        <button 
+                            className="btn-action" 
+                            style={{ background:GOLD, color:'#fff', border:'none', height:'42px', padding:'0 1.25rem' }}
+                            onClick={handleRegenerateAll}
+                        >
+                            🔄 تحديث الكل
+                        </button>
+                        <span style={{ fontSize:'.9rem', color:MUTED, background:'rgba(201,168,76,.1)',
+                            padding:'.4rem 1rem', borderRadius:100, fontWeight:700 }}>
+                            {qrCodes.length + systemQrs.length} رمز
+                        </span>
+                    </div>
                 </div>
 
                 <div className="qr-grid">
@@ -223,7 +268,9 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
                                 <div className="cards-grid">
                                     {systemQrs.map(qr => (
                                         <div key={qr.id} className="qr-card" style={{ borderColor: 'rgba(201,168,76,0.3)', background: '#FFFCF5' }}>
-                                            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: GOLD, color: '#fff', fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>نظامي</div>
+                                            <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem' }}>
+                                                <StatusBadge status={qr.status_label} />
+                                            </div>
                                             <img
                                                 src={qrUrl(qr.url)}
                                                 alt={`QR ${qr.id}`}
@@ -235,10 +282,13 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
                                                 <div className="qr-card-sub">{qr.branch ? qr.branch.name_ar : 'المطعم الرئيسي'}</div>
                                             </div>
                                             <div className="qr-actions">
+                                                <button className="btn-action" onClick={() => handleCopy(qr.url)} title="نسخ الرابط">🔗 نسخ</button>
                                                 <button className="btn-action" onClick={() => handleDownload(qr)}>⬇️ تحميل</button>
                                                 <button className="btn-action" onClick={() => setPrintQr(qr)}>🖨️ طباعة</button>
                                             </div>
-                                            <div style={{ fontSize:'.7rem', color:MUTED, wordBreak:'break-all', textAlign:'center', direction:'ltr', padding:'0 .5rem' }}>{qr.url}</div>
+                                            <div className="meta-row">
+                                                <div className="meta-item"><span>الرابط:</span> <span className="meta-val" title={qr.url}>{qr.url}</span></div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -265,14 +315,15 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
                                     </svg>
                                 </div>
                                 <div style={{ fontWeight:700, fontSize:'1.1rem' }}>لا توجد رموز QR بعد</div>
-                                <div style={{ marginTop:'.5rem', fontSize:'.9rem' }}>
-                                    أنشئ أول رمز من النموذج على اليمين
-                                </div>
+                                <div style={{ marginTop:'.5rem', fontSize:'.9rem' }}>أنشئ أول رمز من النموذج على اليمين</div>
                             </div>
                         ) : (
                             <div className="cards-grid">
                                 {qrCodes.map(qr => (
-                                    <div key={qr.id} className="qr-card">
+                                    <div key={qr.id} className="qr-card" style={{ opacity: qr.deleted_at ? 0.7 : 1 }}>
+                                        <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem' }}>
+                                            <StatusBadge status={qr.status_label} />
+                                        </div>
                                         <img
                                             src={qrUrl(qr.url)}
                                             alt={`QR ${qr.id}`}
@@ -290,34 +341,23 @@ export default function QRCode({ qrCodes, systemQrs = [], branches, restaurant }
                                         </div>
 
                                         <div className="qr-actions">
-                                            <button
-                                                className="btn-action"
-                                                onClick={() => handleDownload(qr)}
-                                                title="تحميل"
-                                            >
-                                                ⬇️ تحميل
-                                            </button>
-                                            <button
-                                                className="btn-action"
-                                                onClick={() => setPrintQr(qr)}
-                                                title="طباعة"
-                                            >
-                                                🖨️ طباعة
-                                            </button>
+                                            <button className="btn-action" onClick={() => handleCopy(qr.url)} title="نسخ الرابط">🔗 نسخ</button>
+                                            <button className="btn-action" onClick={() => handleDownload(qr)} title="تحميل">⬇️ تحميل</button>
+                                            <button className="btn-action" onClick={() => setPrintQr(qr)} title="طباعة">🖨️ طباعة</button>
+                                            <button className="btn-action" onClick={() => handleRegenerate(qr.id)} title="تحديث الرابط">🔄</button>
                                             <button
                                                 className="btn-action danger"
-                                                onClick={() => handleDelete(qr.id)}
-                                                title="حذف"
+                                                onClick={() => handleDelete(qr.id, qr.deleted_at)}
+                                                title={qr.deleted_at ? "حذف نهائي" : "حذف"}
                                             >
-                                                🗑️ حذف
+                                                🗑️
                                             </button>
                                         </div>
 
-                                        <div style={{
-                                            fontSize:'.7rem', color:MUTED, wordBreak:'break-all',
-                                            textAlign:'center', direction:'ltr', padding:'0 .5rem',
-                                        }}>
-                                            {qr.url}
+                                        <div className="meta-row">
+                                            <div className="meta-item"><span>الرابط:</span> <span className="meta-val" title={qr.url}>{qr.url}</span></div>
+                                            {qr.branch && <div className="meta-item"><span>سلوج الفرع:</span> <span className="meta-val">{qr.branch.slug}</span></div>}
+                                            <div className="meta-item"><span>التاريخ:</span> <span className="meta-val">{new Date(qr.created_at).toLocaleDateString('ar-SA')}</span></div>
                                         </div>
                                     </div>
                                 ))}

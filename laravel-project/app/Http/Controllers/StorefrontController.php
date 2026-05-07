@@ -28,7 +28,7 @@ class StorefrontController extends Controller
         }
 
         $branches = $restaurant->branches()->where('is_active', true)->get([
-            'id', 'name_ar', 'name_en', 'phone', 'address'
+            'id', 'name_ar', 'name_en', 'phone', 'address', 'slug'
         ]);
 
         $categories = Category::where('restaurant_id', $restaurant->id)

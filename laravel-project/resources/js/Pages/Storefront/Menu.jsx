@@ -451,9 +451,9 @@ export default function Menu({ slug }) {
                         }
                         setIsBranchModalOpen(false);
                     }
-                    // 4. Multiple branches but none selected -> we stay at restaurant level (as per previous requirements)
+                    // 4. Multiple branches but none selected -> Show branch selection modal (General QR)
                     else if (branchList.length > 1 && !selectedBranch) {
-                        setIsBranchModalOpen(false);
+                        setIsBranchModalOpen(true);
                     }
                 }
 

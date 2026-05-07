@@ -28,10 +28,33 @@ class QrCodeController extends Controller
             }
         }
 
-        $qrCodes = QrCode::with('branch')
+        $qrCodes = QrCode::withTrashed()
+            ->with('branch')
             ->where('restaurant_id', $restaurant->id)
             ->latest()
-            ->get();
+            ->get()
+            ->map(function($qr) use ($restaurant) {
+                $currentBaseUrl = url('/');
+                $isOld = !str_starts_with($qr->url, $currentBaseUrl);
+                
+                // Also check if branch slug matches if branch exists
+                if (!$isOld && $qr->branch) {
+                    $expectedSuffix = '?branch=' . ($qr->branch->slug ?: $qr->branch->id);
+                    if (!str_contains($qr->url, $expectedSuffix)) {
+                        $isOld = true;
+                    }
+                }
+
+                $status = 'نشط';
+                if ($qr->trashed()) {
+                    $status = 'محذوف';
+                } elseif ($isOld) {
+                    $status = 'قديم';
+                }
+
+                $qr->status_label = $status;
+                return $qr;
+            });
 
         $branches = Branch::where('restaurant_id', $restaurant->id)
             ->where('is_active', true)
@@ -46,7 +69,8 @@ class QrCodeController extends Controller
             'name' => 'المنيو العام للمطعم',
             'url' => url('/' . $restaurant->slug),
             'is_system' => true,
-            'branch' => null
+            'branch' => null,
+            'status_label' => 'نشط'
         ];
 
         // 2. Branch QRs
@@ -56,7 +80,8 @@ class QrCodeController extends Controller
                 'name' => 'منيو فرع: ' . $branch->name_ar,
                 'url' => url('/' . $restaurant->slug . '?branch=' . ($branch->slug ?: $branch->id)),
                 'is_system' => true,
-                'branch' => $branch
+                'branch' => $branch,
+                'status_label' => 'نشط'
             ];
         }
 
@@ -89,7 +114,7 @@ class QrCodeController extends Controller
                 ->where('restaurant_id', $restaurant->id)
                 ->firstOrFail();
             
-            $url .= '?branch=' . $branch->slug;
+            $url .= '?branch=' . ($branch->slug ?: $branch->id);
             $branchId = $branch->id;
         }
 
@@ -104,14 +129,69 @@ class QrCodeController extends Controller
         return back()->with('success', 'تم إنشاء رمز QR بنجاح');
     }
 
-    public function destroy(QrCode $qrCode)
+    public function regenerate(Request $request, $id)
     {
         $restaurant = $this->getCurrentRestaurant();
+        $qrCode = QrCode::withTrashed()->findOrFail($id);
+        
         if (!$restaurant || $qrCode->restaurant_id !== $restaurant->id) {
             abort(403, 'غير مصرح');
         }
 
+        $url = url('/' . $restaurant->slug);
+        if ($qrCode->branch_id) {
+            $branch = Branch::find($qrCode->branch_id);
+            if ($branch) {
+                $url .= '?branch=' . ($branch->slug ?: $branch->id);
+            }
+        }
+        
+        $qrCode->update([
+            'url' => $url,
+            'deleted_at' => null // Restore if it was deleted during regeneration? 
+            // Usually regenerate implies we want it active again.
+        ]);
+        
+        return back()->with('success', 'تم تحديث الرمز بنجاح');
+    }
+
+    public function regenerateAll()
+    {
+        $restaurant = $this->getCurrentRestaurant();
+        if (!$restaurant) {
+            abort(403);
+        }
+
+        $qrCodes = QrCode::where('restaurant_id', $restaurant->id)->get();
+        foreach ($qrCodes as $qrCode) {
+            $url = url('/' . $restaurant->slug);
+            if ($qrCode->branch_id) {
+                $branch = Branch::find($qrCode->branch_id);
+                if ($branch) {
+                    $url .= '?branch=' . ($branch->slug ?: $branch->id);
+                }
+            }
+            $qrCode->update(['url' => $url]);
+        }
+
+        return back()->with('success', 'تم تحديث جميع الرموز بنجاح');
+    }
+
+    public function destroy($id)
+    {
+        $restaurant = $this->getCurrentRestaurant();
+        $qrCode = QrCode::withTrashed()->findOrFail($id);
+
+        if (!$restaurant || $qrCode->restaurant_id !== $restaurant->id) {
+            abort(403, 'غير مصرح');
+        }
+
+        if ($qrCode->trashed()) {
+            $qrCode->forceDelete();
+            return back()->with('success', 'تم حذف الرمز نهائياً');
+        }
+
         $qrCode->delete();
-        return back()->with('success', 'تم حذف رمز QR');
+        return back()->with('success', 'تم نقل الرمز إلى المحذوفات');
     }
 }

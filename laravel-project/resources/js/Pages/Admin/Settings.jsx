@@ -402,8 +402,6 @@ export default function Settings({ restaurant }) {
                     </button>
                 </Card>
 
-                </Card>
-
                 {/* ── 6. Status ── */}
                 <Card>
                     <SectionTitle>🟢 حالة المطعم</SectionTitle>
