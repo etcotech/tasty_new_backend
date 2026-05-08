@@ -181,4 +181,62 @@ trait HasOrderWebhooks
             ]);
         }
     }
+    /**
+     * Send the order created webhook to n8n.
+     */
+    protected function sendOrderCreatedWebhook(Order $order)
+    {
+        $webhookUrl = config('services.n8n.order_created_webhook');
+        if (!$webhookUrl) {
+            return;
+        }
+
+        $fulfillmentLabel = $this->getFulfillmentLabel($order);
+
+        $payload = [
+            'event_name' => 'order.created',
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'customer_phone' => $order->phone,
+            'table_number' => $order->table_number,
+            'fulfillment_label' => $fulfillmentLabel,
+            'subtotal' => (float)$order->subtotal,
+            'discount_amount' => (float)$order->discount_amount,
+            'coupon_code' => $order->coupon_code,
+            'tax' => (float)$order->tax,
+            'total' => (float)$order->total,
+            'restaurant_id' => $order->restaurant_id,
+            'tenant_id' => $order->restaurant_id,
+            'branch_id' => $order->branch_id,
+            'order_type' => $order->order_type,
+            'created_at' => $order->created_at,
+        ];
+
+        try {
+            $response = Http::timeout(5)->post($webhookUrl, $payload);
+            
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.created',
+                'payload' => $payload,
+                'status' => $response->successful() ? 'success' : 'failed',
+                'response' => $response->json() ?? ['raw' => $response->body()],
+                'error_message' => $response->successful() ? null : 'HTTP Error: ' . $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('n8n Automation Failed: ' . $e->getMessage());
+            
+            AutomationLog::create([
+                'restaurant_id' => $order->restaurant_id,
+                'automation_id' => null,
+                'event_name' => 'order.created',
+                'payload' => $payload,
+                'status' => 'failed',
+                'response' => null,
+                'error_message' => $e->getMessage(),
+            ]);
+        }
+    }
 }

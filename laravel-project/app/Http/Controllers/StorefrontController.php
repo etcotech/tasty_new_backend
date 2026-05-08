@@ -100,6 +100,8 @@ class StorefrontController extends Controller
                 'min_cashback_to_redeem' => (float)($restaurant->min_cashback_to_redeem ?? 10),
                 'max_wallet_discount_percentage' => (float)($restaurant->max_wallet_discount_percentage ?? 30),
                 'min_order_amount_for_wallet_redeem' => (float)($restaurant->min_order_amount_for_wallet_redeem ?? 50),
+                'payment_enabled' => (bool)($restaurant->paymentGateway?->is_enabled ?? false),
+                'payment_provider' => 'paymob', // Default to paymob if enabled
             ],
             'branches' => $branches,
             'categories' => $categories,

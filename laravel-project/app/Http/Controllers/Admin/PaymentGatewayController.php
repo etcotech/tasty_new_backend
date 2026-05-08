@@ -42,6 +42,8 @@ class PaymentGatewayController extends Controller
 
         $validated = $request->validate([
             'paymob_api_key' => 'nullable|string',
+            'paymob_secret_key' => 'nullable|string',
+            'paymob_public_key' => 'nullable|string',
             'paymob_integration_id' => 'nullable|string',
             'paymob_iframe_id' => 'nullable|string',
             'paymob_hmac_secret' => 'nullable|string',

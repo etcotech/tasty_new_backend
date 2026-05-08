@@ -60,6 +60,9 @@ const t = {
     branchDesc: { ar: 'يرجى اختيار الفرع لتتمكن من رؤية القائمة المتاحة والطلب', en: 'Please select a branch to see available menu and start ordering' },
     choose: { ar: 'اختيار',                             en: 'Choose' },
     changeBranch: { ar: 'تغيير الفرع',                  en: 'Change Branch' },
+    cash: { ar: 'الدفع عند الاستلام', en: 'Cash on Delivery' },
+    online: { ar: 'الدفع الإلكتروني', en: 'Online Payment' },
+    paymentMethod: { ar: 'طريقة الدفع', en: 'Payment Method' },
 };
 
 /* ======================================
@@ -316,7 +319,8 @@ export default function Menu({ slug }) {
         phone: '',
         car_number: '',
         customer_name: '',
-        notes: ''
+        notes: '',
+        payment_method: 'cash'
     });
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState(() => {
@@ -653,13 +657,18 @@ export default function Menu({ slug }) {
                     branch_id: selectedBranch?.id,
                     coupon_code: appliedCoupon?.code,
                     points_to_redeem: redeemPoints,
-                    cashback_to_redeem: redeemCashback
+                    cashback_to_redeem: redeemCashback,
+                    payment_method: orderForm.payment_method
                 })
             });
             
             const data = await response.json();
             
             if (data.success) {
+                if (data.requires_payment && data.payment_url) {
+                    window.location.href = data.payment_url;
+                    return;
+                }
                 setSuccessOrderNumber(data.order_number);
                 setSuccessOrderTotal(data.total ?? data.order?.total ?? data.order?.data?.total ?? 0);
                 setSuccessPoints(data.earned_points ?? 0);
@@ -677,7 +686,7 @@ export default function Menu({ slug }) {
                     notes: ''
                 });
             } else {
-                alert(data.message || 'Error occurred while creating the order.');
+                alert(data.message || (lang === 'ar' ? 'حدث خطأ أثناء إنشاء الطلب.' : 'Error occurred while creating the order.'));
             }
         } catch (error) {
             console.error(error);
@@ -1223,6 +1232,26 @@ export default function Menu({ slug }) {
                                     <label className="sv-form-label">{tr('notes')}</label>
                                     <textarea className="sv-form-input" style={{ minHeight: '80px' }} value={orderForm.notes} onChange={e => setOrderForm(prev => ({...prev, notes: e.target.value}))} />
                                 </div>
+                                
+                                {restaurant?.payment_enabled && (
+                                    <div className="sv-form-group">
+                                        <label className="sv-form-label">{tr('paymentMethod')}</label>
+                                        <div className="sv-radio-group">
+                                            <div 
+                                                className={`sv-radio-btn ${orderForm.payment_method === 'cash' ? 'active' : ''}`} 
+                                                onClick={() => setOrderForm(prev => ({...prev, payment_method: 'cash'}))}
+                                            >
+                                                {tr('cash')}
+                                            </div>
+                                            <div 
+                                                className={`sv-radio-btn ${orderForm.payment_method === 'online' ? 'active' : ''}`} 
+                                                onClick={() => setOrderForm(prev => ({...prev, payment_method: 'online'}))}
+                                            >
+                                                {tr('online')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Totals Breakdown in Checkout */}
                                 <div style={{ marginTop: '1.5rem', background: '#F2EFE8', padding: '1rem', borderRadius: '12px' }}>

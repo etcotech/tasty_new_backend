@@ -10,7 +10,9 @@ class Order extends Model
         'restaurant_id', 'branch_id', 'order_number', 'order_type', 'status', 
         'table_number', 'car_number', 'phone', 'customer_name', 
         'notes', 'subtotal', 'tax', 'total', 'cashback_used', 'points_used',
-        'pos_external_id', 'coupon_id', 'coupon_code', 'discount_amount', 'wallet_discount_amount'
+        'pos_external_id', 'coupon_id', 'coupon_code', 'discount_amount', 'wallet_discount_amount',
+        'payment_method', 'payment_status', 'payment_provider', 'payment_reference', 
+        'paymob_order_id', 'paymob_transaction_id'
     ];
     
     protected $casts = [

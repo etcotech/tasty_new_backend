@@ -18,16 +18,19 @@ use App\Traits\HasOrderWebhooks;
 use App\Traits\HasLoyaltyRewards;
 use App\Traits\HasPosSync;
 use App\Traits\HasCustomerSync;
+use App\Services\PaymobService;
 
 class OrderController extends Controller
 {
     use HasOrderWebhooks, HasLoyaltyRewards, HasPosSync, HasCustomerSync;
 
     protected $subscriptionService;
+    protected $paymobService;
 
-    public function __construct(SubscriptionService $subscriptionService)
+    public function __construct(SubscriptionService $subscriptionService, PaymobService $paymobService)
     {
         $this->subscriptionService = $subscriptionService;
+        $this->paymobService = $paymobService;
     }
 
     public function store(Request $request)
@@ -201,6 +204,10 @@ class OrderController extends Controller
             $tax = $taxableAmount * $taxRate;
             $total = $taxableAmount + $tax;
 
+            $paymentMethod = $request->payment_method === 'online' || $request->payment_method === 'paymob' ? 'paymob' : 'cash';
+            $paymentStatus = 'pending';
+            $orderStatus = $paymentMethod === 'paymob' ? 'pending_payment' : 'pending';
+
             // Generate unique order number
             $orderNumber = 'ORD' . rand(1000, 9999) . strtoupper(Str::random(2));
 
@@ -209,7 +216,10 @@ class OrderController extends Controller
                 'branch_id' => $request->branch_id,
                 'order_number' => $orderNumber,
                 'order_type' => $request->order_type,
-                'status' => 'pending',
+                'status' => $orderStatus,
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+                'payment_provider' => $paymentMethod === 'paymob' ? 'paymob' : null,
                 'table_number' => $request->table_number,
                 'car_number' => $request->car_number,
                 'phone' => $request->phone,
@@ -265,64 +275,136 @@ class OrderController extends Controller
             // Sync customer record (restaurant_customers table)
             $this->syncRestaurantCustomer($order);
 
+            // If Paymob is chosen, generate payment link
+            if ($order->payment_method === 'paymob') {
+                try {
+                    $gateway = $restaurant->paymentGateway;
+                    if (!$gateway || !$gateway->is_enabled) {
+                        throw new \Exception('إعدادات Paymob غير مكتملة (بوابة الدفع غير مفعلة)');
+                    }
+
+                    $currency = $restaurant->currency ?? 'SAR';
+                    $amountCents = (int)round($order->total * 100);
+
+                    // CASE 1: New Intention API (Unified Checkout) - Preferred for KSA
+                    if ($gateway->paymob_secret_key && $gateway->paymob_public_key) {
+                        $items = [];
+                        foreach ($order->items as $item) {
+                            $items[] = [
+                                'name' => $item->product_name_ar ?: $item->product_name_en,
+                                'amount' => (int)round($item->unit_price * 100),
+                                'description' => 'Quantity: ' . $item->quantity,
+                                'quantity' => (int)$item->quantity
+                            ];
+                        }
+
+                        $intention = $this->paymobService->createPaymentIntention(
+                            $gateway->paymob_secret_key,
+                            $amountCents,
+                            $currency,
+                            $gateway->paymob_integration_id,
+                            [
+                                'first_name' => $order->customer_name ?: 'Customer',
+                                'last_name' => 'Tasty',
+                                'phone_number' => $order->phone,
+                                'email' => 'customer@tasty.com'
+                            ],
+                            [
+                                'order_id' => $order->id,
+                                'items' => $items
+                            ]
+                        );
+
+                        $order->update([
+                            'paymob_order_id' => $intention['order']['id'] ?? null,
+                            'payment_reference' => $intention['id'] ?? null
+                        ]);
+
+                        $clientSecret = $intention['client_secret'];
+                        $publicKey = $gateway->paymob_public_key;
+                        
+                        // Construction of Unified Checkout URL for KSA
+                        $baseUrl = ($currency === 'SAR') ? 'https://ksa.paymob.com' : 'https://accept.paymob.com';
+                        $paymentUrl = "{$baseUrl}/unifiedcheckout/?publicKey={$publicKey}&clientSecret={$clientSecret}";
+
+                        return response()->json([
+                            'success' => true,
+                            'requires_payment' => true,
+                            'payment_url' => $paymentUrl,
+                            'order_number' => $orderNumber,
+                            'order' => $order,
+                            'message' => 'Order created, redirecting to payment'
+                        ]);
+                    }
+
+                    // CASE 2: Legacy Iframe Flow (API Key based)
+                    $token = $this->paymobService->authenticate($gateway->paymob_api_key, $currency);
+                    
+                    $paymobOrder = $this->paymobService->createOrder($token, $amountCents, $order->id, $currency);
+                    
+                    $order->update([
+                        'paymob_order_id' => $paymobOrder['id']
+                    ]);
+
+                    $paymentToken = $this->paymobService->getPaymentKey(
+                        $token, 
+                        $paymobOrder['id'], 
+                        $amountCents, 
+                        $gateway->paymob_integration_id, 
+                        $currency,
+                        [
+                            'first_name' => $order->customer_name ?: 'Customer',
+                            'last_name' => 'Tasty',
+                            'phone_number' => $order->phone,
+                            'email' => 'customer@tasty.com'
+                        ]
+                    );
+
+                    $iframeId = $gateway->paymob_iframe_id;
+                    if (empty($iframeId)) {
+                        throw new \Exception('Iframe ID غير صحيح أو مفقود');
+                    }
+
+                    $baseUrl = ($currency === 'SAR') ? 'https://ksa.paymob.com' : 'https://accept.paymob.com';
+                    $paymentUrl = "{$baseUrl}/api/acceptance/iframes/{$iframeId}?payment_token={$paymentToken}";
+
+                    return response()->json([
+                        'success' => true,
+                        'requires_payment' => true,
+                        'payment_url' => $paymentUrl,
+                        'order_number' => $orderNumber,
+                        'order' => $order,
+                        'message' => 'Order created, redirecting to payment'
+                    ]);
+
+                } catch (\Exception $paymobException) {
+                    // Log the technical details
+                    Log::error('Paymob Checkout Failure', [
+                        'restaurant_id' => $restaurant->id,
+                        'order_id' => $order->id,
+                        'amount' => $order->total,
+                        'currency' => $restaurant->currency ?? 'SAR',
+                        'error' => $paymobException->getMessage(),
+                        // 'trace' => $paymobException->getTraceAsString() // Removed to avoid bloat in response during test
+                    ]);
+
+                    // Rollback the order creation if Paymob fails
+                    DB::rollBack();
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'فشل إنشاء رابط الدفع: ' . $paymobException->getMessage()
+                    ], 422);
+                }
+            }
+
             // POS Sync: Sync order to external POS system (Foodics, Rewaa, etc.)
             // This is optional and will only run if an integration is enabled for this restaurant.
             $this->syncOrderToPos($order);
 
             // First n8n automation integration: Send order data to n8n and log the attempt.
             // This is triggered after the order is saved successfully.
-            $webhookUrl = config('services.n8n.order_created_webhook');
-            if ($webhookUrl) {
-                $fulfillmentLabel = $this->getFulfillmentLabel($order);
-
-                $payload = [
-                    'event_name' => 'order.created',
-                    'order_id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'customer_name' => $order->customer_name,
-                    'customer_phone' => $order->phone, // Mapping phone to customer_phone as requested
-                    'table_number' => $order->table_number,
-                    'fulfillment_label' => $fulfillmentLabel,
-                    'subtotal' => (float)$order->subtotal,
-                    'discount_amount' => (float)$order->discount_amount,
-                    'coupon_code' => $order->coupon_code,
-                    'tax' => (float)$order->tax,
-                    'total' => (float)$order->total,
-                    'restaurant_id' => $order->restaurant_id,
-                    'tenant_id' => $order->restaurant_id,
-                    'branch_id' => $order->branch_id,
-                    'order_type' => $order->order_type,
-                    'created_at' => $order->created_at,
-                ];
-
-                try {
-                    $response = Http::timeout(5)->post($webhookUrl, $payload);
-                    
-                    // Log the success
-                    AutomationLog::create([
-                        'restaurant_id' => $order->restaurant_id,
-                        'automation_id' => null,
-                        'event_name' => 'order.created',
-                        'payload' => $payload,
-                        'status' => $response->successful() ? 'success' : 'failed',
-                        'response' => $response->json() ?? ['raw' => $response->body()],
-                        'error_message' => $response->successful() ? null : 'HTTP Error: ' . $response->status(),
-                    ]);
-                } catch (\Exception $e) {
-                    // Log the failure
-                    Log::error('n8n Automation Failed: ' . $e->getMessage());
-                    
-                    AutomationLog::create([
-                        'restaurant_id' => $order->restaurant_id,
-                        'automation_id' => null,
-                        'event_name' => 'order.created',
-                        'payload' => $payload,
-                        'status' => 'failed',
-                        'response' => null,
-                        'error_message' => $e->getMessage(),
-                    ]);
-                }
-            }
+            $this->sendOrderCreatedWebhook($order);
 
             // Trigger n8n invoice webhook for new order
             $this->sendOrderInvoiceWebhook($order);
@@ -351,10 +433,13 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('General Checkout Error', [
+                'error' => $e->getMessage(),
+                'restaurant' => $request->restaurant_slug
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create order',
-                'error' => $e->getMessage()
+                'message' => 'فشل إنشاء الطلب: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -156,6 +156,7 @@ export default function TrackOrder({ initialOrderNumber }) {
     };
 
     const statuses = [
+        { id: 'pending_payment', label: 'بانتظار الدفع' },
         { id: 'pending',   label: 'تم الاستلام' },
         { id: 'preparing', label: 'قيد التحضير' },
         { id: 'ready',     label: 'جاهز' },

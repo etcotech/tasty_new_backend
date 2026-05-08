@@ -45,4 +45,10 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    'paymob' => [
+        'base_url_ksa' => env('PAYMOB_BASE_URL_KSA', 'https://ksa.paymob.com/api'),
+        'base_url_egypt' => env('PAYMOB_BASE_URL_EGYPT', 'https://accept.paymob.com/api'),
+        'test_mode' => env('PAYMOB_TEST_MODE', true),
+    ],
+
 ];

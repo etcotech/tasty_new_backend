@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AutomationTemplateController;
 use App\Http\Controllers\Api\TenantAutomationController;
 use App\Http\Controllers\Api\AutomationLogController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\PaymentCallbackController;
 
 Route::get('/restaurants/{slug}/menu', [StorefrontController::class, 'menu']);
 Route::post('/storefront/{slug}/coupons/validate', [StorefrontController::class, 'validateCoupon']);
@@ -56,3 +57,7 @@ Route::get('automation-logs', [AutomationLogController::class, 'index']);
 Route::get('automation-logs/{id}', [AutomationLogController::class, 'show']);
 Route::post('automation-logs', [AutomationLogController::class, 'store']);
 Route::delete('automation-logs', [AutomationLogController::class, 'destroy']);
+
+// Payment Gateways Callbacks
+Route::get('/payments/paymob/callback', [PaymentCallbackController::class, 'paymobCallback']);
+Route::post('/payments/paymob/webhook', [PaymentCallbackController::class, 'paymobWebhook']);

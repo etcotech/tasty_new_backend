@@ -19,6 +19,7 @@ const pageStyles = `
 
 .status-badge { padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: inline-block; }
 .status-pending { background: #fff3e0; color: #e65100; }
+.status-pending_payment { background: #fee2e2; color: #991b1b; }
 .status-preparing { background: #e3f2fd; color: #1565c0; }
 .status-ready { background: #f3e5f5; color: #6a1b9a; }
 .status-completed { background: #e8f5e9; color: #2e7d32; }
@@ -217,6 +218,7 @@ export default function Orders({ orders: initialOrders }) {
     };
 
     const statusOptions = {
+        'pending_payment': 'بانتظار الدفع (Pending Payment)',
         'pending': 'جديد (Pending)',
         'preparing': 'قيد التجهيز (Preparing)',
         'ready': 'جاهز (Ready)',
@@ -238,6 +240,7 @@ export default function Orders({ orders: initialOrders }) {
                             <th>الفرع (Branch)</th>
                             <th>النوع (Type)</th>
                             <th>المجموع (Total)</th>
+                            <th>الدفع (Payment)</th>
                             <th>الحالة (Status)</th>
                             <th>الوقت (Time)</th>
                             <th>إجراءات (Actions)</th>
@@ -268,6 +271,14 @@ export default function Orders({ orders: initialOrders }) {
                                     )}
                                 </td>
                                 <td>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                        {order.payment_method === 'paymob' || order.payment_method === 'online' ? '💳 إلكتروني' : '💵 كاش'}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: order.payment_status === 'paid' ? '#16a34a' : '#991b1b', fontWeight: 700 }}>
+                                        {order.payment_status === 'paid' ? 'تم الدفع' : 'لم يتم الدفع'}
+                                    </div>
+                                </td>
+                                <td>
                                     <span className={`status-badge status-${order.status}`}>
                                         {statusOptions[order.status]}
                                     </span>
@@ -277,6 +288,7 @@ export default function Orders({ orders: initialOrders }) {
                                         onChange={(e) => updateStatus(order.id, e.target.value)}
                                         disabled={isUpdating}
                                     >
+                                        <option value="pending_payment">بانتظار الدفع</option>
                                         <option value="pending">جديد</option>
                                         <option value="preparing">تجهيز</option>
                                         <option value="ready">جاهز</option>

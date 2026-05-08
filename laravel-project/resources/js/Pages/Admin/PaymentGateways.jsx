@@ -10,6 +10,8 @@ const BORDER = 'rgba(0,0,0,0.07)';
 export default function PaymentGateways({ gateway, restaurant }) {
     const { data, setData, post, processing, errors } = useForm({
         paymob_api_key: gateway?.paymob_api_key || '',
+        paymob_secret_key: gateway?.paymob_secret_key || '',
+        paymob_public_key: gateway?.paymob_public_key || '',
         paymob_integration_id: gateway?.paymob_integration_id || '',
         paymob_iframe_id: gateway?.paymob_iframe_id || '',
         paymob_hmac_secret: gateway?.paymob_hmac_secret || '',
@@ -73,6 +75,32 @@ export default function PaymentGateways({ gateway, restaurant }) {
                         </div>
                     </div>
 
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1rem', color: GOLD }}>إعدادات Paymob KSA (Intention API)</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                        <div className="form-group">
+                            <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.5rem' }}>Secret Key</label>
+                            <input 
+                                type="password" 
+                                value={data.paymob_secret_key}
+                                onChange={e => setData('paymob_secret_key', e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: errors.paymob_secret_key ? '1px solid red' : '1px solid #ddd' }} 
+                                placeholder="أدخل Secret Key" 
+                            />
+                            {errors.paymob_secret_key && <p style={{ color: 'red', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.paymob_secret_key}</p>}
+                        </div>
+                        <div className="form-group">
+                            <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.5rem' }}>Public Key</label>
+                            <input 
+                                value={data.paymob_public_key}
+                                onChange={e => setData('paymob_public_key', e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: errors.paymob_public_key ? '1px solid red' : '1px solid #ddd' }} 
+                                placeholder="أدخل Public Key" 
+                            />
+                            {errors.paymob_public_key && <p style={{ color: 'red', fontSize: '0.75rem', marginTop: '0.25rem' }}>{errors.paymob_public_key}</p>}
+                        </div>
+                    </div>
+
+                    <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1rem', color: '#6B6460' }}>إعدادات Legacy Iframe (اختياري)</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div className="form-group">
                             <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.5rem' }}>Paymob API Key</label>
