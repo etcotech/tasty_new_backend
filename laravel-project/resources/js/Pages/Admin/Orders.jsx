@@ -272,10 +272,10 @@ export default function Orders({ orders: initialOrders }) {
                                 </td>
                                 <td>
                                     <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                        {order.payment_method === 'paymob' || order.payment_method === 'online' ? '💳 إلكتروني' : '💵 كاش'}
+                                        {order.payment_method === 'paymob_online' || order.payment_method === 'paymob' ? '💳 إلكتروني Paymob' : '💵 الدفع في المطعم'}
                                     </div>
                                     <div style={{ fontSize: '0.75rem', color: order.payment_status === 'paid' ? '#16a34a' : '#991b1b', fontWeight: 700 }}>
-                                        {order.payment_status === 'paid' ? 'تم الدفع' : 'لم يتم الدفع'}
+                                        {order.payment_status === 'paid' ? 'تم الدفع' : 'غير مدفوع'}
                                     </div>
                                 </td>
                                 <td>
@@ -336,6 +336,36 @@ export default function Orders({ orders: initialOrders }) {
                                         ✨ إعادة احتساب المكافآت
                                     </button>
                                 )}
+                                {['paymob', 'paymob_online'].includes(selectedOrder.payment_method) && selectedOrder.payment_status !== 'paid' && (
+                                    <button 
+                                        className="btn-view" 
+                                        onClick={async () => {
+                                            setIsUpdating(true);
+                                            try {
+                                                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                                                const res = await fetch(`/admin/orders/${selectedOrder.id}/mark-paymob-paid`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken }
+                                                });
+                                                if (res.ok) {
+                                                    alert('تم تحديث حالة الدفع بنجاح');
+                                                    window.location.reload();
+                                                } else {
+                                                    const err = await res.json();
+                                                    alert(err.message || 'حدث خطأ أثناء الاتصال بالخادم');
+                                                }
+                                            } catch (e) {
+                                                alert('خطأ في الشبكة');
+                                            } finally {
+                                                setIsUpdating(false);
+                                            }
+                                        }}
+                                        disabled={isUpdating}
+                                        style={{ borderColor: '#3b82f6', color: '#3b82f6' }}
+                                    >
+                                        🔄 مزامنة الدفع مع Paymob
+                                    </button>
+                                )}
                                 <button className="btn-print" onClick={() => printOrder(selectedOrder, currentRestaurant)}>
                                     🖨️ طباعة الإيصال
                                 </button>
@@ -349,6 +379,17 @@ export default function Orders({ orders: initialOrders }) {
                                 <div><strong>الجوال:</strong> {selectedOrder.phone || '-'}</div>
                                 {selectedOrder.order_type === 'dine_in' && <div><strong>الطاولة:</strong> {selectedOrder.table_number}</div>}
                                 {selectedOrder.order_type === 'car' && <div><strong>السيارة:</strong> {selectedOrder.car_number}</div>}
+                                
+                                <div style={{ width: '100%', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        <div><strong>طريقة الدفع:</strong> {selectedOrder.payment_method === 'paymob_online' || selectedOrder.payment_method === 'paymob' ? 'Paymob إلكتروني' : 'الدفع في المطعم'}</div>
+                                        <div><strong>حالة الدفع:</strong> <span style={{ color: selectedOrder.payment_status === 'paid' ? '#16a34a' : (selectedOrder.payment_status === 'failed' ? '#dc2626' : '#d97706') }}>
+                                            {selectedOrder.payment_status === 'paid' ? 'مدفوع' : (selectedOrder.payment_status === 'failed' ? 'فشل' : 'غير مدفوع')}
+                                        </span></div>
+                                        {selectedOrder.paymob_transaction_id && <div><strong>رقم عملية Paymob:</strong> {selectedOrder.paymob_transaction_id}</div>}
+                                        {selectedOrder.paid_at && <div><strong>وقت الدفع:</strong> {new Date(selectedOrder.paid_at).toLocaleString('ar-SA')}</div>}
+                                    </div>
+                                </div>
                             </div>
                             
                             {selectedOrder.notes && (

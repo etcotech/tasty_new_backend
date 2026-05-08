@@ -204,9 +204,12 @@ class OrderController extends Controller
             $tax = $taxableAmount * $taxRate;
             $total = $taxableAmount + $tax;
 
-            $paymentMethod = $request->payment_method === 'online' || $request->payment_method === 'paymob' ? 'paymob' : 'cash';
-            $paymentStatus = 'pending';
-            $orderStatus = $paymentMethod === 'paymob' ? 'pending_payment' : 'pending';
+            $gateway = $restaurant->paymentGateway;
+            $paymentEnabled = $gateway && $gateway->is_enabled;
+
+            $paymentMethod = $paymentEnabled ? 'paymob_online' : 'manual';
+            $paymentStatus = $paymentEnabled ? 'pending' : 'unpaid';
+            $orderStatus = $paymentEnabled ? 'pending_payment' : 'pending';
 
             // Generate unique order number
             $orderNumber = 'ORD' . rand(1000, 9999) . strtoupper(Str::random(2));
@@ -275,8 +278,8 @@ class OrderController extends Controller
             // Sync customer record (restaurant_customers table)
             $this->syncRestaurantCustomer($order);
 
-            // If Paymob is chosen, generate payment link
-            if ($order->payment_method === 'paymob') {
+            // If Paymob is enabled, generate payment link
+            if ($paymentEnabled) {
                 try {
                     $gateway = $restaurant->paymentGateway;
                     if (!$gateway || !$gateway->is_enabled) {

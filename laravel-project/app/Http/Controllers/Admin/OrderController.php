@@ -76,4 +76,78 @@ class OrderController extends Controller
             'transactions_created' => $txCount
         ]);
     }
+
+    public function markPaymobPaid(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+        
+        $user = auth()->user();
+        if ($user->role !== 'super_admin' && $order->restaurant_id !== $user->restaurant_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        if ($order->payment_status === 'paid') {
+            return back()->with('info', 'الطلب مدفوع مسبقاً');
+        }
+
+        $gateway = $order->restaurant->paymentGateway;
+        if (!$gateway) {
+            return back()->with('error', 'لا توجد إعدادات بوابة دفع');
+        }
+
+        $txId = $order->paymob_transaction_id;
+        $paymobOrderId = $order->paymob_order_id;
+        
+        if (!$txId && !$paymobOrderId) {
+             return back()->with('error', 'لا يوجد رقم مرجعي لعملية Paymob لهذا الطلب للتحقق منها');
+        }
+
+        try {
+            $paymobService = app(\App\Services\PaymobService::class);
+            $currency = $order->restaurant->currency ?? 'SAR';
+            $token = $paymobService->authenticate($gateway->paymob_api_key, $currency);
+
+            $transaction = null;
+            if ($txId) {
+                $response = \Illuminate\Support\Facades\Http::withToken($token)
+                    ->get("https://accept.paymob.com/api/acceptance/transactions/{$txId}");
+                $transaction = $response->json();
+            } else {
+                $response = \Illuminate\Support\Facades\Http::withToken($token)
+                    ->get("https://accept.paymob.com/api/acceptance/transactions?order_id={$paymobOrderId}");
+                $data = $response->json();
+                $transactions = $data['data'] ?? [];
+                usort($transactions, function($a, $b) { return $b['id'] <=> $a['id']; });
+                $transaction = $transactions[0] ?? null;
+            }
+
+            if (!$transaction || !isset($transaction['success'])) {
+                return back()->with('error', 'لم يتم العثور على العملية في Paymob');
+            }
+
+            if ($transaction['success'] === true && $transaction['pending'] === false) {
+                \App\Services\OrderPaymentService::markPaymobOrderAsPaid($order, [
+                    'transaction_id' => $transaction['id'],
+                    'order_id' => $transaction['order']['id'] ?? $order->paymob_order_id
+                ]);
+
+                return back()->with('success', 'تم التحقق من الدفع وتحديث حالة الطلب إلى مدفوع بنجاح');
+            } else {
+                if ($transaction['pending'] === false && $order->payment_status !== 'paid') {
+                    $order->update([
+                        'payment_status' => 'failed',
+                        'status' => 'payment_failed'
+                    ]);
+                }
+                return back()->with('error', 'حالة العملية في Paymob: ' . ($transaction['pending'] ? 'قيد الانتظار' : 'فاشلة'));
+            }
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Manual Paymob Sync Error', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'حدث خطأ أثناء الاتصال بـ Paymob: ' . $e->getMessage());
+        }
+    }
 }

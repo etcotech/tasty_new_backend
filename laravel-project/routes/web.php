@@ -100,7 +100,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders');
     Route::post('/orders/{id}/recalculate-rewards', [AdminOrderController::class, 'recalculateRewards'])->name('orders.recalculate-rewards');
-    Route::get('/system-check', [SystemCheckController::class, 'index'])->name('system-check');
+    Route::post('/orders/{order}/mark-paymob-paid', [AdminOrderController::class, 'markPaymobPaid'])->name('orders.mark-paymob-paid');
+    Route::get('/payment-reports', [\App\Http\Controllers\Admin\PaymentReportController::class, 'index'])->name('payment-reports');
     
     // Restaurants Management (Super Admin only check inside controller)
     Route::get('/restaurants', [RestaurantController::class, 'index'])->name('restaurants.index');

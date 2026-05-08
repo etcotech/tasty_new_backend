@@ -60,8 +60,7 @@ const t = {
     branchDesc: { ar: 'يرجى اختيار الفرع لتتمكن من رؤية القائمة المتاحة والطلب', en: 'Please select a branch to see available menu and start ordering' },
     choose: { ar: 'اختيار',                             en: 'Choose' },
     changeBranch: { ar: 'تغيير الفرع',                  en: 'Change Branch' },
-    cash: { ar: 'الدفع عند الاستلام', en: 'Cash on Delivery' },
-    online: { ar: 'الدفع الإلكتروني', en: 'Online Payment' },
+    online: { ar: 'الدفع الإلكتروني Paymob', en: 'Online Payment (Paymob)' },
     paymentMethod: { ar: 'طريقة الدفع', en: 'Payment Method' },
 };
 
@@ -320,7 +319,7 @@ export default function Menu({ slug }) {
         car_number: '',
         customer_name: '',
         notes: '',
-        payment_method: 'cash'
+        payment_method: 'paymob_online'
     });
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState(() => {
@@ -1233,21 +1232,21 @@ export default function Menu({ slug }) {
                                     <textarea className="sv-form-input" style={{ minHeight: '80px' }} value={orderForm.notes} onChange={e => setOrderForm(prev => ({...prev, notes: e.target.value}))} />
                                 </div>
                                 
-                                {restaurant?.payment_enabled && (
+                                {restaurant?.payment_enabled ? (
                                     <div className="sv-form-group">
                                         <label className="sv-form-label">{tr('paymentMethod')}</label>
                                         <div className="sv-radio-group">
-                                            <div 
-                                                className={`sv-radio-btn ${orderForm.payment_method === 'cash' ? 'active' : ''}`} 
-                                                onClick={() => setOrderForm(prev => ({...prev, payment_method: 'cash'}))}
-                                            >
-                                                {tr('cash')}
-                                            </div>
-                                            <div 
-                                                className={`sv-radio-btn ${orderForm.payment_method === 'online' ? 'active' : ''}`} 
-                                                onClick={() => setOrderForm(prev => ({...prev, payment_method: 'online'}))}
-                                            >
+                                            <div className="sv-radio-btn active">
                                                 {tr('online')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="sv-form-group">
+                                        <label className="sv-form-label">{tr('paymentMethod')}</label>
+                                        <div className="sv-radio-group">
+                                            <div className="sv-radio-btn active">
+                                                {lang === 'ar' ? 'الدفع في المطعم' : 'Pay at Restaurant'}
                                             </div>
                                         </div>
                                     </div>

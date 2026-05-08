@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 /* ======================================
    STYLES (Compact & Horizontal Layout)
@@ -118,6 +118,13 @@ export default function TrackOrder({ initialOrderNumber }) {
                 setOrder(data.order);
                 setEarnedPoints(data.earned_points || 0);
                 setEarnedCashback(data.earned_cashback || 0);
+                
+                // Clear cart if paid or completed
+                if (data.order.payment_status === 'paid' || data.order.status === 'completed') {
+                    if (data.order.restaurant?.slug) {
+                        localStorage.removeItem(`sv_cart_${data.order.restaurant.slug}`);
+                    }
+                }
             } else {
                 setOrder(null);
                 setEarnedPoints(0);
@@ -166,6 +173,7 @@ export default function TrackOrder({ initialOrderNumber }) {
     const getStatusIndex = (status) => statuses.findIndex(s => s.id === status);
 
     const backUrl = order?.restaurant?.slug ? `/${order.restaurant.slug}` : '/';
+    const { flash } = usePage().props;
 
     return (
         <div className="tr-page">
@@ -174,6 +182,17 @@ export default function TrackOrder({ initialOrderNumber }) {
             
             <div className="tr-container">
                 
+                {flash && flash.success && (
+                    <div style={{ background: '#dcfce7', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold', border: '1px solid #bbf7d0' }}>
+                        ✅ {flash.success}
+                    </div>
+                )}
+                {flash && flash.error && (
+                    <div style={{ background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold', border: '1px solid #fecaca' }}>
+                        ❌ {flash.error}
+                    </div>
+                )}
+
                 {/* Nav Buttons */}
                 {order && (
                     <div className="tr-nav-row">

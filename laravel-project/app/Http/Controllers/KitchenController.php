@@ -57,6 +57,10 @@ class KitchenController extends Controller
         $query = Order::where('restaurant_id', $restaurant->id)
             ->with(['items.addons', 'branch'])
             ->whereIn('status', ['pending', 'preparing', 'ready'])
+            ->where(function($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('payment_method', 'manual');
+            })
             ->orderBy('created_at', 'asc');
 
         if ($branchId) {

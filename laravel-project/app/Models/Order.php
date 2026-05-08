@@ -12,7 +12,8 @@ class Order extends Model
         'notes', 'subtotal', 'tax', 'total', 'cashback_used', 'points_used',
         'pos_external_id', 'coupon_id', 'coupon_code', 'discount_amount', 'wallet_discount_amount',
         'payment_method', 'payment_status', 'payment_provider', 'payment_reference', 
-        'paymob_order_id', 'paymob_transaction_id'
+        'paymob_order_id', 'paymob_transaction_id',
+        'paid_at', 'paid_by_staff_id', 'pos_terminal_reference', 'pos_terminal_method', 'pos_payment_note'
     ];
     
     protected $casts = [
@@ -43,5 +44,10 @@ class Order extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function paidByStaff()
+    {
+        return $this->belongsTo(RestaurantStaff::class, 'paid_by_staff_id');
     }
 }
