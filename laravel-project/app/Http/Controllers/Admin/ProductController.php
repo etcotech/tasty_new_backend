@@ -47,13 +47,15 @@ class ProductController extends Controller
             'branch_ids'     => 'nullable|array',
             'branch_ids.*'   => 'exists:branches,id',
             'extra_ids'      => 'nullable|array',
-            'extra_ids.*'    => 'exists:addons,id'
+            'extra_ids.*'    => 'exists:addons,id',
+            'show_global_extras' => 'nullable|boolean'
         ]);
 
         $product = Product::create(array_merge($request->all(), [
             'restaurant_id' => $restaurant->id,
             'is_available'  => $request->boolean('is_available', true),
-            'available_all_branches' => $request->boolean('available_all_branches', true)
+            'available_all_branches' => $request->boolean('available_all_branches', true),
+            'show_global_extras' => $request->boolean('show_global_extras', true)
         ]));
 
         if (!$product->available_all_branches && $request->has('branch_ids')) {
@@ -82,12 +84,14 @@ class ProductController extends Controller
             'branch_ids'     => 'nullable|array',
             'branch_ids.*'   => 'exists:branches,id',
             'extra_ids'      => 'nullable|array',
-            'extra_ids.*'    => 'exists:addons,id'
+            'extra_ids.*'    => 'exists:addons,id',
+            'show_global_extras' => 'nullable|boolean'
         ]);
 
         $product->update(array_merge($request->all(), [
             'is_available' => $request->boolean('is_available'),
-            'available_all_branches' => $request->boolean('available_all_branches')
+            'available_all_branches' => $request->boolean('available_all_branches'),
+            'show_global_extras' => $request->boolean('show_global_extras')
         ]));
 
         if ($product->available_all_branches) {

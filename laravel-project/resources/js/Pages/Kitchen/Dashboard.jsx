@@ -471,8 +471,8 @@ const printOrder = (order, restaurant) => {
             </div>
             ${item.addons?.map(a => `
                 <div style="display: flex; justify-content: space-between; font-size: 12px; color: #444; padding-right: 15px;">
-                    <span>+ ${a.addon_name_ar || a.addon_name_en}</span>
-                    <span>${parseFloat(a.price).toFixed(2)}</span>
+                    <span>+ ${a.addon_name_ar || a.addon_name_en} (x${a.quantity || 1})</span>
+                    <span>${parseFloat(a.total || a.price).toFixed(2)}</span>
                 </div>
             `).join('')}
         </div>
@@ -761,7 +761,7 @@ export default function KitchenDashboard() {
                             <div className="k-addons">
                                 {item.addons.map((addon, aidx) => (
                                     <span key={addon.id || aidx} className="k-addon">
-                                        + {addon.addon_name_ar || addon.addon_name_en}
+                                        + {addon.addon_name_ar || addon.addon_name_en} (x{addon.quantity || 1})
                                     </span>
                                 ))}
                             </div>

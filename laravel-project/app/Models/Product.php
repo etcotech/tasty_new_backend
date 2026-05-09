@@ -9,7 +9,8 @@ class Product extends Model
     protected $fillable = [
         'restaurant_id', 'category_id', 'name_ar', 'name_en', 
         'description_ar', 'description_en', 'price', 
-        'image_path', 'is_available', 'available_all_branches', 'sort_order'
+        'image_path', 'is_available', 'available_all_branches', 'sort_order',
+        'show_global_extras'
     ];
 
     public function restaurant()

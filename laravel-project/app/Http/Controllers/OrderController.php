@@ -120,11 +120,12 @@ class OrderController extends Controller
 
                 if (isset($cartItem['addons']) && is_array($cartItem['addons'])) {
                     foreach ($cartItem['addons'] as $addon) {
-                        $addonsSum += $addon['price'] ?? 0;
+                        $addonQty = $addon['quantity'] ?? 1;
+                        $addonsSum += ($addon['price'] ?? 0) * $addonQty;
                     }
                 }
 
-                $itemTotal = ($itemBasePrice + $addonsSum) * $qty;
+                $itemTotal = ($itemBasePrice * $qty) + $addonsSum;
                 $subtotal += $itemTotal;
 
                 $itemsData[] = [
@@ -261,12 +262,16 @@ class OrderController extends Controller
 
                 if (isset($cartItem['addons']) && is_array($cartItem['addons'])) {
                     foreach ($cartItem['addons'] as $addon) {
+                        $addonQty = $addon['quantity'] ?? 1;
+                        $addonPrice = $addon['price'] ?? 0;
                         OrderItemAddon::create([
                             'order_item_id' => $orderItem->id,
                             'addon_id' => $addon['id'] ?? null,
                             'addon_name_ar' => $addon['name_ar'] ?? $addon['name'] ?? 'Unknown',
                             'addon_name_en' => $addon['name_en'] ?? $addon['name'] ?? 'Unknown',
-                            'price' => $addon['price'] ?? 0,
+                            'price' => $addonPrice,
+                            'quantity' => $addonQty,
+                            'total' => $addonPrice * $addonQty,
                         ]);
                     }
                 }

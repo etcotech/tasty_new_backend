@@ -92,7 +92,8 @@ export default function Products({ products, categories, extras, branches }) {
         is_available: true,
         available_all_branches: true,
         branch_ids: [],
-        extra_ids: []
+        extra_ids: [],
+        show_global_extras: true
     });
 
     useEffect(() => {
@@ -121,7 +122,8 @@ export default function Products({ products, categories, extras, branches }) {
                 is_available: !!product.is_available,
                 available_all_branches: !!product.available_all_branches,
                 branch_ids: product.branches.map(b => b.id),
-                extra_ids: product.addons.map(a => a.id)
+                extra_ids: product.addons.map(a => a.id),
+                show_global_extras: !!product.show_global_extras
             });
         } else {
             setEditingProduct(null);
@@ -131,7 +133,8 @@ export default function Products({ products, categories, extras, branches }) {
                 category_id: categories[0]?.id || '',
                 available_all_branches: true,
                 branch_ids: [],
-                extra_ids: []
+                extra_ids: [],
+                show_global_extras: true
             }));
         }
         setIsModalOpen(true);
@@ -393,12 +396,23 @@ export default function Products({ products, categories, extras, branches }) {
                                     )}
                                 </div>
 
-                                <div className="section-title">✨ الإضافات (Extras)</div>
+                                <div className="section-title">✨ الإضافات الخاصة (Product Specific Extras)</div>
 
                                 <div className="form-group--full">
-                                    {extras.length > 0 ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#eff6ff', padding: '1rem', borderRadius: '10px', marginBottom: '1rem' }}>
+                                        <label className="toggle">
+                                            <input type="checkbox" checked={data.show_global_extras} onChange={e => setData('show_global_extras', e.target.checked)} />
+                                            <span className="slider"></span>
+                                        </label>
+                                        <div>
+                                            <div style={{ fontWeight: 800, color: '#1e40af' }}>إظهار الإضافات العامة</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#1e40af' }}>هل تظهر الإضافات العامة (مثل المياه والبيبسي) لهذا المنتج؟</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {extras.filter(e => !e.is_global).length > 0 ? (
                                         <div className="extras-selection">
-                                            {extras.map(extra => (
+                                            {extras.filter(e => !e.is_global).map(extra => (
                                                 <div 
                                                     key={extra.id} 
                                                     className={`extra-card ${data.extra_ids.includes(extra.id) ? 'selected' : ''}`}
@@ -413,7 +427,7 @@ export default function Products({ products, categories, extras, branches }) {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div style={{ textAlign: 'center', padding: '2rem', background: '#f8f9fa', borderRadius: '10px', color: MUTED }}>لا توجد إضافات متاحة</div>
+                                        <div style={{ textAlign: 'center', padding: '2rem', background: '#f8f9fa', borderRadius: '10px', color: MUTED }}>لا توجد إضافات خاصة متاحة</div>
                                     )}
                                 </div>
                             </form>

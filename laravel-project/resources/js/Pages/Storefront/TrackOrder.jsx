@@ -315,8 +315,8 @@ export default function TrackOrder({ initialOrderNumber }) {
                                             {item.addons && item.addons.length > 0 && (
                                                 <div className="tr-item-addons">
                                                     {item.addons.map(a => (
-                                                        <div key={a.id} style={{ display: 'flex', justifySelf: 'space-between' }}>
-                                                            <span>+ {a.addon_name_ar || a.addon_name_en}</span>
+                                                        <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>+ {a.addon_name_ar || a.addon_name_en} (x{a.quantity || 1})</span>
                                                         </div>
                                                     ))}
                                                 </div>

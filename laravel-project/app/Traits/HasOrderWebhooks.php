@@ -122,6 +122,14 @@ trait HasOrderWebhooks
                 'quantity' => $item->quantity,
                 'unit_price' => (float) $item->unit_price,
                 'total' => (float) $item->total_price,
+                'addons' => $item->addons->map(function ($addon) {
+                    return [
+                        'name' => $addon->addon_name_ar ?? $addon->addon_name_en ?? 'Unknown',
+                        'quantity' => $addon->quantity,
+                        'price' => (float) $addon->price,
+                        'total' => (float) $addon->total,
+                    ];
+                })->toArray(),
             ];
         })->toArray();
 

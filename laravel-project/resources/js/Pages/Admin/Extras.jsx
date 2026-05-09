@@ -36,15 +36,15 @@ const pageStyles = `
 export default function Extras({ extras }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExtra, setEditingExtra] = useState(null);
-    const [formData, setFormData] = useState({ name_ar: '', name_en: '', price: '' });
+    const [formData, setFormData] = useState({ name_ar: '', name_en: '', price: '', is_global: false });
 
     const openModal = (extra = null) => {
         if (extra) {
             setEditingExtra(extra);
-            setFormData({ name_ar: extra.name_ar, name_en: extra.name_en, price: extra.price });
+            setFormData({ name_ar: extra.name_ar, name_en: extra.name_en, price: extra.price, is_global: !!extra.is_global });
         } else {
             setEditingExtra(null);
-            setFormData({ name_ar: '', name_en: '', price: '' });
+            setFormData({ name_ar: '', name_en: '', price: '', is_global: false });
         }
         setIsModalOpen(true);
     };
@@ -84,6 +84,7 @@ export default function Extras({ extras }) {
                             <th>الاسم (العربية)</th>
                             <th>الاسم (الإنجليزية)</th>
                             <th>السعر</th>
+                            <th>نوع الإضافة</th>
                             <th>إجراءات</th>
                         </tr>
                     </thead>
@@ -93,6 +94,13 @@ export default function Extras({ extras }) {
                                 <td>{extra.name_ar}</td>
                                 <td>{extra.name_en}</td>
                                 <td style={{ color: GOLD, fontWeight: 700 }}>{parseFloat(extra.price).toFixed(2)} ر.س</td>
+                                <td>
+                                    {extra.is_global ? (
+                                        <span style={{ background: '#e1f5fe', color: '#0288d1', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>إضافة عامة</span>
+                                    ) : (
+                                        <span style={{ background: '#f5f5f5', color: '#616161', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>إضافة خاصة</span>
+                                    )}
+                                </td>
                                 <td>
                                     <button className="btn-edit" onClick={() => openModal(extra)}>تعديل</button>
                                     <button className="btn-delete" onClick={() => handleDelete(extra.id)}>حذف</button>
@@ -124,7 +132,21 @@ export default function Extras({ extras }) {
                                     <label className="form-label">السعر</label>
                                     <input type="number" step="0.01" className="form-input" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
                                 </div>
-                                <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>حفظ</button>
+                                
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', background: '#fcfaf7', padding: '1rem', borderRadius: '12px', border: `1px dashed ${GOLD}` }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="is_global"
+                                        checked={formData.is_global} 
+                                        onChange={e => setFormData({ ...formData, is_global: e.target.checked })}
+                                        style={{ width: '20px', height: '20px', accentColor: GOLD, cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="is_global" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+                                        إضافة عامة تظهر مع كل المنتجات
+                                    </label>
+                                </div>
+
+                                <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '1.5rem', height: '48px', fontSize: '1.1rem' }}>حفظ</button>
                             </form>
                         </div>
                     </div>

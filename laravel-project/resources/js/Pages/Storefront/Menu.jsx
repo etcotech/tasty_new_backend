@@ -62,6 +62,8 @@ const t = {
     changeBranch: { ar: 'تغيير الفرع',                  en: 'Change Branch' },
     online: { ar: 'الدفع الإلكتروني Paymob', en: 'Online Payment (Paymob)' },
     paymentMethod: { ar: 'طريقة الدفع', en: 'Payment Method' },
+    globalAddons: { ar: 'إضافات عامة', en: 'Global Extras' },
+    privateAddons: { ar: 'إضافات خاصة', en: 'Product Extras' },
 };
 
 /* ======================================
@@ -168,11 +170,15 @@ const css = `
 .sv-page.ar .sv-modal__title { font-family: 'Cairo', sans-serif; }
 .sv-modal__price { font-size: 1.1rem; color: #B8942F; font-weight: 700; margin-bottom: 1.5rem; }
 .sv-modal__section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; border-bottom: 1px solid rgba(0,0,0,0.07); padding-bottom: 0.5rem; }
-.sv-addon-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; cursor: pointer; }
-.sv-addon-item input { margin-right: 0.75rem; width: 1.2rem; height: 1.2rem; accent-color: #C9A84C; }
-.sv-page.ar .sv-addon-item input { margin-right: 0; margin-left: 0.75rem; }
-.sv-addon-item span.sv-addon-name { flex: 1; font-size: 0.95rem; }
-.sv-addon-item span.sv-addon-price { font-size: 0.9rem; color: #6B6460; }
+.sv-addon-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; background: #fafafa; padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.04); }
+.sv-addon-info { flex: 1; display: flex; flex-direction: column; }
+.sv-addon-name { font-size: 0.95rem; font-weight: 700; color: ${TEXT}; }
+.sv-addon-price { font-size: 0.85rem; color: ${GOLD_H}; font-weight: 600; }
+.sv-addon-controls { display: flex; align-items: center; background: #fff; border-radius: 8px; border: 1.5px solid ${BORDER}; overflow: hidden; }
+.sv-addon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; cursor: pointer; font-size: 1.2rem; font-weight: 700; color: ${TEXT}; transition: all 0.2s; }
+.sv-addon-btn:hover:not(:disabled) { background: ${SURF_E}; color: ${GOLD_H}; }
+.sv-addon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.sv-addon-qty { width: 30px; text-align: center; font-weight: 700; font-size: 0.9rem; color: ${TEXT}; }
 .sv-modal__footer { padding: 1.5rem; border-top: 1px solid rgba(0,0,0,0.07); display: flex; gap: 1rem; align-items: center; }
 .sv-modal__total { flex: 1; font-size: 1.1rem; font-weight: 700; }
 .sv-modal__total-val { color: #B8942F; }
@@ -248,7 +254,8 @@ export default function Menu({ slug }) {
     const [activeCategory, setActiveCategory] = useState('all');
     const [quantities, setQuantities] = useState({});
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [selectedAddons, setSelectedAddons] = useState({});
+    const [selectedAddons, setSelectedAddons] = useState({}); // Stores quantity per addonId
+    const [globalExtras, setGlobalExtras] = useState([]);
     const [cart, setCart] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -283,13 +290,17 @@ export default function Menu({ slug }) {
     const totalWalletDiscount = walletPointsDiscount + walletCashbackDiscount;
 
     const discountAmount = appliedCoupon ? parseFloat(appliedCoupon.discount_amount) : 0;
-    const cartSubtotal   = cart.reduce((sum, item) => sum + item.total, 0);
+    const cartSubtotal   = cart.reduce((sum, item) => {
+        const itemBaseTotal = item.price * item.quantity;
+        const addonsTotal = item.addons.reduce((aSum, a) => aSum + (a.price * a.quantity), 0);
+        return sum + itemBaseTotal + addonsTotal;
+    }, 0);
     const taxableAmount  = Math.max(0, cartSubtotal - discountAmount - totalWalletDiscount);
     const taxRate        = (restaurant?.tax_percentage ?? 8) / 100;
     const cartTax        = taxableAmount * taxRate;
     const cartGrandTotal = taxableAmount + cartTax;
     const cartTotal      = cartGrandTotal;  // kept for back-compat
-    const cartCount      = cart.reduce((count, item) => count + item.quantity, 0);
+    const cartCount      = cart.length;
 
     // Calculated Rewards for Cart
     const earnedRewards = useMemo(() => {
@@ -389,6 +400,16 @@ export default function Menu({ slug }) {
         }
     }, [cart, slug, loading]);
 
+    /* Edge cases: Reset states when cart becomes empty */
+    useEffect(() => {
+        if (cart.length === 0 && !loading) {
+            setIsCheckoutOpen(false);
+            setAppliedCoupon(null);
+            setRedeemPoints(0);
+            setRedeemCashback(0);
+        }
+    }, [cart.length, loading]);
+
     const didInitBranch = useRef(false);
 
     /* Fetch menu */
@@ -415,6 +436,7 @@ export default function Menu({ slug }) {
                 setRestaurant(data.restaurant);
                 setCategories(data.categories);
                 setProducts(data.products);
+                setGlobalExtras(data.global_extras || []);
                 
                 // Initialize payment method based on restaurant settings
                 setOrderForm(prev => ({
@@ -510,8 +532,17 @@ export default function Menu({ slug }) {
         setSelectedAddons({});
     };
 
-    const toggleAddon = (addonId) => {
-        setSelectedAddons(prev => ({ ...prev, [addonId]: !prev[addonId] }));
+    const updateAddonQty = (addonId, delta) => {
+        setSelectedAddons(prev => {
+            const current = prev[addonId] || 0;
+            const next = current + delta;
+            if (next <= 0) {
+                const nextState = { ...prev };
+                delete nextState[addonId];
+                return nextState;
+            }
+            return { ...prev, [addonId]: next };
+        });
     };
 
     const handleBranchSelect = (branch) => {
@@ -523,23 +554,27 @@ export default function Menu({ slug }) {
     };
 
     const getCartItemKey = (product, addons) => {
-        const addonIds = addons.map(a => a.id).sort().join('-');
-        return `${product.id}-${addonIds}`;
+        const addonParts = addons.map(a => `${a.id}:${a.quantity}`).sort().join('-');
+        return `${product.id}-${addonParts}`;
     };
 
     const confirmAddons = () => {
         if (!selectedProduct) return;
         const quantity = quantities[selectedProduct.id] ?? 1;
-        const chosenAddons = (selectedProduct.addons || []).filter(a => selectedAddons[a.id]);
-        const addonsSum = chosenAddons.reduce((sum, a) => sum + parseFloat(a.price), 0);
-        const itemTotal = (parseFloat(selectedProduct.price) + addonsSum) * quantity;
         
-        console.log({
-            product: selectedProduct,
-            quantity,
-            addons: chosenAddons,
-            total: itemTotal
-        });
+        // Merge product addons and global addons based on product settings
+        const relevantGlobalExtras = selectedProduct.show_global_extras ? globalExtras : [];
+        const allAvailableAddons = [...(selectedProduct.addons || []), ...relevantGlobalExtras];
+        
+        const chosenAddons = allAvailableAddons
+            .filter(a => selectedAddons[a.id] > 0)
+            .map(a => ({
+                ...a,
+                quantity: selectedAddons[a.id]
+            }));
+
+        const addonsSum = chosenAddons.reduce((sum, a) => sum + (parseFloat(a.price) * a.quantity), 0);
+        const itemTotal = (parseFloat(selectedProduct.price) * quantity) + addonsSum;
         
         const cartKey = getCartItemKey(selectedProduct, chosenAddons);
         
@@ -549,7 +584,9 @@ export default function Menu({ slug }) {
                 const newCart = [...prev];
                 const existing = newCart[existingIdx];
                 existing.quantity += quantity;
-                existing.total = (parseFloat(existing.product.price) + addonsSum) * existing.quantity;
+                // Re-calculate total based on new quantity
+                const aSum = existing.addons.reduce((s, a) => s + (parseFloat(a.price) * a.quantity), 0);
+                existing.total = (parseFloat(existing.product.price) * existing.quantity) + aSum;
                 return newCart;
             } else {
                 return [...prev, {
@@ -574,14 +611,19 @@ export default function Menu({ slug }) {
                 if (item.key === key) {
                     const newQty = item.quantity + delta;
                     if (newQty <= 0) return null;
-                    const addonsSum = item.addons.reduce((sum, a) => sum + parseFloat(a.price), 0);
-                    item.quantity = newQty;
-                    item.total = (item.price + addonsSum) * newQty;
-                    return item;
+                    const addonsSum = item.addons.reduce((sum, a) => sum + (parseFloat(a.price) * a.quantity), 0);
+                    const newItem = { ...item };
+                    newItem.quantity = newQty;
+                    newItem.total = (item.price * newQty) + addonsSum;
+                    return newItem;
                 }
                 return item;
             }).filter(Boolean);
         });
+    };
+
+    const removeFromCart = (key) => {
+        setCart(prev => prev.filter(item => item.key !== key));
     };
 
 
@@ -1020,47 +1062,90 @@ export default function Menu({ slug }) {
                                     </div>
                                 </div>
                                 
-                                {selectedProduct.addons && selectedProduct.addons.length > 0 ? (
-                                    <>
-                                        <div className="sv-modal__section-title">{tr('addonsTitle')}</div>
-                                        <div>
-                                            {selectedProduct.addons.map(addon => (
-                                                <label key={addon.id} className="sv-addon-item">
-                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={!!selectedAddons[addon.id]}
-                                                            onChange={() => toggleAddon(addon.id)}
-                                                        />
-                                                        <span className="sv-addon-name">
-                                                            {lang === 'ar' ? (addon.name_ar || addon.name_en) : (addon.name_en || addon.name_ar)}
-                                                        </span>
+                                {(() => {
+                                    const productAddons = selectedProduct.addons || [];
+                                    const relevantGlobalExtras = selectedProduct.show_global_extras ? globalExtras : [];
+                                    const hasPrivate = productAddons.length > 0;
+                                    const hasGlobal = relevantGlobalExtras.length > 0;
+                                    
+                                    if (!hasPrivate && !hasGlobal) {
+                                        return (
+                                            <p style={{ color: '#6B6460', fontSize: '0.95rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                                {tr('noAddonsMsg')}
+                                            </p>
+                                        );
+                                    }
+                                    
+                                    return (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                            {hasPrivate && (
+                                                <div>
+                                                    <div className="sv-modal__section-title">{hasGlobal ? tr('privateAddons') : tr('addonsTitle')}</div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                        {productAddons.map(addon => (
+                                                            <div key={addon.id} className="sv-addon-item">
+                                                                <div className="sv-addon-info">
+                                                                    <span className="sv-addon-name">
+                                                                        {lang === 'ar' ? (addon.name_ar || addon.name_en) : (addon.name_en || addon.name_ar)}
+                                                                    </span>
+                                                                    <span className="sv-addon-price">
+                                                                        +{parseFloat(addon.price).toFixed(2)} {tr('sar')}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="sv-addon-controls">
+                                                                    <button className="sv-addon-btn" onClick={() => updateAddonQty(addon.id, -1)} disabled={!selectedAddons[addon.id]}>−</button>
+                                                                    <span className="sv-addon-qty">{selectedAddons[addon.id] || 0}</span>
+                                                                    <button className="sv-addon-btn" onClick={() => updateAddonQty(addon.id, 1)}>+</button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                    <span className="sv-addon-price">
-                                                        +{parseFloat(addon.price).toFixed(2)} {tr('sar')}
-                                                    </span>
-                                                </label>
-                                            ))}
+                                                </div>
+                                            )}
+                                            
+                                            {hasGlobal && (
+                                                <div>
+                                                    <div className="sv-modal__section-title">{hasPrivate ? tr('globalAddons') : tr('addonsTitle')}</div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                        {relevantGlobalExtras.map(addon => (
+                                                            <div key={addon.id} className="sv-addon-item">
+                                                                <div className="sv-addon-info">
+                                                                    <span className="sv-addon-name">
+                                                                        {lang === 'ar' ? (addon.name_ar || addon.name_en) : (addon.name_en || addon.name_ar)}
+                                                                        <span style={{ fontSize: '0.7rem', color: GOLD, background: '#fef3c7', padding: '0.1rem 0.4rem', borderRadius: '4px', marginInlineStart: '0.5rem' }}>{lang === 'ar' ? 'عام' : 'Global'}</span>
+                                                                    </span>
+                                                                    <span className="sv-addon-price">
+                                                                        +{parseFloat(addon.price).toFixed(2)} {tr('sar')}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="sv-addon-controls">
+                                                                    <button className="sv-addon-btn" onClick={() => updateAddonQty(addon.id, -1)} disabled={!selectedAddons[addon.id]}>−</button>
+                                                                    <span className="sv-addon-qty">{selectedAddons[addon.id] || 0}</span>
+                                                                    <button className="sv-addon-btn" onClick={() => updateAddonQty(addon.id, 1)}>+</button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    </>
-                                ) : (
-                                    <p style={{ color: '#6B6460', fontSize: '0.95rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-                                        {tr('noAddonsMsg')}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="sv-modal__footer">
-                                <div className="sv-modal__total">
-                                    {tr('total')}: <span className="sv-modal__total-val">
-                                        {((parseFloat(selectedProduct.price) + 
-                                        (selectedProduct.addons || [])
-                                            .filter(a => selectedAddons[a.id])
-                                            .reduce((sum, a) => sum + parseFloat(a.price), 0)) * (quantities[selectedProduct.id] ?? 1)).toFixed(2)} {tr('sar')}
-                                    </span>
-                                </div>
-                                <button className="sv-modal__btn-cancel" onClick={closeAddonModal}>{tr('cancel')}</button>
-                                <button className="sv-modal__btn-add" onClick={confirmAddons}>{tr('addToCart')}</button>
-                            </div>
+                                    );
+                                })()}
+                             </div>
+                             <div className="sv-modal__footer">
+                                 <div className="sv-modal__total">
+                                     {tr('total')}: <span className="sv-modal__total-val">
+                                         {(
+                                             (parseFloat(selectedProduct.price) * (quantities[selectedProduct.id] ?? 1)) + 
+                                             ([...(selectedProduct.addons || []), ...(selectedProduct.show_global_extras ? globalExtras : [])])
+                                                 .filter(a => selectedAddons[a.id] > 0)
+                                                 .reduce((sum, a) => sum + (parseFloat(a.price) * selectedAddons[a.id]), 0)
+                                         ).toFixed(2)} {tr('sar')}
+                                     </span>
+                                 </div>
+                                 <button className="sv-modal__btn-cancel" onClick={closeAddonModal}>{tr('cancel')}</button>
+                                 <button className="sv-modal__btn-add" onClick={confirmAddons}>{tr('addToCart')}</button>
+                             </div>
                         </div>
                     </div>
                 )}
@@ -1092,8 +1177,8 @@ export default function Menu({ slug }) {
                                         <div className="sv-cart-item__addons">
                                             {item.addons.map(a => (
                                                 <div key={a.id} className="sv-cart-item__addon">
-                                                    <span>+ {lang === 'ar' ? (a.name_ar || a.name_en) : (a.name_en || a.name_ar)}</span>
-                                                    <span>{parseFloat(a.price).toFixed(2)}</span>
+                                                    <span>+ {lang === 'ar' ? (a.name_ar || a.name_en) : (a.name_en || a.name_ar)} (x{a.quantity})</span>
+                                                    <span>{(parseFloat(a.price) * a.quantity).toFixed(2)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1105,6 +1190,24 @@ export default function Menu({ slug }) {
                                             <span>{item.quantity}</span>
                                             <button onClick={() => updateCartQty(item.key, 1)}>+</button>
                                         </div>
+                                        <button 
+                                            className="sv-cart-item__remove"
+                                            onClick={() => removeFromCart(item.key)}
+                                            style={{ 
+                                                background: 'none', 
+                                                border: 'none', 
+                                                color: '#C0392B', 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: 600, 
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem',
+                                                padding: '0.5rem'
+                                            }}
+                                        >
+                                            🗑️ {lang === 'ar' ? 'حذف' : 'Remove'}
+                                        </button>
                                     </div>
                                 </div>
                             ))

@@ -68,8 +68,14 @@ class StorefrontController extends Controller
             ->get([
                 'id', 'category_id', 'name_ar', 'name_en', 
                 'description_ar', 'description_en', 'price', 
-                'image_path', 'is_available', 'available_all_branches', 'sort_order'
+                'image_path', 'is_available', 'available_all_branches', 'sort_order',
+                'show_global_extras'
             ]);
+
+        $globalExtras = \App\Models\Addon::where('restaurant_id', $restaurant->id)
+            ->where('is_active', true)
+            ->where('is_global', true)
+            ->get(['id', 'name_ar', 'name_en', 'price']);
 
         return response()->json([
             'restaurant' => [
@@ -105,7 +111,8 @@ class StorefrontController extends Controller
             ],
             'branches' => $branches,
             'categories' => $categories,
-            'products' => $products
+            'products' => $products,
+            'global_extras' => $globalExtras
         ]);
     }
 
