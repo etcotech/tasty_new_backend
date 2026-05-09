@@ -281,6 +281,29 @@ export default function Dashboard({ stats, charts }) {
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Payment Method Stats */}
+                            <div style={{ marginTop: '2rem', borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: '1.5rem' }}>
+                                <div className="card-header">
+                                    <h2 className="card-title"><DollarSign size={20} color={GOLD} /> إحصائيات الدفع</h2>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                    {charts.ordersByPaymentMethod?.map(p => (
+                                        <div key={p.payment_method} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#FAFAFA', padding: '1rem', borderRadius: '16px' }}>
+                                            <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${GOLD}15`, display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center' }}>
+                                                <span style={{ fontSize: '1.2rem' }}>{p.payment_method === 'manual' ? '💵' : '💳'}</span>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: TEXT }}>
+                                                    {p.payment_method === 'manual' ? 'الدفع في المطعم' : 'دفع إلكتروني (Paymob)'}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: MUTED }}>{p.count} طلب</div>
+                                            </div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: GOLD }}>{parseFloat(p.total_sales).toFixed(0)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

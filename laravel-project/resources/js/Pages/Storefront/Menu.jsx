@@ -416,6 +416,12 @@ export default function Menu({ slug }) {
                 setCategories(data.categories);
                 setProducts(data.products);
                 
+                // Initialize payment method based on restaurant settings
+                setOrderForm(prev => ({
+                    ...prev,
+                    payment_method: data.restaurant.payment_enabled ? 'paymob_online' : 'manual'
+                }));
+                
                 const branchList = data.branches || [];
                 setBranches(branchList);
 

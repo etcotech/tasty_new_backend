@@ -208,8 +208,9 @@ class OrderController extends Controller
             $paymentEnabled = $gateway && $gateway->is_enabled;
 
             $paymentMethod = $paymentEnabled ? 'paymob_online' : 'manual';
-            $paymentStatus = $paymentEnabled ? 'pending' : 'unpaid';
+            $paymentStatus = $paymentEnabled ? 'pending' : 'paid';
             $orderStatus = $paymentEnabled ? 'pending_payment' : 'pending';
+            $paymentProvider = $paymentEnabled ? 'paymob' : 'restaurant';
 
             // Generate unique order number
             $orderNumber = 'ORD' . rand(1000, 9999) . strtoupper(Str::random(2));
@@ -222,7 +223,7 @@ class OrderController extends Controller
                 'status' => $orderStatus,
                 'payment_method' => $paymentMethod,
                 'payment_status' => $paymentStatus,
-                'payment_provider' => $paymentMethod === 'paymob' ? 'paymob' : null,
+                'payment_provider' => $paymentProvider,
                 'table_number' => $request->table_number,
                 'car_number' => $request->car_number,
                 'phone' => $request->phone,
@@ -237,6 +238,7 @@ class OrderController extends Controller
                 'points_used' => $pointsToRedeem,
                 'cashback_used' => $cashbackToRedeem,
                 'wallet_discount_amount' => $walletDiscountAmount,
+                'paid_at' => $paymentStatus === 'paid' ? now() : null,
             ]);
 
             // Increment coupon usage

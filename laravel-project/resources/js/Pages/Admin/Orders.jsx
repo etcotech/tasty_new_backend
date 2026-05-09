@@ -275,7 +275,9 @@ export default function Orders({ orders: initialOrders }) {
                                         {order.payment_method === 'paymob_online' || order.payment_method === 'paymob' ? '💳 إلكتروني Paymob' : '💵 الدفع في المطعم'}
                                     </div>
                                     <div style={{ fontSize: '0.75rem', color: order.payment_status === 'paid' ? '#16a34a' : '#991b1b', fontWeight: 700 }}>
-                                        {order.payment_status === 'paid' ? 'تم الدفع' : 'غير مدفوع'}
+                                        {order.payment_status === 'paid' 
+                                            ? (order.payment_method === 'manual' ? 'مدفوع في المطعم' : 'تم الدفع') 
+                                            : 'غير مدفوع'}
                                     </div>
                                 </td>
                                 <td>
@@ -384,7 +386,9 @@ export default function Orders({ orders: initialOrders }) {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                         <div><strong>طريقة الدفع:</strong> {selectedOrder.payment_method === 'paymob_online' || selectedOrder.payment_method === 'paymob' ? 'Paymob إلكتروني' : 'الدفع في المطعم'}</div>
                                         <div><strong>حالة الدفع:</strong> <span style={{ color: selectedOrder.payment_status === 'paid' ? '#16a34a' : (selectedOrder.payment_status === 'failed' ? '#dc2626' : '#d97706') }}>
-                                            {selectedOrder.payment_status === 'paid' ? 'مدفوع' : (selectedOrder.payment_status === 'failed' ? 'فشل' : 'غير مدفوع')}
+                                            {selectedOrder.payment_status === 'paid' 
+                                                ? (selectedOrder.payment_method === 'manual' ? 'مدفوع في المطعم' : 'مدفوع') 
+                                                : (selectedOrder.payment_status === 'failed' ? 'فشل' : 'غير مدفوع')}
                                         </span></div>
                                         {selectedOrder.paymob_transaction_id && <div><strong>رقم عملية Paymob:</strong> {selectedOrder.paymob_transaction_id}</div>}
                                         {selectedOrder.paid_at && <div><strong>وقت الدفع:</strong> {new Date(selectedOrder.paid_at).toLocaleString('ar-SA')}</div>}

@@ -147,6 +147,12 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->get();
 
+        // Orders by payment method
+        $ordersByPaymentMethod = Order::where('restaurant_id', $restaurant->id)
+            ->select('payment_method', DB::raw('count(*) as count'), DB::raw('SUM(total) as total_sales'))
+            ->groupBy('payment_method')
+            ->get();
+
         // Top 5 Products
         $topProducts = OrderItem::whereHas('order', function($q) use ($restaurant) {
                 $q->where('restaurant_id', $restaurant->id);
@@ -170,6 +176,7 @@ class DashboardController extends Controller
                 'ordersByStatus' => $ordersByStatus,
                 'topProducts' => $topProducts,
                 'branchStats' => $branchStats,
+                'ordersByPaymentMethod' => $ordersByPaymentMethod,
             ]
         ]);
     }
